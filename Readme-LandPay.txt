@@ -275,68 +275,19 @@ Constraints should include:
 * Any number of active co-clients.
 * A payment plan must have at least one active client before activation.
 
-### Client contacts and continuity designations
+### General client contacts
 
-Fallback and emergency contacts are not co-clients and do not become financially responsible merely because they are listed. Use three related structures so current contact data is easy to use while all prior information remains available.
+Use one `client_contacts` table for general, emergency, and continuity contacts. Contacts are owned by a client and may optionally be scoped to one payment plan. They are not co-clients and gain no liability, ownership, portal access, or financial disclosure rights.
 
-#### `client_contacts`
+Do not implement a fully versioned contact subsystem initially. Retain replaced or withdrawn contacts by ending their active period and linking to a replacement row. Allow corrections to the current row, with every before/after change recorded in append-only `audit_logs`. Clients may later manage only their own contacts through separately authorized client-portal workflows.
 
-A stable identity owned by a client. Fields should include:
+A continuity contact remains a candidate only. Any future transfer of obligations or rights requires verification, administrator/legal approval, appropriate documentation, and creation/linkage of a first-class client relationship.
 
-* UUID or non-sequential public identifier.
-* Owner client ID.
-* Current lifecycle status: active, replaced, withdrawn, or deceased.
-* Created timestamp.
-* Archived timestamp, nullable.
+The complete proposed identity schema, indexes, constraints, and retention rules are documented in `docs/identity-schema-proposal.md` and must be approved before migrations are created.
 
-Do not hard-delete a contact that has ever been saved or designated on a payment plan.
+### Payment plans
 
-#### `client_contact_versions`
-
-Append-only versions of the contact's details. Fields should include:
-
-* Client contact ID.
-* Version number.
-* First and last name.
-* Relationship to the client.
-* Email.
-* Primary and secondary phone, as available.
-* Mailing address, optional.
-* Preferred contact method.
-* Notes supplied by the client, subject to safe display and audit rules.
-* Valid-from timestamp.
-* Valid-to timestamp, nullable for the current version.
-* Supersedes-version ID, nullable.
-* Changed-by administrator user ID, nullable.
-* Changed-by client ID, nullable.
-* Change source: administrator or client portal.
-* Created timestamp.
-
-A client-facing edit must close the current version and append a new version in one database transaction. Past versions remain visible to authorized administrators and are never overwritten or deleted through normal workflows.
-
-#### `payment_plan_contact_designations`
-
-Links a stable client contact to a particular payment plan. Fields should include:
-
-* Payment plan ID.
-* Owner client ID.
-* Client contact ID.
-* Designation type: emergency contact or continuity/successor candidate.
-* Priority order.
-* Contact-after-days threshold or trigger notes, optional.
-* Permission scope, defaulting to contact-only with no financial disclosure.
-* Client consent/nomination timestamp.
-* Contact acknowledgment timestamp, nullable.
-* Effective-from timestamp.
-* Effective-to timestamp, nullable.
-* Created by administrator user ID or client ID.
-* Created timestamp.
-
-Designation history is temporal and must not be deleted. Replacing a designation closes it with `effective_to` and creates a new designation. The client portal may create, update through versioning, reorder, replace, or withdraw the owning client's contacts and designations. Authorization policies must prevent a client from changing another client's records.
-
-A continuity/successor designation is only a nomination. It does not grant portal access, disclose balances or payment history, transfer ownership, preserve or assign legal rights by itself, or make the contact liable for payments. Any future transfer of rights or obligations requires identity verification, administrator review, appropriate legal documentation, and conversion or linkage of that person to a first-class `client` and `payment_plan_clients` record. The original contact and designation history must remain available after such a conversion.
-
-### Payment plansUse a `payment_plans` table for each financed account. Fields should include:
+Use a payment_plans table for each financed account. Fields should include:
 
 * UUID or non-sequential public identifier.
 * Internal payment-plan/account number.
@@ -914,17 +865,16 @@ No migrations or domain code should be generated until this schema is reviewed a
 2. Approve the relational schema and its foreign-key, uniqueness, temporal-history, privacy, and immutability constraints.
 3. Create the initial Git baseline commit for the approved Laravel and design foundation.
 4. Add secure administrator authentication with public registration disabled.
-5. Generate migrations and models for identity, plan ownership, and continuity contacts:
+5. Review and approve the documented identity, plan-ownership, contact, and audit schema before generating migrations:
 
    * users
    * clients
    * payment_plans
    * payment_plan_clients
    * client_contacts
-   * client_contact_versions
-   * payment_plan_contact_designations
+   * audit_logs
 
-6. Add authorization policies for administrator access and client-owned contact/version/designation updates before exposing any client portal mutation.
+6. After schema approval, generate the identity migrations and add authorization policies for administrator access and future client-owned contact updates.
 7. Generate the minimal immutable financial model:
 
    * invoices
@@ -953,7 +903,7 @@ No migrations or domain code should be generated until this schema is reviewed a
 21. Implement rebuildable invoice, client-credit, purchase-balance, paid-in-value, and account-status calculations.
 22. Build dashboard, client, payment-plan, invoice, payment, allocation-preview, transaction-history, and audit views.
 23. Implement secure client authentication and portal read access.
-24. Implement client-owned contact/version/designation management with complete history and audit tests.
+24. Implement client-owned general contact management with retained replaced rows and complete audit-log tests.
 25. Implement an administrator-only continuity workflow for loss of contact without automatic disclosure or obligation transfer.
 26. Run migrations only after explicit schema approval, then run all financial posting, reversal, authorization, temporal-history, and rebuild tests.
 27. Document cPanel environment, database, queue, scheduler, mail, backup, privacy, retention, and deployment requirements before production migration.

@@ -28,7 +28,11 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url('/#features') }}">What you can do</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/#help') }}">Get help</a></li>
                     <li class="nav-item ms-lg-2"><a class="btn btn-outline-brand" href="{{ url('/#portal') }}">Client portal</a></li>
-                    <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-brand" href="{{ url('/#admin') }}">Admin sign in</a></li>
+                    @auth
+                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-brand" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    @else
+                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-brand" href="{{ route('admin.login') }}">Admin sign in</a></li>
+                    @endauth
                 </ul>
             </div>
         </div>
@@ -51,7 +55,11 @@
             <div class="col-lg-3 text-lg-end">
                 <a class="footer-link" href="{{ url('/#portal') }}">Client portal</a>
                 <span class="footer-divider" aria-hidden="true">•</span>
-                <a class="footer-link" href="{{ url('/#admin') }}">Admin</a>
+                @auth
+                    <a class="footer-link" href="{{ route('admin.dashboard') }}">Dashboard</a>
+                @else
+                    <a class="footer-link" href="{{ route('admin.login') }}">Admin</a>
+                @endauth
                 <p class="footer-legal mb-0">&copy; {{ date('Y') }} LandPay</p>
             </div>
         </div>

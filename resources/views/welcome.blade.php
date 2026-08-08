@@ -123,7 +123,7 @@
                     <div class="coming-soon-card">
                         <span class="coming-soon-label">Coming next</span>
                         <h3>Secure account access</h3>
-                        <p>Client and administrator authentication will be enabled after the account model and security rules are approved.</p>
+                        <p>Client portal authentication will follow the approved identity design. Administrator access is now secured separately.</p>
                         <button class="btn btn-brand w-100" type="button" disabled>Portal sign in</button>
                     </div>
                 </div>
