@@ -469,3 +469,28 @@ a { text-underline-offset: .2em; }
         width: 100%;
     }
 }
+
+/* Admin sidebar layout cleanup */
+body.admin-layout .admin-section {
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+}
+
+body.admin-layout .admin-section > .container,
+body.admin-layout .admin-section > .site-container {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Keep sidebar to viewport height instead of stretching with long pages */
+.admin-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
