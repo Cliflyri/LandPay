@@ -23,6 +23,35 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 <div class="col-12"><label class="form-label">Additional property details</label><textarea class="form-control" name="asset_description" rows="2">{{ old('asset_description',$plan->asset_description) }}</textarea></div>
 <div class="col-12"><div class="form-check form-switch"><input type="hidden" name="automated_reminders_enabled" value="0"><input class="form-check-input" type="checkbox" id="automated_reminders_enabled" name="automated_reminders_enabled" value="1" @checked(old('automated_reminders_enabled',$plan->automated_reminders_enabled))><label class="form-check-label" for="automated_reminders_enabled">Allow automated email reminders for this plan</label></div></div>
 <div class="col-12"><div class="form-check form-switch"><input type="hidden" name="automatic_invoice_email_enabled" value="0"><input class="form-check-input" type="checkbox" id="automatic_invoice_email_enabled" name="automatic_invoice_email_enabled" value="1" @checked(old('automatic_invoice_email_enabled',$plan->automatic_invoice_email_enabled))><label class="form-check-label" for="automatic_invoice_email_enabled">Automatically email newly generated invoices (inline)</label></div></div>
+
+<div
+    id="accelerated-testing-mode"
+    class="col-12"
+    style="scroll-margin-top:8rem;"
+>
+    <div class="form-check form-switch">
+        <input type="hidden" name="accelerated_testing_mode" value="0">
+
+        <input
+            class="form-check-input"
+            type="checkbox"
+            id="accelerated_testing_mode"
+            name="accelerated_testing_mode"
+            value="1"
+            @checked(old('accelerated_testing_mode', $plan->accelerated_testing_mode))
+        >
+
+        <label class="form-check-label" for="accelerated_testing_mode">
+            Accelerated testing mode
+            <strong>(daily billing cycle &ndash; testing only)</strong>
+        </label>
+
+        <div class="form-text">
+            Automatically treats this plan as due every day instead of every month.
+        </div>
+    </div>
+</div>
+
 <div class="col-12"><label class="form-label">Internal notes</label><textarea class="form-control" name="notes" rows="2">{{ old('notes',$plan->notes) }}</textarea></div>
 </div></div></div>
 

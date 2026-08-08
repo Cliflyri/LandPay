@@ -28,7 +28,16 @@
         <div class="col-sm-6 col-lg-3"><dt>Client</dt><dd class="mb-0">{{$clientName}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>Invoice date</dt><dd class="mb-0">{{$invoice->issue_date->format('M j, Y')}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>Due date</dt><dd class="mb-0 {{$balance>0 && $invoice->due_date->isPast() ? 'invoice-date-overdue' : ''}}">{{$invoice->due_date->format('M j, Y')}}</dd></div>
-        <div class="col-sm-6 col-lg-3"><dt>Billing period</dt><dd class="mb-0">@if($invoice->period_start && $invoice->period_end){{$invoice->period_start->format('M j')}}{{$invoice->period_end->format('M j, Y')}}@else Not specified @endif</dd></div>
+        <div class="col-sm-6 col-lg-3"><dt>Billing period</dt><dd class="mb-0">
+            @if($invoice->period_start && $invoice->period_end)
+    {{ $invoice->period_start->format('M j') }}
+    to
+    {{ $invoice->period_end->format('M j, Y') }}
+@else
+    Not specified
+@endif
+
+        </dd></div>
     </dl>
 </div>
 

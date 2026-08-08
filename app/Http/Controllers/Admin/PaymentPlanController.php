@@ -221,6 +221,7 @@ class PaymentPlanController extends Controller
             'stage_one_minimum_amount' => ['nullable', 'required_if:stage_one_fee_type,percentage', 'decimal:0,2'],
             'automated_reminders_enabled' => ['nullable', 'boolean'],
             'automatic_invoice_email_enabled' => ['nullable', 'boolean'],
+            'accelerated_testing_mode' => ['nullable', 'boolean'],
             'stage_two_enabled' => ['nullable', 'boolean'],
             'stage_two_days_late' => ['nullable', 'required_if:stage_two_enabled,1', 'integer', 'between:1,365'],
             'stage_two_fee_type' => ['nullable', 'required_if:stage_two_enabled,1', Rule::in(['fixed', 'percentage'])],
@@ -264,6 +265,7 @@ class PaymentPlanController extends Controller
                 'grace_period_days' => $data['grace_days'], 'updated_by_user_id' => $request->user()->id,
                 'automated_reminders_enabled' => $request->boolean('automated_reminders_enabled'),
                 'automatic_invoice_email_enabled' => $request->boolean('automatic_invoice_email_enabled'),
+                'accelerated_testing_mode' => $request->boolean('accelerated_testing_mode'),
             ]);
 
             $effectiveFrom = Carbon::parse($data['effective_from']);

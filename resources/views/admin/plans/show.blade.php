@@ -11,8 +11,35 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div>
         <span class="eyebrow eyebrow-dark">Payment plan</span>
-        <h1>@if($primaryClient)<a class="dashboard-client-link" href="{{ route('admin.clients.show',$primaryClient) }}">{{ $primaryClientName }}</a>@else No primary client @endif</h1>
+        
+<h1 class="d-flex flex-wrap align-items-center gap-2">
+    @if($primaryClient)
+        <a class="dashboard-client-link" href="{{ route('admin.clients.show',$primaryClient) }}">
+            {{ $primaryClientName }}
+        </a>
+    @else
+        No primary client
+    @endif
+
+    @if($plan->accelerated_testing_mode)
+    <a
+    href="{{ route('admin.plans.edit', $plan) }}#accelerated_testing_mode"
+    class="text-decoration-none"
+    title="Testing mode enabled — click to edit"
+    >
+    <span
+        class="dashboard-status status-due ms-2"
+        style="font-size:1rem; letter-spacing:normal; padding:.35rem .8rem;"
+        title="Accelerated testing mode (daily billing cycle)"
+    >
+        TEST: Daily Billing
+    </span>
+    </a>
+    @endif
+</h1>
         <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }}</p>
+
+        
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.create',$plan) }}">Review next invoice</a>

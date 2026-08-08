@@ -74,6 +74,25 @@
             {{ $row['operational_status'] }}
         </span>
     @endif
+
+@if ($row['plan']->accelerated_testing_mode)
+    <div class="mt-1">
+            <a
+            href="{{ route('admin.plans.edit', $row['plan']) }}#accelerated_testing_mode"
+            class="text-decoration-none"
+            title="Testing mode enabled — click to edit"
+            >
+        <span
+            class="dashboard-status status-due"
+            title="Accelerated testing mode (daily billing cycle)"
+        >
+            TEST: Daily billing
+        </span>
+        </a>
+    </div>
+@endif
+
+
 </td>
 
 <td class="money-cell dashboard-monthly-column text-center" title="Monthly payment (principal portion)">

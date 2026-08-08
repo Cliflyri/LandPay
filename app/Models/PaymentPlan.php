@@ -23,6 +23,7 @@ class PaymentPlan extends Model
             'activated_at' => 'datetime',
             'automated_reminders_enabled' => 'boolean',
             'automatic_invoice_email_enabled' => 'boolean',
+            'accelerated_testing_mode' => 'boolean',
             'closed_at' => 'datetime',
         ];
     }

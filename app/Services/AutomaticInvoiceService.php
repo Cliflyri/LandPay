@@ -25,7 +25,32 @@ class AutomaticInvoiceService
                     $actor = $plan->updatedBy ?? $plan->createdBy;
                     if ($terms === null || $actor === null) continue;
                     if ($this->invoices->uninvoicedPrincipal($plan) <= 0) continue;
-                    $invoice = $this->invoices->issue($plan, $terms, $actor, 'INV-'.$plan->id.'-'.$date->format('Ym'), $date->copy()->startOfMonth(), $date->copy()->endOfMonth(), $date, 0, null, true);
+                    
+$invoiceNumber = $plan->accelerated_testing_mode
+    ? 'INV-'.$plan->id.'-'.$date->format('Ymd')
+    : 'INV-'.$plan->id.'-'.$date->format('Ym');
+
+$periodStart = $plan->accelerated_testing_mode
+    ? $date->copy()
+    : $date->copy()->startOfMonth();
+
+$periodEnd = $plan->accelerated_testing_mode
+    ? $date->copy()
+    : $date->copy()->endOfMonth();
+
+$invoice = $this->invoices->issue(
+    $plan,
+    $terms,
+    $actor,
+    $invoiceNumber,
+    $periodStart,
+    $periodEnd,
+    $date,
+    0,
+    null,
+    true,
+);
+
                     $result['created']++;
                     if ($plan->automatic_invoice_email_enabled) {
                         try { $this->email->send($invoice, $actor, 'inline'); $result['emailed']++; }
@@ -42,6 +67,30 @@ class AutomaticInvoiceService
         if ($plan->status !== 'active') return null;
         $from ??= Carbon::today();
         $plan->loadMissing(['billingTerms', 'pauses']);
+
+if ($plan->accelerated_testing_mode) {
+    for (
+        $date = $from->copy()->startOfDay();
+        $date->lte($from->copy()->addYear());
+        $date->addDay()
+    ) {
+        $invoiceNumber = 'INV-'.$plan->id.'-'.$date->format('Ymd');
+
+        if (
+            ! $this->pausedOn($plan, $date)
+            && ! Invoice::query()
+                ->where('payment_plan_id', $plan->id)
+                ->where('invoice_number', $invoiceNumber)
+                ->exists()
+        ) {
+            return $date->copy();
+        }
+    }
+
+    return null;
+}
+
+
         for ($month = $from->copy()->startOfMonth(); $month->lte($from->copy()->addMonths(24)->startOfMonth()); $month->addMonth()) {
             $date = $this->dateForMonth($plan, $month);
             if ($date && $date->gte($from) && ! $this->pausedOn($plan, $date)) return $date;
@@ -53,6 +102,25 @@ class AutomaticInvoiceService
     {
         $anchor = ($plan->first_due_date ?? $plan->plan_start_date)?->copy()->startOfDay();
         if ($anchor === null) return collect();
+
+if ($plan->accelerated_testing_mode) {
+    $date = $through->copy()->startOfDay();
+    $invoiceNumber = 'INV-'.$plan->id.'-'.$date->format('Ymd');
+
+    if (
+        $date->lte($anchor)
+        || $this->pausedOn($plan, $date)
+        || Invoice::query()
+            ->where('payment_plan_id', $plan->id)
+            ->where('invoice_number', $invoiceNumber)
+            ->exists()
+    ) {
+        return collect();
+    }
+
+    return collect([$date]);
+}
+
         $existing = Invoice::query()->where('payment_plan_id', $plan->id)->pluck('invoice_number')->flip();
         $dates = collect();
         for ($month = $anchor->copy()->startOfMonth(); $month->lte($through->copy()->startOfMonth()); $month->addMonth()) {
