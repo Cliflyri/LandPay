@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PaymentPlan extends Model
 {
@@ -26,5 +27,20 @@ class PaymentPlan extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(PaymentPlanClient::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function financialTransactions(): HasMany
+    {
+        return $this->hasMany(FinancialTransaction::class);
+    }
+
+    public function currentBillingTerms(): HasOne
+    {
+        return $this->hasOne(PaymentPlanBillingTerm::class)->whereNull('effective_to')->latestOfMany();
     }
 }
