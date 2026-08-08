@@ -28,4 +28,9 @@ class PaymentPlanBillingTerm extends Model
     {
         return $this->belongsTo(PaymentPlan::class);
     }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
 }

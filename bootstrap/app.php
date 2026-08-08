@@ -12,8 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo(fn (Request $request): string => route('admin.login'));
-        $middleware->redirectUsersTo(fn (Request $request): string => route('admin.dashboard'));
+        $middleware->validateCsrfTokens(except: ['webhooks/*']);
+        $middleware->redirectGuestsTo(
+            fn (Request $request): string => $request->is('portal', 'portal/*') ? route('portal.login') : route('admin.login')
+        );
+        $middleware->redirectUsersTo(
+            fn (Request $request): string => $request->is('portal', 'portal/*') ? route('portal.dashboard') : route('admin.dashboard')
+        );
+        $middleware->alias(['portal.read-only' => \App\Http\Middleware\EnsurePortalImpersonationIsReadOnly::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

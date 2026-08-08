@@ -42,8 +42,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
-    ],
 
+        'client' => [
+            'driver' => 'session',
+            'provider' => 'portal_accounts',
+        ],
+    ],
     /*
     |--------------------------------------------------------------------------
     | User Providers
@@ -70,6 +74,10 @@ return [
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
+        'portal_accounts' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\PortalAccount::class,
+        ],
         // ],
     ],
 
@@ -95,6 +103,12 @@ return [
     'passwords' => [
         'users' => [
             'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+        'portal_accounts' => [
+            'provider' => 'portal_accounts',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

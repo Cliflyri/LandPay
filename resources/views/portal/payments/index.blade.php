@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title','Payment history | LandPay')
+@section('body_class','admin-page')
+@section('content')
+<section class="admin-section"><div class="container site-container"><div class="admin-heading d-flex justify-content-between align-items-end"><div><span class="eyebrow eyebrow-dark">Client portal</span><h1>Payment history</h1></div><a class="btn btn-outline-brand" href="{{route('portal.dashboard')}}">Dashboard</a></div><div class="admin-next-card mt-4"><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Plan</th><th>Method</th><th>Status</th><th class="text-end">Amount</th></tr></thead><tbody>@forelse($payments as $payment)<tr><td><a href="{{route('portal.payments.show',$payment)}}">{{$payment->received_date->format('M j, Y')}}</a></td><td>{{$payment->financialTransaction->paymentPlan->plan_number}}</td><td>{{str($payment->payment_method->value)->replace('_',' ')->title()}}</td><td>{{$payment->financialTransaction->reversedBy ? 'Reversed' : 'Posted'}}</td><td class="money-cell">{{\App\Support\Money::format($payment->gross_amount)}}</td></tr>@empty<tr><td colspan="5">No payments yet.</td></tr>@endforelse</tbody></table></div>{{$payments->links()}}</div></div></section>
+@endsection

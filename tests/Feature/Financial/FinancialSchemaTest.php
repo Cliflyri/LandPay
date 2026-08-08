@@ -29,6 +29,7 @@ class FinancialSchemaTest extends TestCase
             'transaction_effects',
             'payments',
             'payment_allocations',
+            'invoice_reminders',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Missing table: {$table}");
         }
@@ -41,6 +42,9 @@ class FinancialSchemaTest extends TestCase
         ]));
         $this->assertTrue(Schema::hasColumns('payments', [
             'overpayment_amount', 'overpayment_disposition', 'decision_source',
+        ]));
+        $this->assertTrue(Schema::hasColumns('payment_plans', [
+            'purchase_price', 'documentation_fee_standard', 'documentation_fee_waived', 'documentation_fee_waiver_reason',
         ]));
     }
 

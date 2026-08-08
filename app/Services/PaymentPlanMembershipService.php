@@ -21,6 +21,12 @@ class PaymentPlanMembershipService
         bool $receivesInvoices = true,
         ?string $contactRiskAcknowledgmentMethod = null,
     ): PaymentPlanClient {
+        if ($contactRiskAcknowledgmentMethod !== null && mb_strlen($contactRiskAcknowledgmentMethod) > 32) {
+            throw ValidationException::withMessages([
+                'contact_risk_acknowledgment_method' => 'The acknowledgment method may not exceed 32 characters.',
+            ]);
+        }
+
         return DB::transaction(function () use ($plan, $client, $actor, $role, $effectiveFrom, $receivesInvoices, $contactRiskAcknowledgmentMethod) {
             $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->getKey());
             $this->validateRole($role);

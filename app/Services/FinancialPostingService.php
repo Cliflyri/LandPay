@@ -38,10 +38,12 @@ class FinancialPostingService
         ?string $description = null,
         ?string $reason = null,
         ?array $metadata = null,
+        ?FinancialTransaction $reversalOf = null,
     ): FinancialTransaction {
-        return DB::transaction(function () use ($plan, $type, $grossAmount, $effectiveDate, $actorType, $effects, $actor, $invoice, $idempotencyKey, $description, $reason, $metadata) {
+        return DB::transaction(function () use ($plan, $type, $grossAmount, $effectiveDate, $actorType, $effects, $actor, $invoice, $idempotencyKey, $description, $reason, $metadata, $reversalOf) {
             $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             $this->validateHeader($lockedPlan, $type, $grossAmount, $actorType, $actor, $invoice, $reason);
+            if (($type === FinancialTransactionType::Reversal) !== ($reversalOf !== null) || ($reversalOf !== null && $reversalOf->payment_plan_id !== $lockedPlan->id)) { throw ValidationException::withMessages(['reversal' => 'A reversal must reference one transaction on this payment plan.']); }
 
             if ($idempotencyKey !== null) {
                 $existing = FinancialTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
@@ -65,6 +67,7 @@ class FinancialPostingService
                 'reason' => $reason,
                 'actor_type' => $actorType,
                 'posted_by_user_id' => $actorType === FinancialActorType::Administrator ? $actor?->id : null,
+                'reversal_of_transaction_id' => $reversalOf?->id,
                 'idempotency_key' => $idempotencyKey,
                 'metadata' => $metadata,
             ]);

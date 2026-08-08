@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title','My invoices | LandPay')
+@section('body_class','admin-page')
+@section('content')
+<section class="admin-section"><div class="container site-container"><div class="admin-heading d-flex justify-content-between align-items-end"><div><span class="eyebrow eyebrow-dark">Client portal</span><h1>Invoices</h1><p class="mb-0">Invoices are payable upon receipt and considered late after the date shown.</p></div><a class="btn btn-outline-brand" href="{{route('portal.dashboard')}}">Dashboard</a></div><div class="admin-next-card mt-4"><div class="table-responsive"><table class="table"><thead><tr><th>Invoice</th><th>Plan</th><th>Issued</th><th>Late after</th><th class="text-end">Balance</th></tr></thead><tbody>@forelse($invoices as $invoice)<tr><td><a href="{{route('portal.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->paymentPlan->plan_number}}</td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td class="money-cell">{{\App\Support\Money::format($balances[$invoice->id])}}</td></tr>@empty<tr><td colspan="5">No invoices yet.</td></tr>@endforelse</tbody></table></div>{{$invoices->links()}}</div></div></section>
+@endsection

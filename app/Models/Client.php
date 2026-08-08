@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
@@ -26,5 +27,15 @@ class Client extends Model
     public function contacts(): HasMany
     {
         return $this->hasMany(ClientContact::class);
+    }
+
+    public function portalAccount(): HasOne
+    {
+        return $this->hasOne(PortalAccount::class);
+    }
+
+    public function portalInvitations(): HasMany
+    {
+        return $this->hasMany(PortalInvitation::class);
     }
 }

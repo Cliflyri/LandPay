@@ -13,6 +13,7 @@
 </head>
 <body class="@yield('body_class')">
 <a class="skip-link" href="#main-content">Skip to main content</a>
+@if(session('portal_impersonation'))<div class="portal-admin-banner" role="status"><span><strong>Administrator view:</strong> Viewing the client portal for {{session('portal_impersonation.client_name')}} in read-only mode.</span><form method="post" action="{{route('admin.portal-access.destroy')}}">@csrf @method('DELETE')<button class="btn btn-sm btn-light" type="submit">Return to administration</button></form></div>@endif
 <header class="site-header" data-site-header>
     <nav class="navbar navbar-expand-lg" aria-label="Primary navigation">
         <div class="container site-container">
@@ -27,12 +28,10 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url('/#how-it-works') }}">How it works</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/#features') }}">What you can do</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/#help') }}">Get help</a></li>
-                    <li class="nav-item ms-lg-2"><a class="btn btn-outline-brand" href="{{ url('/#portal') }}">Client portal</a></li>
-                    @auth
+                    <li class="nav-item ms-lg-2"><a class="btn btn-outline-brand" href="{{ auth('client')->check() ? route('portal.dashboard') : route('portal.login') }}">Client portal</a></li>
+                    @if(request()->is('admin', 'admin/*') && auth()->check())
                         <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-brand" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    @else
-                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-brand" href="{{ route('admin.login') }}">Admin sign in</a></li>
-                    @endauth
+                    @endif
                 </ul>
             </div>
         </div>
@@ -46,6 +45,9 @@
         <div class="row g-4 align-items-center">
             <div class="col-lg-5">
                 <img class="footer-logo" src="{{ asset('images/landpay-logo.png') }}" alt="LandPay" width="405" height="280">
+                @if($footerCompanyPhone = \App\Models\AppSetting::valueFor('company_phone'))
+                    <p class="footer-copy mb-1">{{$footerCompanyPhone}}</p>
+                @endif
                 <p class="footer-copy mb-0">Private payment plans, managed with clarity and care.</p>
             </div>
             <div class="col-lg-4">
@@ -54,13 +56,7 @@
             </div>
             <div class="col-lg-3 text-lg-end">
                 <a class="footer-link" href="{{ url('/#portal') }}">Client portal</a>
-                <span class="footer-divider" aria-hidden="true">•</span>
-                @auth
-                    <a class="footer-link" href="{{ route('admin.dashboard') }}">Dashboard</a>
-                @else
-                    <a class="footer-link" href="{{ route('admin.login') }}">Admin</a>
-                @endauth
-                <p class="footer-legal mb-0">&copy; {{ date('Y') }} LandPay</p>
+                <p class="footer-legal mb-0">&copy; {{ date('Y') }} {{ \App\Models\AppSetting::valueFor('company_name', config('app.name', 'LandPay')) }}</p>
             </div>
         </div>
     </div>

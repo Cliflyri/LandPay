@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title','Update contact details | LandPay')
+@section('body_class','admin-page')
+@section('content')
+<section class="admin-section"><div class="container site-container"><div class="admin-heading"><span class="eyebrow eyebrow-dark">Account</span><h1>Request contact changes</h1><p>Changes are sent to your plan administrator for review.</p></div><form class="admin-form-card" method="post" action="{{route('portal.account.update')}}">@csrf @method('PUT')@if($errors->any())<div class="alert alert-danger">{{$errors->first()}}</div>@endif<div class="row g-3">@foreach(['email'=>'Email','primary_phone'=>'Primary phone','secondary_phone'=>'Secondary phone','address_line_1'=>'Address','address_line_2'=>'Address line 2','city'=>'City','state_region'=>'State / region','postal_code'=>'Postal code','country_code'=>'Country'] as $field=>$label)<div class="col-md-6"><label class="form-label">{{$label}}</label><input class="form-control" name="{{$field}}" value="{{old($field,$account->client->{$field})}}" @required(in_array($field,['email','country_code']))></div>@endforeach</div><button class="btn btn-brand mt-4">Submit for review</button> <a class="btn btn-outline-brand mt-4" href="{{route('portal.account.show')}}">Cancel</a></form></div></section>
+@endsection

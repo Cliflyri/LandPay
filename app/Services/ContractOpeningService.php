@@ -45,7 +45,13 @@ class ContractOpeningService
 
             $documentationFeeCharged = $documentationFeeStandard - $documentationFeeWaived;
             $combinedBalance = $purchasePrice + $documentationFeeCharged;
-            $lockedPlan->update(['original_purchase_balance' => $combinedBalance]);
+            $lockedPlan->update([
+                'purchase_price' => $purchasePrice,
+                'documentation_fee_standard' => $documentationFeeStandard,
+                'documentation_fee_waived' => $documentationFeeWaived,
+                'documentation_fee_waiver_reason' => $documentationFeeWaived > 0 ? $waiverReason : null,
+                'original_purchase_balance' => $combinedBalance,
+            ]);
 
             $effects = [
                 new PostingEffect(

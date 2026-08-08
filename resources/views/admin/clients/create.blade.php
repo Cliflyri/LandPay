@@ -1,0 +1,6 @@
+﻿@extends('layouts.app')
+@section('title','Add client | LandPay')
+@section('body_class','admin-page')
+@section('content')
+<section class="admin-section"><div class="container"><h1>Add a client</h1><form class="admin-form-card" method="POST" action="{{route('admin.clients.store')}}">@csrf @if($errors->any())<div class="alert alert-danger">{{$errors->first()}}</div>@endif<div class="row g-3"><div class="col-md-4"><label>Type</label><select class="form-select" name="client_type"><option value="individual">Individual</option><option value="organization">Organization</option></select></div>@foreach(['organization_name'=>'Organization name','first_name'=>'First name','last_name'=>'Last name','email'=>'Email','primary_phone'=>'Phone','address_line_1'=>'Address','city'=>'City','state_region'=>'State','postal_code'=>'Postal code'] as $field=>$label)<div class="col-md-4"><label>{{$label}}</label><input class="form-control" name="{{$field}}" value="{{old($field)}}"></div>@endforeach<div class="col-md-2"><label>Country</label><input class="form-control" name="country_code" value="{{old('country_code','US')}}"></div><div class="col-12"><label>Notes</label><textarea class="form-control" name="notes">{{old('notes')}}</textarea></div></div><button class="btn btn-brand mt-4">Create client</button></form></div></section>
+@endsection

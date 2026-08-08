@@ -1,9 +1,35 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
+use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientPortalAccessController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\InvoiceEmailController;
+use App\Http\Controllers\Admin\InvoiceReminderController;
+use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\PaymentReceiptController;
+use App\Http\Controllers\Admin\PaymentPlanController;
+use App\Http\Controllers\Admin\PaymentPlanPauseController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\AdminNoticeController;
+use App\Http\Controllers\Admin\ClientChangeRequestController;
+use App\Http\Controllers\Portal\AccountController as PortalAccountController;
+use App\Http\Controllers\Admin\PortalInvitationController;
+use App\Http\Controllers\Portal\InvitationController as PortalInvitationAcceptanceController;
+use App\Http\Controllers\Portal\AuthenticatedSessionController as PortalSessionController;
+use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
+use App\Http\Controllers\Portal\InvoiceController as PortalInvoiceController;
+use App\Http\Controllers\Portal\PasswordResetController as PortalPasswordResetController;
+use App\Http\Controllers\Portal\PaymentController as PortalPaymentController;
+use App\Http\Controllers\Portal\MakePaymentController;
+use App\Http\Controllers\Admin\PaymentMethodSettingsController;
+use App\Http\Controllers\Admin\ClientPaymentIntentController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProviderWebhookController;
 
 Route::view('/', 'welcome')->name('home');
+Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider',['square','stripe'])->name('webhooks.provider');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])
@@ -11,8 +37,81 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/admin/login', [AuthenticatedSessionController::class, 'store'])
         ->name('admin.login.store');
 });
+Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(function (): void {
+    Route::get('login', [PortalSessionController::class, 'create'])->name('login');
+    Route::post('login', [PortalSessionController::class, 'store'])->name('login.store');
+    Route::get('forgot-password', [PortalPasswordResetController::class, 'requestForm'])->name('password.request');
+    Route::post('forgot-password', [PortalPasswordResetController::class, 'sendLink'])->name('password.email');
+    Route::get('reset-password/{token}', [PortalPasswordResetController::class, 'resetForm'])->name('password.reset');
+    Route::post('reset-password', [PortalPasswordResetController::class, 'reset'])->name('password.update');
+    Route::get('invitation/{token}', [PortalInvitationAcceptanceController::class, 'show'])->name('invitation.show');
+    Route::post('invitation/{token}', [PortalInvitationAcceptanceController::class, 'accept'])->name('invitation.accept');
+});
+
+Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.read-only'])->group(function (): void {
+    Route::get('/', PortalDashboardController::class)->name('dashboard');
+    Route::get('invoices', [PortalInvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('invoices/{invoice}', [PortalInvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('invoices/{invoice}/download', [PortalInvoiceController::class, 'download'])->name('invoices.download');
+    Route::get('make-payment', [MakePaymentController::class, 'create'])->name('make-payment.create');
+    Route::post('make-payment/preview', [MakePaymentController::class, 'preview'])->name('make-payment.preview');
+    Route::post('make-payment', [MakePaymentController::class, 'store'])->name('make-payment.store');
+    Route::get('make-payment/{intent}', [MakePaymentController::class, 'show'])->name('make-payment.show');
+    Route::delete('make-payment/{intent}', [MakePaymentController::class, 'cancel'])->name('make-payment.cancel');
+    Route::get('payments', [PortalPaymentController::class, 'index'])->name('payments.index');
+    Route::get('payments/{payment}', [PortalPaymentController::class, 'show'])->name('payments.show');
+    Route::get('payments/{payment}/download', [PortalPaymentController::class, 'download'])->name('payments.download');
+    Route::post('logout', [PortalSessionController::class, 'destroy'])->name('logout');
+    Route::get('account', [PortalAccountController::class, 'show'])->name('account.show');
+    Route::get('account/contact', [PortalAccountController::class, 'edit'])->name('account.edit');
+    Route::put('account/contact', [PortalAccountController::class, 'update'])->name('account.update');
+    Route::put('account/password', [PortalAccountController::class, 'password'])->name('account.password');
+});
+
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): void {
-    Route::view('/', 'admin.dashboard')->name('dashboard');
+    Route::get('/', DashboardController::class)->name('dashboard');
+    Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
+    Route::post('clients/{client}/portal-access', [ClientPortalAccessController::class, 'store'])->name('portal-access.store');
+    Route::delete('portal-access', [ClientPortalAccessController::class, 'destroy'])->name('portal-access.destroy');
+    Route::resource('clients', ClientController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
+    Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);
+    Route::post('plans/{plan}/pause', [PaymentPlanPauseController::class, 'pause'])->name('plans.pause');
+    Route::post('plans/{plan}/resume', [PaymentPlanPauseController::class, 'resume'])->name('plans.resume');
+    Route::get('plans/{plan}/payments/create', [PaymentController::class, 'create'])->name('plans.payments.create');
+    Route::get('plans/{plan}/invoices/create', [InvoiceController::class, 'create'])->name('plans.invoices.create');
+    Route::get('plans/{plan}/invoices/manual/create', [InvoiceController::class, 'manualCreate'])->name('plans.invoices.manual.create');
+    Route::post('clients/{client}/portal-invitations', [PortalInvitationController::class, 'store'])->name('clients.portal-invitations.store');
+    Route::delete('clients/{client}/portal-invitations/{invitation}', [PortalInvitationController::class, 'destroy'])->name('clients.portal-invitations.destroy');
+    Route::get('client-change-requests/{changeRequest}', [ClientChangeRequestController::class, 'show'])->name('client-change-requests.show');
+    Route::post('client-change-requests/{changeRequest}/apply', [ClientChangeRequestController::class, 'apply'])->name('client-change-requests.apply');
+    Route::post('client-change-requests/{changeRequest}/reject', [ClientChangeRequestController::class, 'reject'])->name('client-change-requests.reject');
+    Route::post('notices/{notice}/dismiss', [AdminNoticeController::class, 'dismiss'])->name('notices.dismiss');
+    Route::post('plans/{plan}/invoices/preview', [InvoiceController::class, 'preview'])->name('plans.invoices.preview');
+    Route::post('plans/{plan}/invoices', [InvoiceController::class, 'store'])->name('plans.invoices.store');
+    Route::post('plans/{plan}/invoices/manual/preview', [InvoiceController::class, 'manualPreview'])->name('plans.invoices.manual.preview');
+    Route::post('plans/{plan}/invoices/manual', [InvoiceController::class, 'manualStore'])->name('plans.invoices.manual.store');
+    Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::post('invoices/{invoice}/first-payment', [InvoiceController::class, 'createFirstPayment'])->name('invoices.first-payment.store');
+    Route::post('invoices/{invoice}/email', [InvoiceEmailController::class, 'store'])->name('invoices.email.store');
+    Route::post('invoices/{invoice}/reminders', [InvoiceReminderController::class, 'store'])->name('invoices.reminders.store');
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('settings/payment-methods', [PaymentMethodSettingsController::class, 'index'])->name('payment-methods.index');
+    Route::put('settings/payment-methods/general', [PaymentMethodSettingsController::class, 'updateGeneral'])->name('payment-methods.general.update');
+    Route::put('settings/payment-methods/{method}', [PaymentMethodSettingsController::class, 'updateMethod'])->name('payment-methods.method.update');
+    Route::put('settings/payment-providers/{provider}', [PaymentMethodSettingsController::class, 'updateProvider'])->name('payment-methods.provider.update');
+    Route::get('payment-intents/{intent}/receive', [PaymentController::class, 'intentPreview'])->name('payment-intents.receive');
+    Route::put('settings/company', [SettingsController::class, 'updateCompany'])->name('settings.company.update');
+    Route::put('settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
+    Route::post('settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+    Route::put('settings/templates/{template}', [SettingsController::class, 'updateTemplate'])->name('settings.templates.update');
+    Route::put('settings/reminders', [SettingsController::class, 'updateReminders'])->name('settings.reminders.update');
+    Route::post('settings/templates/{template}/restore', [SettingsController::class, 'restoreTemplate'])->name('settings.templates.restore');
+    Route::post('plans/{plan}/payments/preview', [PaymentController::class, 'preview'])->name('plans.payments.preview');
+    Route::post('plans/{plan}/payments', [PaymentController::class, 'store'])->name('plans.payments.store');
+    Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::post('payments/{payment}/reverse', [PaymentController::class, 'reverse'])->name('payments.reverse');
+    Route::post('payments/{payment}/receipt-email', [PaymentReceiptController::class, 'store'])->name('payments.receipt-email.store');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

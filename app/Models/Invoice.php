@@ -42,4 +42,9 @@ class Invoice extends Model
     {
         return $this->hasMany(FinancialTransaction::class);
     }
+
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(InvoiceReminder::class);
+    }
 }

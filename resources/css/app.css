@@ -7,3 +7,6 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.payment-method-carousel{display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:.5rem 0 1rem}.payment-method-card{min-width:190px;scroll-snap-align:start;border:2px solid #dfe6df;border-radius:14px;padding:1rem;cursor:pointer;background:#fff}.payment-method-card:has(input:checked){border-color:#173f40;box-shadow:0 0 0 3px rgba(23,63,64,.12)}.payment-method-card input{margin-right:.5rem}.payment-method-card.is-recommended{background:#edf3e9}.payment-method-details{border-left:4px solid #173f40;padding:1rem;background:#f8faf8;border-radius:0 8px 8px 0}
+

@@ -65,7 +65,7 @@
         <div class="section-heading text-center mx-auto">
             <span class="eyebrow eyebrow-dark">Built for real-life payment plans</span>
             <h2>Everything you need.<br>Nothing you don’t.</h2>
-            <p>LandPay keeps the details organized so clients and administrators can focus on moving forward.</p>
+            <p>LandPay keeps the details simple and organized so clients and administrators can focus on moving forward.</p>
         </div>
         <div class="row g-4 feature-grid">
             <div class="col-md-6 col-lg-4">
@@ -77,13 +77,13 @@
             <div class="col-md-6 col-lg-4">
                 <article class="feature-card feature-card-accent">
                     <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4zM4 10h16M8 15h3"/><path d="M7 7V5h10v2"/></svg></div>
-                    <h3>Flexible payments</h3><p>Record partial, extra, principal-only, and multiple payments without forcing a rigid schedule.</p>
+                    <h3>Flexible payments</h3><p>Record partial, extra, principal-only, and multiple payments at any time.</p>
                 </article>
             </div>
             <div class="col-md-6 col-lg-4">
                 <article class="feature-card">
                     <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6m-6 4h6m-6 4h3"/></svg></div>
-                    <h3>Receipts that stay put</h3><p>Every posted payment has a permanent history, so corrections remain clear and traceable.</p>
+                    <h3>Receipts that stay put</h3><p>Every posted payment has a permanent history, so your status remains clear and simple.</p>
                 </article>
             </div>
         </div>
@@ -117,14 +117,14 @@
                 <div class="col-lg-7">
                     <span class="eyebrow eyebrow-dark">Client portal</span>
                     <h2>Your plan is private.<br>Your progress is personal.</h2>
-                    <p>Secure portal access is the next LandPay feature being prepared. Soon you’ll be able to review payments, download receipts, and manage your account here.</p>
+                    <p>Sign in securely to review active plans, current balances, invoices, payment history, and downloadable receipts.</p>
                 </div>
                 <div class="col-lg-5" id="admin">
                     <div class="coming-soon-card">
-                        <span class="coming-soon-label">Coming next</span>
-                        <h3>Secure account access</h3>
-                        <p>Client portal authentication will follow the approved identity design. Administrator access is now secured separately.</p>
-                        <button class="btn btn-brand w-100" type="button" disabled>Portal sign in</button>
+                        <span class="coming-soon-label">Secure access</span>
+                        <h3>Your account documents</h3>
+                        <p>See balances and due dates, open invoices, and keep a permanent payment receipt history.</p>
+                        <a class="btn btn-brand w-100" href="{{route('portal.login')}}">Portal sign in</a>
                     </div>
                 </div>
             </div>

@@ -31,6 +31,18 @@ class FinancialBalanceService
             ->sum('amount_delta');
     }
 
+    public function invoiceCreditApplied(Invoice|int $invoice): int
+    {
+        $invoiceId = $invoice instanceof Invoice ? $invoice->id : $invoice;
+        $amount = (int) TransactionEffect::query()
+            ->join('financial_transactions', 'financial_transactions.id', '=', 'transaction_effects.financial_transaction_id')
+            ->where('financial_transactions.invoice_id', $invoiceId)
+            ->where('financial_transactions.type', FinancialTransactionType::CreditApplication->value)
+            ->where('transaction_effects.effect_type', FinancialEffectType::ClientCredit->value)
+            ->sum('transaction_effects.amount_delta');
+        return max(0, -$amount);
+    }
+
     public function administratorPaidInValue(PaymentPlan|int $plan): int
     {
         $planId = $plan instanceof PaymentPlan ? $plan->id : $plan;

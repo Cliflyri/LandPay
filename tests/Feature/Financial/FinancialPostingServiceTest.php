@@ -87,6 +87,40 @@ class FinancialPostingServiceTest extends TestCase
         ]);
     }
 
+    public function test_final_scheduled_principal_accounts_for_open_invoices(): void
+    {
+        [$user, $plan, $terms] = $this->activeOpenedPlan();
+        app(MonthlyInvoiceService::class)->issue($plan, $terms, $user, 'INV-FIRST', '2026-08-01', '2026-08-31', '2026-08-03');
+        app(FinancialPostingService::class)->post(
+            $plan, FinancialTransactionType::Payment, 1_975_000, '2026-08-15', FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::PurchaseBalance, -1_975_000, FinancialEffectComponent::PurchasePricePrincipal)],
+            actor: $user, description: 'Principal reduction for final invoice test',
+        );
+
+        $invoice = app(MonthlyInvoiceService::class)->issue($plan, $terms, $user, 'INV-FINAL', '2026-09-01', '2026-09-30', '2026-09-03');
+
+        $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'item_type' => 'scheduled_purchase_payment', 'amount' => 25_000]);
+        $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'item_type' => 'monthly_service_fee', 'amount' => 2_500]);
+    }
+
+    public function test_account_credit_is_applied_to_fees_then_principal_on_next_invoice(): void
+    {
+        [$user, $plan, $terms] = $this->activeOpenedPlan();
+        app(FinancialPostingService::class)->post(
+            $plan, FinancialTransactionType::Payment, 60_000, '2026-08-01', FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, 60_000, FinancialEffectComponent::UnappliedCredit)],
+            actor: $user, description: 'Existing customer credit',
+        );
+
+        $invoice = app(MonthlyInvoiceService::class)->issue($plan, $terms, $user, 'INV-CREDIT', '2026-08-01', '2026-08-31', '2026-08-03');
+
+        $this->assertSame(0, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+        $this->assertSame(7_500, app(FinancialBalanceService::class)->clientCredit($plan));
+        $this->assertSame(2_000_000, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertSame('paid', $invoice->fresh()->status->value);
+        $this->assertDatabaseHas('financial_transactions', ['invoice_id' => $invoice->id, 'type' => FinancialTransactionType::CreditApplication->value, 'gross_amount' => 52_500]);
+    }
+
     public function test_invalid_invoice_posting_rolls_back_every_record(): void
     {
         [$user, $plan, $terms] = $this->activeOpenedPlan();

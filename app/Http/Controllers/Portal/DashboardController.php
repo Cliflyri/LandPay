@@ -1,0 +1,38 @@
+<?php
+namespace App\Http\Controllers\Portal;
+use App\Http\Controllers\Controller;
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\PaymentPlan;
+use App\Models\ClientPaymentIntent;
+use App\Services\FinancialBalanceService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\View\View;
+class DashboardController extends Controller {
+ public function __construct(private readonly FinancialBalanceService $balances){}
+ public function __invoke(Request $request): View {
+  $account=$request->user('client');$planIds=$account->activePlanIds();
+  $plans=PaymentPlan::query()->whereIn('id',$planIds)->with(['invoices','currentBillingTerms'])->orderBy('plan_number')->get();
+  $allInvoices=Invoice::query()->whereIn('payment_plan_id',$planIds)->where('status','!=','voided')->with('paymentPlan')->latest('issue_date')->get();
+  $invoiceBalances=$allInvoices->mapWithKeys(fn(Invoice $invoice)=>[$invoice->id=>$this->balances->invoiceBalance($invoice)]);
+  $accountCredit=(int)$plans->sum(fn(PaymentPlan $plan)=>max(0,$this->balances->clientCredit($plan)));
+  $open=$allInvoices->filter(fn(Invoice $invoice)=>($invoiceBalances[$invoice->id]??0)>0);
+  $amountDue=(int)$open->sum(fn(Invoice $invoice)=>$invoiceBalances[$invoice->id]);
+  $accountBalance=$amountDue-$accountCredit;
+  $oldestDue=$open->sortBy('due_date')->first();
+  $status=$this->status($amountDue,$oldestDue?->due_date);
+  $planSummaries=$plans->map(function(PaymentPlan $plan){$terms=$plan->currentBillingTerms;$monthly=($terms?->scheduled_payment_amount??$plan->customary_monthly_payment)+($terms?->monthly_service_fee??$plan->monthly_service_fee);return ['plan'=>$plan,'monthly_payment'=>$monthly];});
+  $paymentQuery=Payment::query()->whereHas('financialTransaction',fn($q)=>$q->whereIn('payment_plan_id',$planIds))->whereDoesntHave('financialTransaction.reversedBy');
+  $payments=(clone $paymentQuery)->with('financialTransaction.paymentPlan')->latest('received_date')->limit(3)->get();
+  $pendingPaymentIntents=ClientPaymentIntent::query()->where('client_id',$account->client_id)->where(function($query){$query->whereIn('status',['checkout_pending','review_required'])->orWhere(function($announced){$announced->where('status','announced')->whereHas('adminNotice',fn($notice)=>$notice->whereNull('dismissed_at'));});})->with('paymentPlan')->latest()->get();
+  $invoices=$allInvoices->take(3)->map(fn(Invoice $invoice)=>['invoice'=>$invoice,'balance'=>$invoiceBalances[$invoice->id]]);
+  return view('portal.dashboard',compact('account','planSummaries','invoices','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents'));
+ }
+ private function status(int $amountDue,?Carbon $dueDate): array {
+  if($amountDue<=0||$dueDate===null)return ['label'=>'Current - nothing due','class'=>'status-current'];
+  if($dueDate->isToday())return ['label'=>'Payment due today','class'=>'status-due'];
+  if($dueDate->isPast())return ['label'=>'Overdue by '.$dueDate->diffInDays(today()).' days','class'=>'status-past-due'];
+  return ['label'=>'Payment due '.$dueDate->format('M j, Y'),'class'=>'status-due-soon'];
+ }
+}

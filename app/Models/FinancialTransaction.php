@@ -9,6 +9,7 @@ use App\Models\Concerns\IsAppendOnly;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FinancialTransaction extends Model
 {
@@ -48,5 +49,15 @@ class FinancialTransaction extends Model
     public function reversalOf(): BelongsTo
     {
         return $this->belongsTo(self::class, 'reversal_of_transaction_id');
+    }
+
+    public function reversedBy(): HasOne
+    {
+        return $this->hasOne(self::class, 'reversal_of_transaction_id');
+    }
+
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
     }
 }
