@@ -1,0 +1,69 @@
+# Environment and local secrets
+/.env
+/.env.*
+!/.env.example
+/auth.json
+*.log
+
+# PHP and Laravel dependencies
+/database/*.sqlite
+/vendor/
+
+# JavaScript dependencies and generated frontend assets
+/node_modules/
+/public/build/
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+
+# Laravel runtime files
+/storage/*.key
+/storage/pail/
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*
+!/storage/framework/cache/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/testing/.gitignore
+!/storage/framework/views/.gitignore
+!/storage/logs/.gitignore
+
+# Test and analysis caches
+/.phpunit.cache/
+/.phpunit.result.cache
+/.pest/
+/.php-cs-fixer.cache
+/.phpstan.cache/
+/.phpactor.json
+/coverage/
+
+# Laravel development tools
+/.fleet/
+/.idea/
+/.nova/
+/.vscode/
+/.zed/
+/.codex/
+/.cursor/
+/Homestead.json
+/Homestead.yaml
+/npm-debug.log
+/yarn-error.log
+/_ide_helper.php
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Machine-local artifacts currently present in this directory
+/.cache/
+/.config/
+/.local/
+/.vscode-server/
+/.gitconfig
+/.wget-hsts
+# Temporary local web-root redirect
+/index.php

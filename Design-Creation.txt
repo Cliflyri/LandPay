@@ -1,0 +1,103 @@
+# LandPay - Initial Design & Architecture
+
+I want to build **LandPay**, a modern web application for managing and automating private **pay-to-own payment plans**. The application is intended for a single company (not multi-tenant) and will eventually be deployed to a shared cPanel server.
+
+The goal is to create something that feels similar to **Invoice Ninja** from the customer's perspective while incorporating payment-plan features inspired by GeekPay.io The application should focus on **clients, monthly invoices, payments, payment plans, and communication**, rather than traditional loan servicing.
+
+## Primary Goals
+
+Build a clean, professional application that allows an administrator to:
+
+* Manage clients and payment plans.
+* Define payment plans specific to each client
+* Generate monthly invoices with automated monthly reminder emails for clients.
+* Record payments from multiple payment methods.
+* Track recurring monthly service fees.
+* Apply monthly payments to principal balances.
+* Support partial payments, overpayments, future-payment credits, and principal reductions.
+* Maintain a complete immutable financial history.
+* Provide a secure client portal where customers can view invoices, payment history, receipts, and make payments.
+
+The client experience should remain centered around **monthly invoices**, not continually displaying the remaining principal balance.
+
+## Technology
+
+Recommend the best architecture for this project.
+
+I am open to Laravel or a well-structured custom PHP application. Simplicity, maintainability, security, and long-term support are more important than using a particular framework.
+
+The application will use:
+
+* PHP 8.4
+* MySQL/MariaDB
+* Bootstrap 5
+* Server-rendered pages
+* Standard SMTP email
+* Shared cPanel hosting
+* Visual Studio Code for development
+
+Avoid unnecessary complexity, unnecessary dependencies, Docker, Redis requirements, or frontend frameworks unless there is a compelling reason.
+
+## Core Design Philosophy
+
+The application should be easy to understand and maintain.
+
+Favor clear service classes and well-organized code over clever abstractions.
+
+Financial integrity is extremely important.
+
+Posted financial transactions should never be edited or deleted. Corrections should occur through adjustment or reversal transactions.
+
+Use integer values for money rather than floating-point arithmetic.
+
+## Client Experience
+
+The application should resemble modern invoicing software.
+
+Clients should primarily interact with:
+
+* Monthly invoices
+* Online payments
+* Payment history
+* Receipts
+* Account credits
+* Secure messages
+* Payment-plan information
+
+The remaining principal balance should generally be hidden from routine invoices and payment pages. Clients may intentionally view it from a protected portal page.
+
+When clients are nearing payoff (configurable, default approximately two monthly payments remaining), the application should adjust the final payment to match the balance due plus applicable fees.
+At this time invoices can reflect that the client is 'almost to payoff!' or similar appropriate wording.
+
+## Payment Rules
+
+Clients should be able to enter their own payment amount rather than being restricted to the invoice amount.
+
+If a payment exceeds the current invoice amount, the excess should be handled as one of the following:
+
+* Apply toward principal (default)
+* Store as client credit
+* Apply toward future monthly invoices
+Clients should be asked how they would like overpayment to be handled on a per transaction basis, or defined as a client default.
+
+Gateway payments and administrator-entered payments should follow the same business rules.
+
+The system should support partial payments, multiple payments, principal-only payments, and manual payment methods such as cash, check, Zelle, Venmo, and Cash App.
+
+## First Objective
+
+Do **not** immediately begin coding.
+
+First:
+
+1. Inspect any parts of an existing project.  If no existing project exists, design accordingly.
+2. Recommend the overall architecture.
+3. Recommend whether Laravel or a custom PHP architecture is the better long-term choice and explain why.
+4. Design the database structure.
+5. Design the major application modules.
+6. Identify anything missing from the requirements that should be decided before implementation.
+7. Produce a phased implementation roadmap.
+
+Do not implement anything until the architecture has been reviewed.
+
+The long-term objective is to build a polished, professional, easy-to-use payment-plan management system that rivals the usability of Invoice Ninja while remaining significantly simpler internally and specifically tailored to pay-to-own financing.  The primary current model is monthly service fees without interest.
