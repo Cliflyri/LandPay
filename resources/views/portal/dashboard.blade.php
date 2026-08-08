@@ -4,7 +4,78 @@
 @section('content')
 <section class="admin-section"><div class="container site-container"><div class="admin-heading d-flex justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Client portal</span><h1>Hello, {{$account->displayName()}}</h1><p>Your current payment status and recent account activity.</p></div><div><a class="btn btn-outline-brand" href="{{route('portal.account.show')}}">Account</a> @if(session('portal_impersonation'))<form class="d-inline" method="post" action="{{route('admin.portal-access.destroy')}}">@csrf @method('DELETE')<button class="btn btn-outline-brand">Return to administration</button></form>@else<form class="d-inline" method="post" action="{{route('portal.logout')}}">@csrf<button class="btn btn-outline-brand">Sign out</button></form>@endif</div></div>
 
-<div class="row g-4 mt-2"><div class="col-12"><article class="admin-summary-card"><span>Account balance</span><strong class="{{$accountBalance>0?'balance-due':''}}">{{\App\Support\Money::format($accountBalance)}}</strong>@if($accountCredit>0)<small>Includes {{\App\Support\Money::format($accountCredit)}} customer credit.</small>@endif<span class="dashboard-status {{$status['class']}}">{{$status['label']}}</span>@if($oldestDue)<a class="btn btn-brand mt-3" href="{{route('portal.invoices.show',$oldestDue)}}">View invoice</a>@endif @if(\App\Models\AppSetting::valueFor('client_payments_enabled','0')==='1')<a class="btn btn-sun mt-3" href="{{route('portal.make-payment.create')}}">Make a payment</a>@endif</article></div></div>
+<div class="row g-4 mt-2">
+    <div class="col-12">
+        <article class="admin-summary-card">
+            <span>Account balance</span>
+
+            <strong class="{{ $accountBalance > 0 ? 'balance-due' : '' }}">
+                {{ \App\Support\Money::format($accountBalance) }}
+            </strong>
+
+            @if ($accountCredit > 0)
+                <small>
+                    Includes {{ \App\Support\Money::format($accountCredit) }} customer credit.
+                </small>
+            @endif
+
+            <span class="dashboard-status {{ $status['class'] }}">
+                {{ $status['label'] }}
+            </span>
+
+            @if ($openInvoiceRows->count() > 1)
+                <div class="mt-3">
+                    <div class="fw-semibold mb-1">Open invoices</div>
+
+                    @foreach ($openInvoiceRows as $row)
+                        <div class="d-flex justify-content-between gap-3 small">
+                            <a href="{{ route('portal.invoices.show', $row['invoice']) }}">
+                                {{ $row['invoice']->invoice_number }}
+                            </a>
+
+                            <span>
+                                {{ \App\Support\Money::format($row['balance']) }}
+                            </span>
+                        </div>
+                    @endforeach
+
+                    <hr class="my-2">
+
+                    <div class="d-flex justify-content-between gap-3 fw-semibold">
+                        <span>Total</span>
+                        <span>{{ \App\Support\Money::format($amountDue) }}</span>
+                    </div>
+                </div>
+            @endif
+
+            @if ($openInvoiceRows->count() === 1)
+                <a
+                    class="btn btn-brand mt-3"
+                    href="{{ route('portal.invoices.show', $openInvoiceRows->first()['invoice']) }}"
+                >
+                    View invoice
+                </a>
+            @elseif ($openInvoiceRows->count() > 1)
+                <a
+                    class="btn btn-brand mt-3"
+                    href="{{ route('portal.invoices.index') }}"
+                >
+                    View all invoices
+                </a>
+            @endif
+
+            @if (\App\Models\AppSetting::valueFor('client_payments_enabled', '0') === '1')
+                <a
+                    class="btn btn-sun mt-3"
+                    href="{{ route('portal.make-payment.create') }}"
+                >
+                    Make a payment
+                </a>
+            @endif
+        </article>
+    </div>
+</div>
+
 @if($pendingPaymentIntents->isNotEmpty())<div class="admin-next-card mt-4"><h2>Payment notices awaiting admin confirmation</h2>@foreach($pendingPaymentIntents as $pending)<p class="mb-2"><a href="{{route('portal.make-payment.show',$pending)}}">{{\App\Support\Money::format($pending->amount)}} for plan {{$pending->paymentPlan->plan_number}}</a> <span class="dashboard-status status-due">{{str($pending->status)->replace('_',' ')->title()}}</span></p>@endforeach</div>@endif
 @if($planSummaries->isNotEmpty())<div class="admin-next-card mt-4"><h2>{{$planSummaries->count()>1?'Your Plans':'Your Plan'}}</h2>@foreach($planSummaries as $summary)<div class="mb-3"><strong>{{$summary['plan']->plan_number}}</strong> &middot; {{$summary['plan']->title}}<p class="mb-1">Your payment plan payments are <strong>{{\App\Support\Money::format($summary['monthly_payment'])}} per month</strong>.</p></div>@endforeach<small class="text-muted d-block mt-3">Larger payments may be sent at any time and 100% of the extra goes toward principal balance or next invoice. Additional payments can be made at any time; there are no pre-payment penalties.</small></div>@endif
 <div class="row g-4 mt-2"><div class="col-lg-7"><div class="admin-next-card"><div class="d-flex justify-content-between"><div><h2>Recent invoices</h2><small class="text-muted">Payment is due upon receipt.</small></div><a href="{{route('portal.invoices.index')}}">View all</a></div><table class="table"><thead><tr><th>Invoice</th><th>Late after</th><th class="text-end">Balance</th></tr></thead><tbody>@forelse($invoices as $row)<tr><td><a href="{{route('portal.invoices.show',$row['invoice'])}}">{{$row['invoice']->invoice_number}}</a></td><td>{{$row['invoice']->due_date->format('M j, Y')}}</td><td class="money-cell">{{\App\Support\Money::format($row['balance'])}}</td></tr>@empty<tr><td colspan="3">No invoices yet.</td></tr>@endforelse</tbody></table></div></div>
