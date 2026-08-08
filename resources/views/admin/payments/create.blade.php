@@ -18,6 +18,9 @@
 @if($input['client_payment_intent_id'] ?? null)<input type="hidden" name="client_payment_intent_id" value="{{$input['client_payment_intent_id']}}"><input type="hidden" name="client_note" value="{{$input['client_note'] ?? ''}}"><div class="alert alert-info"><strong>Client payment notification.</strong> Verify receipt before posting.@if(filled($input['overpayment_disposition'] ?? null))<br><strong>Client overpayment instruction:</strong> {{($input['overpayment_disposition'] ?? null) === 'next_invoice_credit' ? 'Keep extra as account credit.' : 'Apply extra to principal.'}}@endif @if(filled($input['client_note'] ?? null))<br><strong>Client note:</strong> {{$input['client_note']}}@endif</div>@endif
 <h2>Payment details</h2>
 <p>Preview the allocation before posting. Nothing financial is recorded until you confirm.</p>
+
+@include('admin.shared.monthly-service-fees-collected')
+
 <div class="row g-3 mt-1">
     <div class="col-md-6"><label class="form-label" for="received_date">Date received</label><input class="form-control" id="received_date" name="received_date" type="date" required value="{{ old('received_date',$input['received_date'] ?? now()->toDateString()) }}"></div>
     <div class="col-md-6"><label class="form-label" for="amount">Amount</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="amount" name="amount" inputmode="decimal" required value="{{ old('amount',$input['amount'] ?? '') }}"></div></div>

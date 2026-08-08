@@ -54,8 +54,27 @@
                                 @if($row['balance_invoice'] && $row['email'])<li><hr class="dropdown-divider"></li><li><form method="post" action="{{route('admin.invoices.reminders.store',$row['balance_invoice'])}}" onsubmit="return confirm('Send a payment reminder to {{$row['email']}}?');">@csrf<button class="dropdown-item" type="submit">Send reminder</button></form></li>@endif
                             </ul></div></td>
                             <td>@if($row['primary_client'])<a class="dashboard-client-link" href="{{ route('admin.clients.show', $row['primary_client']) }}">{{ $row['client_name'] }}</a>@else<span class="muted-value">{{ $row['client_name'] }}</span>@endif @if($row['co_client_count'] > 0)<span class="co-client-count" title="{{ $row['co_client_count'] }} co-client(s)">+{{ $row['co_client_count'] }}</span>@endif</td>
-                            <td class="text-nowrap"><a class="dashboard-plan-link" href="{{ route('admin.plans.show', $row['plan']) }}">{{ $row['plan']->plan_number }}</a></td>
-                            <td><span class="dashboard-status {{ $statusClass }}">{{ $row['operational_status'] }}</span></td>
+                            <td class="text-nowrap">
+                                
+                            <a class="dashboard-plan-link" href="{{ route('admin.plans.show', $row['plan']) }}">{{ $row['plan']->plan_number }}</a></td>
+                            
+<td>
+    @if ($row['plan']->status === 'paused')
+        <a
+            href="{{ route('admin.plans.show', $row['plan']) }}#pause-plan-controls"
+            class="text-decoration-none"
+            title="Click to resume this payment plan"
+        >
+            <span class="dashboard-status status-current">
+                ❚❚ Paused
+            </span>
+        </a>
+    @else
+        <span class="dashboard-status {{ $statusClass }}">
+            {{ $row['operational_status'] }}
+        </span>
+    @endif
+</td>
 
 <td class="money-cell dashboard-monthly-column text-center" title="Monthly payment (principal portion)">
     <div class="fw-bold fs-6">

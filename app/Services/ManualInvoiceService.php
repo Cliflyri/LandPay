@@ -49,9 +49,13 @@ class ManualInvoiceService
                 ->latest('effective_from')
                 ->first() ?? $lockedPlan->currentBillingTerms()->firstOrFail();
             $issue = Carbon::parse($issueDate);
+            do {
+                $invoiceNumber = 'M'.$lockedPlan->id.'-'.$issue->format('ymd').'-'.Str::upper(Str::random(2));
+            } while (Invoice::query()->where('invoice_number', $invoiceNumber)->exists());
+
             $invoice = Invoice::query()->create([
                 'payment_plan_id' => $lockedPlan->id,
-                'invoice_number' => 'MINV-'.$lockedPlan->id.'-'.Str::upper((string) Str::ulid()),
+                'invoice_number' => $invoiceNumber,
                 'period_start' => null,
                 'period_end' => null,
                 'issue_date' => $issue,

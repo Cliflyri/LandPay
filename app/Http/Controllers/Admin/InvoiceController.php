@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\MonthlyServiceFeeHistoryService;
 use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
@@ -30,6 +31,7 @@ class InvoiceController extends Controller
         private readonly InvoiceReminderService $reminders,
         private readonly InvoiceVoidService $voids,
         private readonly ManualInvoiceService $manualInvoices,
+        private readonly MonthlyServiceFeeHistoryService $monthlyServiceFeeHistory,
     ) {}
 
     public function create(PaymentPlan $plan): View
@@ -88,10 +90,37 @@ class InvoiceController extends Controller
     {
         $terms = $plan->currentBillingTerms()->firstOrFail();
 
+        $plan->load([
+    'memberships' => fn ($query) => $query
+        ->whereNull('effective_to')
+        ->with('client'),
+]);
+
+$primaryClient = $plan->memberships
+    ->firstWhere('role', 'primary')
+    ?->client;
+
+$primaryClientName = $primaryClient?->organization_name
+    ?: trim(collect([
+        $primaryClient?->first_name,
+        $primaryClient?->middle_name,
+        $primaryClient?->last_name,
+    ])->filter()->join(' '))
+    ?: 'No primary client';
+    
+        $selectedDate = Carbon::parse(
+            $input['issue_date'] ?? now()->toDateString()
+        );
+
+        $monthlyServiceFeeSummary = $this->monthlyServiceFeeHistory
+            ->summaryForMonth($plan, $selectedDate);        
+
         return view('admin.invoices.manual-create', [
             'plan' => $plan,
+            'primaryClientName' => $primaryClientName,
             'preview' => $preview,
             'input' => $input,
+            'monthlyServiceFeeSummary' => $monthlyServiceFeeSummary,
             'contractBalance' => $this->balances->contractBalance($plan),
             'serviceFee' => (int) $terms->monthly_service_fee,
             'dueDays' => (int) $terms->due_days_after_issue,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\MonthlyServiceFeeHistoryService;
 use App\Enums\OverpaymentDisposition;
 use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
@@ -25,6 +26,7 @@ class PaymentController extends Controller
         private readonly PaymentService $payments,
         private readonly PaymentReceiptService $receipts,
         private readonly FinancialBalanceService $balances,
+        private readonly MonthlyServiceFeeHistoryService $monthlyServiceFeeHistory,
     ) {}
 
     public function intentPreview(ClientPaymentIntent $intent): View
@@ -136,11 +138,19 @@ class PaymentController extends Controller
         $invoiceBalance = $plan->invoices()->get()->sum(fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice)));
         $uninvoicedFirstPaymentDue = $this->payments->uninvoicedDueFirstPaymentAmount($plan);
 
+        $selectedDate = \Illuminate\Support\Carbon::parse(
+            $input['received_date'] ?? now()->toDateString()
+        );
+
+        $monthlyServiceFeeSummary = $this->monthlyServiceFeeHistory
+            ->summaryForMonth($plan, $selectedDate);
+
         return view('admin.payments.create', [
             'plan' => $plan,
             'primaryClientName' => $primaryClientName,
             'preview' => $preview,
             'input' => $input,
+            'monthlyServiceFeeSummary' => $monthlyServiceFeeSummary,
             'contractBalance' => $this->balances->contractBalance($plan),
             'invoiceBalance' => $invoiceBalance,
             'uninvoicedFirstPaymentDue' => $uninvoicedFirstPaymentDue,
