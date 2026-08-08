@@ -33,10 +33,18 @@ class PaymentPlanController extends Controller
         private readonly ContractAmountAmendmentService $contractAmounts,
     ) {}
 
-    public function index(): View
-    {
-        return view('admin.plans.index', ['plans' => PaymentPlan::query()->with('memberships.client')->latest()->paginate(25)]);
-    }
+public function index(): View
+{
+    return view('admin.plans.index', [
+        'plans' => PaymentPlan::query()
+            ->with([
+                'memberships.client',
+                'currentBillingTerms',
+            ])
+            ->latest()
+            ->paginate(25),
+    ]);
+}
 
     public function create(): View
     {

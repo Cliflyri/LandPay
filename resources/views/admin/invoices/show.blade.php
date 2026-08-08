@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 @section('title',$invoice->invoice_number.' | LandPay')
 @section('body_class','admin-page')
 @section('content')

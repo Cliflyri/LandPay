@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 @section('title','Payment receipt | LandPay')
 @section('body_class','admin-page')
 @section('content')
