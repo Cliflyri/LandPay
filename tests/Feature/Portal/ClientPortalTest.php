@@ -104,6 +104,21 @@ class ClientPortalTest extends TestCase
         $this->assertNotNull($notice->fresh()->dismissed_at);
     }
 
+    public function test_account_displays_current_payoff_without_changing_contract_balance(): void
+    {
+        [$admin, $client, $plan] = $this->records('PAYOFF');
+        $plan->update(['monthly_service_fee' => 2_500]);
+        $account = PortalAccount::query()->create(['client_id'=>$client->id,'email'=>$client->email,'password'=>'password','enabled'=>true]);
+        $contractBalance = app(\App\Services\FinancialBalanceService::class)->contractBalance($plan);
+
+        $this->actingAs($account, 'client')->get(route('portal.account.show'))
+            ->assertOk()
+            ->assertSee('Current Payoff')
+            ->assertSee(\App\Support\Money::format($contractBalance + 2_500));
+
+        $this->assertSame($contractBalance, app(\App\Services\FinancialBalanceService::class)->contractBalance($plan));
+    }
+
     public function test_administrator_portal_access_is_read_only_audited_and_does_not_change_last_login(): void
     {
         [$admin, $client] = $this->records('ADMINVIEW');

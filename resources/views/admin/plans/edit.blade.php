@@ -60,6 +60,8 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 <div class="col-md-4"><label class="form-label">Documentation fee</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="documentation_fee_standard" value="{{ old('documentation_fee_standard',number_format($plan->documentation_fee_standard/100,2,'.','')) }}" required></div></div>
 <div class="col-md-4"><label class="form-label">Fee waived</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="documentation_fee_waived" value="{{ old('documentation_fee_waived',number_format($plan->documentation_fee_waived/100,2,'.','')) }}" required></div></div>
 <div class="col-12"><label class="form-label">Waiver reason <span class="text-muted">(required when a fee is waived)</span></label><input class="form-control" name="documentation_fee_waiver_reason" maxlength="500" value="{{ old('documentation_fee_waiver_reason',$plan->documentation_fee_waiver_reason) }}"></div>
+<div class="col-md-4"><label class="form-label">Amount previously paid in</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="previous_principal_paid" value="{{ old('previous_principal_paid',number_format($previousPaid/100,2,'.','')) }}"></div><div class="form-text">Cannot reduce the remaining contract balance below zero or create customer credit.</div></div>
+<div class="col-md-8"><div id="projected-contract-balance-panel" class="calculation-panel calculation-panel-total h-100"><span>Projected contract balance</span><strong id="projected-contract-balance">{{ \App\Support\Money::format($contractBalance) }}</strong><small id="projected-contract-balance-warning" class="d-none">This adjustment would create customer credit and cannot be saved.</small></div></div>
 </div></div></div>
 
 <div class="plan-form-section"><div class="plan-form-number">3</div><div class="plan-form-body"><h2>Payment schedule</h2><div class="row g-3">
@@ -92,3 +94,19 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 <div class="d-flex gap-2 mt-4"><button class="btn btn-brand btn-lg">Save amendment</button><a class="btn btn-outline-brand btn-lg" href="{{ route('admin.plans.show',$plan) }}">Cancel</a></div>
 </form></div></section>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+ const form=document.querySelector('form[action*="/plans/"]');if(!form)return;
+ const names=['purchase_price','documentation_fee_standard','documentation_fee_waived','previous_principal_paid'];
+ const inputs=Object.fromEntries(names.map(name=>[name,form.elements[name]]));
+ const cents=value=>Math.round((Number.parseFloat(String(value).replace(/[$,]/g,''))||0)*100);
+ const original={purchase_price:@json($plan->purchase_price),documentation_fee_standard:@json($plan->documentation_fee_standard),documentation_fee_waived:@json($plan->documentation_fee_waived),previous_principal_paid:@json($previousPaid)};
+ const current=@json($contractBalance),output=document.getElementById('projected-contract-balance'),panel=document.getElementById('projected-contract-balance-panel'),warning=document.getElementById('projected-contract-balance-warning');
+ const currency=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100);
+ function update(){const projected=current+(cents(inputs.purchase_price.value)-original.purchase_price)+(cents(inputs.documentation_fee_standard.value)-cents(inputs.documentation_fee_waived.value)-(original.documentation_fee_standard-original.documentation_fee_waived))-(cents(inputs.previous_principal_paid.value)-original.previous_principal_paid);output.textContent=currency(projected);const invalid=projected<0;panel.classList.toggle('border-danger',invalid);output.classList.toggle('text-danger',invalid);warning.classList.toggle('d-none',!invalid);}
+ names.forEach(name=>inputs[name]?.addEventListener('input',update));update();
+});
+</script>
+@endpush

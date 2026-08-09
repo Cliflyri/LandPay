@@ -87,7 +87,9 @@ class PaymentOptionsTest extends TestCase {
   $this->call('POST',route('webhooks.provider','stripe'),[],[],[],['CONTENT_TYPE'=>'application/json','HTTP_STRIPE_SIGNATURE'=>"t={$timestamp},v1={$signature}"],$payload)->assertOk();
   $this->assertSame('received',$intent->fresh()->status);$this->assertDatabaseCount('payments',1);
   $this->call('POST',route('webhooks.provider','stripe'),[],[],[],['CONTENT_TYPE'=>'application/json','HTTP_STRIPE_SIGNATURE'=>"t={$timestamp},v1={$signature}"],$payload)->assertOk();
-  $this->assertDatabaseCount('payments',1);$this->assertDatabaseHas('admin_notices',['type'=>'online_payment_received']);
+  $this->assertDatabaseCount('payments',1);$this->assertDatabaseHas('admin_notices',['type'=>'online_payment_received','message'=>'Paying Client paid $100.00 by Stripe on '.now()->format('M j, Y').'. Payment posted successfully.']);
+  $payment=$intent->fresh()->payment;
+  $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Paying Client')->assertSee('$100.00')->assertSee(now()->format('M j, Y'))->assertSee(route('admin.clients.show',$client),false)->assertSee(route('admin.payments.show',$payment),false);
  }
  private function records(): array {
   $admin=User::factory()->create(['status'=>'active']);$client=Client::create(['client_type'=>'individual','first_name'=>'Paying','last_name'=>'Client','email'=>'payer@example.com','country_code'=>'US','created_by_user_id'=>$admin->id,'updated_by_user_id'=>$admin->id]);

@@ -57,7 +57,7 @@ class DashboardController extends Controller
             'planCount' => PaymentPlan::query()->whereNotIn('status', ['terminated', 'closed'])->count(),
             'openInvoiceCount' => Invoice::query()->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])->count(),
             'plans' => $plans,
-            'notices' => AdminNotice::query()->whereNull('dismissed_at')->with(['client', 'changeRequest', 'paymentIntent'])->latest()->limit(10)->get(),
+            'notices' => AdminNotice::query()->whereNull('dismissed_at')->with(['client', 'changeRequest', 'paymentIntent.payment'])->latest()->limit(10)->get(),
         ]);
     }
 

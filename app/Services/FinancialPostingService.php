@@ -157,6 +157,7 @@ class FinancialPostingService
             FinancialTransactionType::OpeningPurchaseBalance => $effect->type === FinancialEffectType::PurchaseBalance
                 && $effect->amountDelta > 0
                 && in_array($effect->component, [FinancialEffectComponent::PurchasePricePrincipal, FinancialEffectComponent::DocumentationFeePrincipal], true),
+            FinancialTransactionType::OpeningPrincipalCredit => $effect->type === FinancialEffectType::PurchaseBalance && $effect->amountDelta < 0,
             FinancialTransactionType::InvoiceCharge => $effect->type === FinancialEffectType::InvoiceDue && $effect->amountDelta > 0,
             FinancialTransactionType::RecurringFee => $effect->type === FinancialEffectType::InvoiceDue && $effect->amountDelta > 0,
             FinancialTransactionType::Payment => ($effect->type === FinancialEffectType::InvoiceDue && $effect->amountDelta < 0)

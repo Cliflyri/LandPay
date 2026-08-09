@@ -90,7 +90,8 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         <dt class="col-sm-4 col-lg-3">Documentation fee</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_standard)}}</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee waived</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_waived)}}@if($plan->documentation_fee_waived > 0) &mdash; {{ $plan->documentation_fee_waiver_reason }}@endif</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee charged</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_standard - $plan->documentation_fee_waived)}}</dd>
-        <dt class="col-sm-4 col-lg-3">Initial contract amount</dt><dd class="col-sm-8 col-lg-9"><strong>{{\App\Support\Money::format($plan->original_purchase_balance)}}</strong></dd>
+        <dt class="col-sm-4 col-lg-3">Amount previously paid in</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($previousPaid)}}</dd>
+        <dt class="col-sm-4 col-lg-3">Adjusted initial contract amount</dt><dd class="col-sm-8 col-lg-9"><strong>{{\App\Support\Money::format($plan->original_purchase_balance - $previousPaid)}}</strong></dd>
         <dt class="col-12"><hr></dt>
         <dt class="col-sm-4 col-lg-3">Property</dt><dd class="col-sm-8 col-lg-9">{{ $plan->title }}</dd>
         <dt class="col-sm-4 col-lg-3">Additional details</dt><dd class="col-sm-8 col-lg-9">{{ $plan->asset_description ?: 'None' }}</dd>

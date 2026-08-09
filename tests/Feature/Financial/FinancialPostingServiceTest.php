@@ -15,6 +15,8 @@ use App\Services\ContractOpeningService;
 use App\Services\FinancialBalanceService;
 use App\Services\FinancialPostingService;
 use App\Services\MonthlyInvoiceService;
+use App\Services\OpeningPrincipalCreditService;
+use App\Services\MonthlyServiceFeeHistoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use LogicException;
@@ -67,6 +69,10 @@ class FinancialPostingServiceTest extends TestCase
         $this->assertSame(2, $invoice->items->count());
         $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'item_type' => 'scheduled_purchase_payment', 'amount' => 50_000]);
         $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'item_type' => 'monthly_service_fee', 'amount' => 2_500]);
+        $feeSummary = app(MonthlyServiceFeeHistoryService::class)->summaryForMonth($plan, now()->setDate(2026, 8, 15));
+        $this->assertSame(2_500, $feeSummary['assessed']);
+        $this->assertSame(0, $feeSummary['total']);
+        $this->assertSame(2_500, $feeSummary['remaining']);
     }
 
     public function test_full_monthly_fee_waiver_remains_visible_without_amount_due(): void
@@ -85,6 +91,9 @@ class FinancialPostingServiceTest extends TestCase
             'waived_amount' => 2_500,
             'waiver_reason' => 'Courtesy waiver',
         ]);
+        $feeSummary = app(MonthlyServiceFeeHistoryService::class)->summaryForMonth($plan, now()->setDate(2026, 8, 15));
+        $this->assertSame(0, $feeSummary['assessed']);
+        $this->assertSame(0, $feeSummary['remaining']);
     }
 
     public function test_final_scheduled_principal_accounts_for_open_invoices(): void
@@ -119,6 +128,27 @@ class FinancialPostingServiceTest extends TestCase
         $this->assertSame(2_000_000, app(FinancialBalanceService::class)->contractBalance($plan));
         $this->assertSame('paid', $invoice->fresh()->status->value);
         $this->assertDatabaseHas('financial_transactions', ['invoice_id' => $invoice->id, 'type' => FinancialTransactionType::CreditApplication->value, 'gross_amount' => 52_500]);
+    }
+
+    public function test_amount_previously_paid_in_is_auditable_and_never_creates_credit(): void
+    {
+        [$user, $plan] = $this->draftPlan();
+        app(ContractOpeningService::class)->open($plan, $user, 100_000, 5_000, 0, '2026-08-01');
+        $service = app(OpeningPrincipalCreditService::class);
+
+        $service->post($plan, $user, 30_000, '2026-08-01');
+        $this->assertSame(30_000, $service->amount($plan));
+        $this->assertSame(75_000, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertSame(30_000, app(FinancialBalanceService::class)->administratorPaidInValue($plan));
+        $this->assertSame(0, app(FinancialBalanceService::class)->clientCredit($plan));
+
+        $service->amend($plan, $user, 40_000, '2026-08-02', 'Correct clerical error');
+        $this->assertSame(65_000, app(FinancialBalanceService::class)->contractBalance($plan));
+        $service->amend($plan, $user, 20_000, '2026-08-03', 'Correct clerical error');
+        $this->assertSame(85_000, app(FinancialBalanceService::class)->contractBalance($plan));
+
+        $this->expectException(ValidationException::class);
+        $service->amend($plan, $user, 110_000, '2026-08-04', 'Invalid excess adjustment');
     }
 
     public function test_invalid_invoice_posting_rolls_back_every_record(): void

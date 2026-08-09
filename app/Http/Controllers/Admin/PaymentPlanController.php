@@ -13,6 +13,7 @@ use App\Services\ContractAmountAmendmentService;
 use App\Services\ContractOpeningService;
 use App\Services\FinancialBalanceService;
 use App\Services\FirstPaymentInvoiceService;
+use App\Services\OpeningPrincipalCreditService;
 use App\Services\PaymentPlanMembershipService;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +32,7 @@ class PaymentPlanController extends Controller
         private readonly FinancialBalanceService $balances,
         private readonly FirstPaymentInvoiceService $firstPaymentInvoices,
         private readonly ContractAmountAmendmentService $contractAmounts,
+        private readonly OpeningPrincipalCreditService $openingPrincipalCredit,
     ) {}
 
 public function index(): View
@@ -67,6 +69,7 @@ public function index(): View
             'documentation_fee_standard' => ['required', 'decimal:0,2'],
             'documentation_fee_waived' => ['required', 'decimal:0,2'],
             'documentation_fee_waiver_reason' => ['nullable', 'string', 'max:500'],
+            'previous_principal_paid' => ['nullable', 'decimal:0,2', 'min:0'],
             'first_payment_amount' => ['nullable', 'required_with:first_payment_due_date,create_first_payment_invoice', 'decimal:0,2', 'gt:0'],
             'first_payment_due_date' => ['nullable', 'required_with:first_payment_amount,create_first_payment_invoice', 'date', 'after_or_equal:contract_start_date'],
             'create_first_payment_invoice' => ['sometimes', 'accepted'],
@@ -97,13 +100,18 @@ public function index(): View
             throw ValidationException::withMessages(['documentation_fee_waiver_reason' => 'Enter a reason for the documentation-fee waiver.']);
         }
 
+        $previousPaid = filled($data['previous_principal_paid'] ?? null) ? Money::toCents($data['previous_principal_paid']) : 0;
+        if ($previousPaid > Money::toCents($data['purchase_price']) + $docStandard - $docWaived) {
+            throw ValidationException::withMessages(['previous_principal_paid' => 'This adjustment cannot exceed the initial contract balance or create a customer credit.']);
+        }
+
         $stageOneDaysLate = (int) $data['grace_days'] + 1;
         if (($data['stage_two_enabled'] ?? false) && (int) $data['stage_two_days_late'] <= $stageOneDaysLate) {
             throw ValidationException::withMessages(['stage_two_days_late' => 'Stage two must occur after the stage-one late fee.']);
         }
 
         $actor = $request->user();
-        $plan = DB::transaction(function () use ($data, $actor, $docStandard, $docWaived, $stageOneDaysLate): PaymentPlan {
+        $plan = DB::transaction(function () use ($data, $actor, $docStandard, $docWaived, $previousPaid, $stageOneDaysLate): PaymentPlan {
             $purchase = Money::toCents($data['purchase_price']);
             $scheduled = Money::toCents($data['scheduled_payment_amount']);
             $monthlyFee = Money::toCents($data['monthly_service_fee']);
@@ -158,6 +166,7 @@ public function index(): View
             ]);
 
             $this->opening->open($plan, $actor, $purchase, $docStandard, $docWaived, $data['contract_start_date'], $data['documentation_fee_waiver_reason'] ?? null);
+            $this->openingPrincipalCredit->post($plan, $actor, $previousPaid, $data['contract_start_date']);
             $plan->update(['status' => 'active', 'activated_at' => now()]);
 
             if ($data['create_first_payment_invoice'] ?? false) {
@@ -191,6 +200,7 @@ public function index(): View
             'plan' => $plan,
             'contractBalance' => $this->balances->contractBalance($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
+            'previousPaid' => $this->openingPrincipalCredit->amount($plan),
             'amendments' => $amendments,
             'payments' => $payments,
         ]);
@@ -200,7 +210,7 @@ public function index(): View
     {
         $plan->load(['currentBillingTerms', 'memberships.client']);
 
-        return view('admin.plans.edit', ['plan' => $plan, 'terms' => $plan->currentBillingTerms]);
+        return view('admin.plans.edit', ['plan' => $plan, 'terms' => $plan->currentBillingTerms, 'previousPaid' => $this->openingPrincipalCredit->amount($plan), 'contractBalance' => $this->balances->contractBalance($plan)]);
     }
 
     public function update(Request $request, PaymentPlan $plan): RedirectResponse
@@ -215,6 +225,7 @@ public function index(): View
             'documentation_fee_standard' => ['required', 'decimal:0,2'],
             'documentation_fee_waived' => ['required', 'decimal:0,2'],
             'documentation_fee_waiver_reason' => ['nullable', 'string', 'max:500'],
+            'previous_principal_paid' => ['nullable', 'decimal:0,2', 'min:0'],
             'status' => ['required', Rule::in(['draft', 'active', 'paused', 'terminated', 'closed'])],
             'contract_start_date' => ['required', 'date'],
             'first_payment_amount' => ['nullable', 'decimal:0,2', 'gt:0'],
@@ -253,12 +264,14 @@ public function index(): View
         if ($documentationFeeWaived > 0 && blank($data['documentation_fee_waiver_reason'] ?? null)) {
             throw ValidationException::withMessages(['documentation_fee_waiver_reason' => 'Enter a reason for the documentation-fee waiver.']);
         }
+        $previousPaid = filled($data['previous_principal_paid'] ?? null) ? Money::toCents($data['previous_principal_paid']) : 0;
 
-        DB::transaction(function () use ($request, $plan, $terms, $data, $stageOneDaysLate, $purchasePrice, $documentationFeeStandard, $documentationFeeWaived): void {
+        DB::transaction(function () use ($request, $plan, $terms, $data, $previousPaid, $stageOneDaysLate, $purchasePrice, $documentationFeeStandard, $documentationFeeWaived): void {
             $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             $lockedTerms = PaymentPlanBillingTerm::query()->lockForUpdate()->findOrFail($terms->id);
             $before = ['plan' => $lockedPlan->only(['plan_number', 'title', 'asset_description', 'notes', 'status', 'plan_start_date', 'first_payment_amount', 'first_due_date', 'purchase_price', 'documentation_fee_standard', 'documentation_fee_waived', 'documentation_fee_waiver_reason']), 'billing_terms' => $lockedTerms->getAttributes()];
             $this->contractAmounts->amend($lockedPlan, $request->user(), $purchasePrice, $documentationFeeStandard, $documentationFeeWaived, $data['effective_from'], $data['amendment_reason'], $data['documentation_fee_waiver_reason'] ?? null);
+            $this->openingPrincipalCredit->amend($lockedPlan, $request->user(), $previousPaid, $data['effective_from'], $data['amendment_reason']);
             $scheduled = Money::toCents($data['scheduled_payment_amount']);
             $monthlyFee = Money::toCents($data['monthly_service_fee']);
             $firstPayment = filled($data['first_payment_amount'] ?? null) ? Money::toCents($data['first_payment_amount']) : null;

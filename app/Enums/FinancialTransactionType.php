@@ -5,6 +5,7 @@ namespace App\Enums;
 enum FinancialTransactionType: string
 {
     case OpeningPurchaseBalance = 'opening_purchase_balance';
+    case OpeningPrincipalCredit = 'opening_principal_credit';
     case InvoiceCharge = 'invoice_charge';
     case RecurringFee = 'recurring_fee';
     case Payment = 'payment';

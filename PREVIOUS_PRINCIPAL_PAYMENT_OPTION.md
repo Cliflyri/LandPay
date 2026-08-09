@@ -1,4 +1,4 @@
-# Previous Principal Payment Option
+# Previous Principal Payment Adjustment Option
 
 ## Purpose
 
@@ -39,9 +39,7 @@ Adjusted initial contract balance
     = contract balance before prior payments - principal previously paid in
 ```
 
-Consider renaming the existing **Initial contract balance** calculation to **Contract balance before prior payments** so the two displayed totals cannot be confused.
-
-When the previous-principal amount is zero, the adjusted balance will equal the balance before prior payments.
+When the previous-principal amount is zero, the adjusted balance will equal the same balance before prior payments.
 
 ## Validation
 
@@ -66,7 +64,7 @@ When a plan is created:
 5. Use an idempotency key tied to the plan so a repeated request cannot post the opening credit twice.
 6. Record the administrator as the actor and use a description such as `Principal previously paid before LandPay`.
 
-The existing `OpeningPrincipalCreditService` provides a starting point for this behavior. Its referenced transaction and component enum values must exist, and the create-plan workflow must call the service after establishing the opening contract balance.
+The existing `OpeningPrincipalCreditService` provides a starting point for this behavior. Its referenced transaction and component enum values must exist, and the create-plan workflow must call the service after establishing the opening contract balance.  Review this service for suitability, and keep as lean as practical.
 
 ## Paid-In Value
 

@@ -1,6 +1,6 @@
 <div
     class="alert py-2 px-3 mb-3"
-    @if (($monthlyServiceFeeSummary['total'] ?? 0) == 0)
+    @if (($monthlyServiceFeeSummary['remaining'] ?? 0) > 0)
         style="background:#fff8d7;border:1px solid #f0d36b;color:#664d03;"
     @else
         style="background:#f8f9fa;border:1px solid #dee2e6;"
@@ -8,34 +8,38 @@
 >
     <div class="d-flex flex-wrap justify-content-between gap-2">
         <strong>
-            Service fees collected in {{ $monthlyServiceFeeSummary['monthLabel'] }}
+            Service fee for {{ $monthlyServiceFeeSummary['monthLabel'] }}
         </strong>
 
         <span
-            @if($monthlyServiceFeeSummary['total'] == 0)
+            @if($monthlyServiceFeeSummary['remaining'] > 0)
                 class="fw-semibold fs-5 text-danger"
                 style="color:#7a1f1f !important;"
             @else
                 class="fw-semibold"
             @endif
         >
-            {{ \App\Support\Money::format($monthlyServiceFeeSummary['total']) }}
+            Assessed: {{ \App\Support\Money::format($monthlyServiceFeeSummary['assessed']) }} &middot; Applied: {{ \App\Support\Money::format($monthlyServiceFeeSummary['total']) }} &middot; Remaining: {{ \App\Support\Money::format($monthlyServiceFeeSummary['remaining']) }}
         </span>
 
     </div>
 
     @if (($monthlyServiceFeeSummary['count'] ?? 0) > 0)
         <div class="small text-muted mt-1">
-            Collected from
+            Payment allocations applied to
             @foreach ($monthlyServiceFeeSummary['entries'] as $entry)
                 <a href="{{ route('admin.invoices.show', $entry->invoice_id) }}">
                     {{ $entry->invoice_number }}
                 </a>@if (! $loop->last), @endif
             @endforeach
         </div>
+    @elseif (($monthlyServiceFeeSummary['total'] ?? 0) > 0)
+        <div class="small text-muted mt-1">
+            The fee was satisfied without a direct payment allocation, such as by account credit or adjustment.
+        </div>
     @else
         <div class="small text-muted mt-1">
-            No service-fee invoice payments were collected for this plan during this month.
+            No amount has been applied to this billing month's service fee.
         </div>
 
         @unless(request()->routeIs('admin.plans.invoices.manual.*'))

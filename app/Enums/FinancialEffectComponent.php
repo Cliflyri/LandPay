@@ -6,6 +6,7 @@ enum FinancialEffectComponent: string
 {
     case PurchasePricePrincipal = 'purchase_price_principal';
     case DocumentationFeePrincipal = 'documentation_fee_principal';
+    case OpeningPrincipalCredit = 'opening_principal_credit';
     case ScheduledPurchasePayment = 'scheduled_purchase_payment';
     case MonthlyServiceFee = 'monthly_service_fee';
     case LateFeeStageOne = 'late_fee_stage_1';

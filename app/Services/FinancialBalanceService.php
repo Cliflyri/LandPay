@@ -46,7 +46,7 @@ class FinancialBalanceService
     public function administratorPaidInValue(PaymentPlan|int $plan): int
     {
         $planId = $plan instanceof PaymentPlan ? $plan->id : $plan;
-        $netDelta = (int) TransactionEffect::query()
+        $paymentDelta = (int) TransactionEffect::query()
             ->join('financial_transactions', 'financial_transactions.id', '=', 'transaction_effects.financial_transaction_id')
             ->where('financial_transactions.payment_plan_id', $planId)
             ->where('transaction_effects.effect_type', FinancialEffectType::PurchaseBalance->value)
@@ -57,8 +57,14 @@ class FinancialBalanceService
                 FinancialTransactionType::Reversal->value,
             ])
             ->sum('transaction_effects.amount_delta');
+        $previousPaidDelta = (int) TransactionEffect::query()
+            ->join('financial_transactions', 'financial_transactions.id', '=', 'transaction_effects.financial_transaction_id')
+            ->where('financial_transactions.payment_plan_id', $planId)
+            ->where('transaction_effects.effect_type', FinancialEffectType::PurchaseBalance->value)
+            ->where('transaction_effects.component', FinancialEffectComponent::OpeningPrincipalCredit->value)
+            ->sum('transaction_effects.amount_delta');
 
-        return max(0, -$netDelta);
+        return max(0, -($paymentDelta + $previousPaidDelta));
     }
 
     private function planEffectSum(PaymentPlan|int $plan, FinancialEffectType $type): int
