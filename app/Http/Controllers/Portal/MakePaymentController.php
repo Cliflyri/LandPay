@@ -28,8 +28,6 @@ class MakePaymentController extends Controller {
   }
   $intent=DB::transaction(function()use($account,$plan,$data,$method){
    PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
-   $existing=ClientPaymentIntent::query()->where('client_id',$account->client_id)->where('payment_plan_id',$plan->id)->where('status','announced')->where('method','!=','card')->whereHas('adminNotice',fn($notice)=>$notice->whereNull('dismissed_at'))->lockForUpdate()->first();
-   if($existing)return $existing;
    $created=ClientPaymentIntent::query()->create(['payment_plan_id'=>$plan->id,'client_id'=>$account->client_id,'portal_account_id'=>$account->id,'method'=>$data['method'],'amount'=>Money::toCents($data['amount']),'payment_type'=>'regular','overpayment_disposition'=>$data['overpayment_disposition']??null,'client_note'=>$data['client_note']??null,'status'=>'announced','expires_at'=>now()->addDays($this->methods->general()['intent_expiry_days'])]);
    AdminNotice::query()->create(['type'=>'client_payment_announced','client_id'=>$account->client_id,'client_payment_intent_id'=>$created->id,'title'=>'Payment intended','message'=>$account->displayName().' intends to pay '.Money::format($created->amount).' by '.$method['name'].' for plan '.$plan->plan_number.'.'.(filled($created->client_note)?' Client note: '.$created->client_note:'')]);
    return $created;
@@ -54,10 +52,10 @@ class MakePaymentController extends Controller {
   $plans=PaymentPlan::query()->whereIn('id',$account->activePlanIds())->whereIn('status',['active','paused'])->with('invoices')->get();
   abort_if($plans->isEmpty(),403);
   $methods=$this->methods->enabled();
-  $activeIntents=ClientPaymentIntent::query()->where('client_id',$account->client_id)->whereIn('payment_plan_id',$plans->pluck('id'))->where('status','announced')->where('method','!=','card')->whereHas('adminNotice',fn($notice)=>$notice->whereNull('dismissed_at'))->latest('id')->get()->keyBy('payment_plan_id');
+  $configuredMethods=collect($methods)->keyBy('key');
+  $pendingNotifications=ClientPaymentIntent::query()->where('client_id',$account->client_id)->whereIn('payment_plan_id',$plans->pluck('id'))->where('status','announced')->where('method','!=','card')->whereHas('adminNotice',fn($notice)=>$notice->whereNull('dismissed_at'))->latest('id')->get()->map(function(ClientPaymentIntent $intent)use($configuredMethods){$intent->setAttribute('method_name',$configuredMethods->get($intent->method)['name']??str($intent->method)->replace('_',' ')->title());return $intent;});
   $requestedPlan=(int)($input['payment_plan_id']??$request->integer('plan'));
   $selected=$plans->firstWhere('id',$requestedPlan)??$plans->first();
-  $selectedIntent=$activeIntents->get($selected->id);
   $balances=$plans->mapWithKeys(fn(PaymentPlan $plan)=>[$plan->id=>(int)$plan->invoices->sum(fn($invoice)=>max(0,$this->balances->invoiceBalance($invoice)))]);
   $requestedAmount=$request->query('amount');
   $amount=is_string($requestedAmount)&&preg_match('/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/',$requestedAmount)&&Money::toCents($requestedAmount)>0
@@ -65,9 +63,9 @@ class MakePaymentController extends Controller {
    :number_format($balances[$selected->id]/100,2,'.','');
   $requestedMethod=$request->query('method');
   $methodKeys=collect($methods)->pluck('key');
-  $input+=['payment_plan_id'=>$selected->id,'amount'=>$selectedIntent?number_format($selectedIntent->amount/100,2,'.',''):$amount,'method'=>$selectedIntent?->method??($methodKeys->contains($requestedMethod)?$requestedMethod:($methods[0]['key']??null))];
-  $activeStates=$activeIntents->mapWithKeys(function(ClientPaymentIntent $intent)use($methods){$configured=collect($methods)->firstWhere('key',$intent->method);return[(string)$intent->payment_plan_id=>['id'=>$intent->uuid,'plan'=>(string)$intent->payment_plan_id,'method'=>$intent->method,'amount'=>number_format($intent->amount/100,2,'.',''),'message'=>'Admin notified of '.Money::format($intent->amount).' '.($configured['name']??'offline').' payment.','cancel_url'=>route('portal.make-payment.cancel',$intent)]];})->all();
-  return view('portal.make-payment.simple',['plans'=>$plans,'planBalances'=>$balances,'selectedPlan'=>$selected,'methods'=>$methods,'general'=>$this->methods->general(),'activeStates'=>$activeStates,'input'=>$input]);
+  $input+=['payment_plan_id'=>$selected->id,'amount'=>$amount,'method'=>$methodKeys->contains($requestedMethod)?$requestedMethod:($methods[0]['key']??null)];
+  $activeStates=[];
+  return view('portal.make-payment.simple',['plans'=>$plans,'planBalances'=>$balances,'selectedPlan'=>$selected,'methods'=>$methods,'general'=>$this->methods->general(),'activeStates'=>$activeStates,'pendingNotifications'=>$pendingNotifications,'input'=>$input]);
  }
  private function plan(Request $request,int $id): PaymentPlan{abort_unless(in_array($id,$request->user('client')->activePlanIds(),true),404);return PaymentPlan::findOrFail($id);}
  private function validateInput(Request $request): array{return $request->validate(['payment_plan_id'=>['required','integer'],'amount'=>['required','decimal:0,2','gt:0'],'method'=>['required',Rule::in(PaymentMethodConfigurationService::METHODS)],'overpayment_disposition'=>['nullable',Rule::in(['principal','next_invoice_credit'])],'client_note'=>['nullable','string','max:1000']]);}
