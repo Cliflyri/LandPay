@@ -88,7 +88,6 @@
         <button class="btn btn-brand mt-4">Create client</button>
     </form>
 </div>
-```
 
 </section>
 @endsection
