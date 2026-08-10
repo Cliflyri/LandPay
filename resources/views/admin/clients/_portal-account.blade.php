@@ -1,4 +1,4 @@
-<section class="pb-5 admin-section pt-0"><div class="container"><div class="admin-next-card"><h2>Client portal access</h2><p>The client creates their own password from a single-use invitation link valid for 48 hours.</p>
+<section class="pb-5 admin-section pt-0"><div class="container-fluid dashboard-container"><div class="admin-next-card"><h2>Client portal access</h2><p>The client creates their own password from a single-use invitation link valid for 48 hours.</p>
 @if($errors->has('portal_account'))<div class="alert alert-danger">{{$errors->first()}}</div>@endif
 @php($latestInvitation=$client->portalInvitations->sortByDesc('created_at')->first())
 @if($client->portalAccount?->enabled)<div class="alert alert-success"><strong>Active.</strong> {{$client->portalAccount->email}} <span aria-hidden="true">&mdash;</span> Last login: {{$client->portalAccount->last_login_at?->format('M j, Y g:i A') ?? 'Never'}}</div><form method="post" action="{{route('admin.portal-access.store',$client)}}">@csrf<button class="btn btn-outline-brand" type="submit">Open client portal as administrator</button></form>

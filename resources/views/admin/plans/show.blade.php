@@ -117,12 +117,23 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 
 <div class="admin-next-card mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h2 class="mb-1">Invoices</h2><p class="text-muted mb-0">All invoices issued for this plan.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.create',$plan)}}">Review next invoice</a><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.manual.create',$plan)}}">Create invoice</a></div></div>
+    @php
+        $sortedInvoices = $plan->invoices->sortByDesc('issue_date');
+        $currentInvoices = $sortedInvoices->reject(fn ($invoice) => $invoice->status->value === 'voided');
+        $voidedInvoices = $sortedInvoices->filter(fn ($invoice) => $invoice->status->value === 'voided');
+    @endphp
     <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Status</th><th class="text-end">Original amount</th></tr></thead><tbody>
-    @forelse($plan->invoices->sortByDesc('issue_date') as $invoice)
+    @forelse($currentInvoices as $invoice)
     <tr><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-{{str($invoice->status->value)->replace('_','-')}}">{{str($invoice->status->value)->replace('_',' ')->title()}}</span></td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
     @empty
-    <tr><td colspan="5" class="dashboard-empty"><strong>No invoices yet</strong><span>Review and issue the first monthly invoice when ready.</span></td></tr>
+    <tr><td colspan="5" class="dashboard-empty"><strong>No current invoices</strong><span>Review and issue the next invoice when ready.</span></td></tr>
     @endforelse
+    @if($voidedInvoices->isNotEmpty())
+    <tr><td colspan="5" class="pt-4 pb-2 border-bottom"><strong>Voided / Inactive invoices</strong><span class="d-block text-muted small">Retained for account history; these amounts are not currently due.</span></td></tr>
+    @foreach($voidedInvoices as $invoice)
+    <tr class="text-muted"><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-voided">Voided</span></td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
+    @endforeach
+    @endif
     </tbody></table></div>
 </div>
 
@@ -161,6 +172,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
     @empty
     <tr><td colspan="6" class="dashboard-empty"><strong>No payments yet</strong><span>Record the first payment when funds are received.</span></td></tr>
     @endforelse
+
     </tbody></table></div>
 </div>
 
