@@ -457,7 +457,7 @@ a { text-underline-offset: .2em; }
 }
 
 .admin-main {
-    padding: 1.5rem;
+    padding: 0rem;
 }
 
 @media (max-width: 991px) {
