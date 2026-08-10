@@ -63,14 +63,26 @@
 </div>
 </div>
 <div class="tab-pane fade" id="template-settings" role="tabpanel" tabindex="0">
-<div class="admin-next-card mt-4"><h2>Email templates</h2><p class="text-muted">Templates use the LandPay logo and a responsive, professional email frame. Allowed variables:</p><div class="template-variable-list">@foreach($variables as $variable)<code>@{{ {{ $variable }} }}</code>@endforeach</div></div>
-@foreach($templates as $template)<div class="admin-next-card mt-4"><form method="post" action="{{route('admin.settings.templates.update',$template)}}">@csrf @method('put')
-<div class="d-flex justify-content-between gap-3 align-items-start"><div><h2 class="mb-1">{{$template->name}}</h2><small class="text-muted">{{$template->slug}}</small></div><div class="form-check form-switch"><input type="hidden" name="active" value="0"><input class="form-check-input" type="checkbox" id="active-{{$template->id}}" name="active" value="1" @checked($template->active)><label class="form-check-label" for="active-{{$template->id}}">Enabled</label></div></div>
+<div class="admin-next-card mt-4"><h2>Email templates</h2><p class="text-muted mb-3">Choose a template to edit. Each template lists only the variables available to it.</p>
+<ul class="nav nav-tabs settings-tabs" role="tablist">
+@foreach($templates as $template)
+<li class="nav-item" role="presentation"><button class="nav-link @if($loop->first) active @endif" data-bs-toggle="tab" data-bs-target="#template-{{$template->id}}" type="button" role="tab">{{$template->name}}</button></li>
+@endforeach
+</ul>
+<div class="tab-content">
+@foreach($templates as $template)
+<div class="tab-pane fade @if($loop->first) show active @endif" id="template-{{$template->id}}" role="tabpanel" tabindex="0">
+<form method="post" action="{{route('admin.settings.templates.update',$template)}}" class="mt-4">@csrf @method('put')
+<div class="d-flex justify-content-between gap-3 align-items-start"><div><h3 class="h4 mb-1">{{$template->name}}</h3><small class="text-muted">{{$template->slug}}</small></div><div class="form-check form-switch"><input type="hidden" name="active" value="0"><input class="form-check-input" type="checkbox" id="active-{{$template->id}}" name="active" value="1" @checked($template->active)><label class="form-check-label" for="active-{{$template->id}}">Enabled</label></div></div>
+<div class="mt-3"><span class="form-label d-block">Allowed variables</span><div class="template-variable-list">@foreach($templateVariables[$template->slug] ?? [] as $variable)<code>&#123;&#123; {{ $variable }} &#125;&#125;</code>@endforeach</div></div>
 <div class="mt-3"><label class="form-label" for="subject-{{$template->id}}">Subject</label><input class="form-control" id="subject-{{$template->id}}" name="subject" value="{{$template->subject}}" required></div>
 <div class="mt-3"><label class="form-label" for="body-{{$template->id}}">Message body (basic HTML supported)</label><textarea class="form-control font-monospace" id="body-{{$template->id}}" name="body_html" rows="8" required>{{$template->body_html}}</textarea></div>
-<div class="d-flex flex-wrap gap-2 mt-3"><button class="btn btn-brand">Save HTML template</button></form><button class="btn btn-outline-brand" type="button" data-template-preview="preview-{{$template->id}}">Preview HTML</button><form method="post" action="{{route('admin.settings.templates.restore',$template)}}" onsubmit="return confirm('Restore the default {{$template->name}} template?');">@csrf<button class="btn btn-outline-brand">Restore default</button></form></div><div class="email-template-preview mt-3 d-none" id="preview-{{$template->id}}"><div class="email-preview-header"><img src="{{asset('images/landpay-logo.png')}}" alt="LandPay"></div><div class="email-preview-body" data-preview-body>{!! $template->body_html !!}</div><div class="email-preview-signature"><img src="{{asset('images/landpay-logo.png')}}" alt="LandPay"><div><strong>{{$settings['company_name']}}</strong><br>{{$settings['company_email']}} @if($settings['company_phone'])&middot; {{$settings['company_phone']}}@endif<br>{{$settings['email_footer']}}</div></div></div></div>@endforeach
+<div class="d-flex flex-wrap gap-2 mt-3"><button class="btn btn-brand">Save HTML template</button></form><button class="btn btn-outline-brand" type="button" data-template-preview="preview-{{$template->id}}">Preview HTML</button><form method="post" action="{{route('admin.settings.templates.restore',$template)}}" onsubmit="return confirm('Restore the default {{$template->name}} template?');">@csrf<button class="btn btn-outline-brand">Restore default</button></form></div>
+<div class="email-template-preview mt-3 d-none" id="preview-{{$template->id}}"><div class="email-preview-header"><img src="{{asset('images/landpay-logo.png')}}" alt="LandPay"></div><div class="email-preview-body" data-preview-body>{!! $template->body_html !!}</div><div class="email-preview-signature"><img src="{{asset('images/landpay-logo.png')}}" alt="LandPay"><div><strong>{{$settings['company_name']}}</strong><br>{{$settings['company_email']}} @if($settings['company_phone'])&middot; {{$settings['company_phone']}}@endif<br>{{$settings['email_footer']}}</div></div></div>
 </div>
-<div class="tab-pane fade" id="cron-settings" role="tabpanel" tabindex="0">
+@endforeach
+</div></div>
+</div><div class="tab-pane fade" id="cron-settings" role="tabpanel" tabindex="0">
 <div class="admin-next-card mt-4"><h2>Cron Instructions</h2><p class="text-muted">The Laravel schedule is ready. Add one cron entry on the NAS so it is checked every minute. The reminder task itself runs once daily at 8:00 AM.</p>
 <ul class="nav nav-pills cron-tabs mb-3" role="tablist">
 <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#cron-regular" type="button">Regular user</button></li>
@@ -87,6 +99,14 @@
 </div></section>
 @push('scripts')
 <script>
+const settingsParams = new URLSearchParams(window.location.search);
+if (settingsParams.get('section') === 'templates' && window.bootstrap) {
+    const mainTab = document.querySelector('[data-bs-target="#template-settings"]');
+    const templateTab = document.querySelector(`[data-bs-target="#template-${settingsParams.get('template')}"]`);
+    if (mainTab) window.bootstrap.Tab.getOrCreateInstance(mainTab).show();
+    if (templateTab) window.bootstrap.Tab.getOrCreateInstance(templateTab).show();
+}
+
 document.addEventListener('click', function (event) {
     const button = event.target.closest('[data-template-preview]');
     if (!button) return;
@@ -94,7 +114,7 @@ document.addEventListener('click', function (event) {
     event.stopImmediatePropagation();
     const preview = document.getElementById(button.dataset.templatePreview);
     if (!preview) return;
-    const editor = button.closest('.admin-next-card')?.querySelector('textarea[name="body_html"]');
+    const editor = button.closest('.tab-pane')?.querySelector('textarea[name="body_html"]');
     const previewBody = preview.querySelector('[data-preview-body]');
     if (editor && previewBody) previewBody.innerHTML = editor.value;
     preview.classList.toggle('d-none');

@@ -34,7 +34,7 @@ class SettingsController extends Controller
                 'email_footer' => AppSetting::valueFor('email_footer', 'Thank you for choosing LandPay.'),
             ],
             'templates' => $this->templates->all(),
-            'variables' => EmailTemplateService::VARIABLES,
+            'templateVariables' => EmailTemplateService::TEMPLATE_VARIABLES,
             'smtp' => $this->smtp->values(),
             'reminderSettings' => $this->automation->settings(),
             'upcomingReminders' => $this->automation->eligible(now()->startOfDay(), true)->take(10),
@@ -63,7 +63,7 @@ class SettingsController extends Controller
         ]);
         $this->templates->validateVariables($data['subject'].' '.$data['body_html']);
         $template->update($data + ['active' => false]);
-        return back()->with('success', $template->name.' template saved.');
+        return redirect()->route('admin.settings.index', ['section' => 'templates', 'template' => $template->id])->with('success', $template->name.' template saved.');
     }
 
 
@@ -130,6 +130,6 @@ class SettingsController extends Controller
         $default = $this->templates->defaults()[$template->slug] ?? null;
         abort_if($default === null, 404);
         $template->update($default + ['active' => true]);
-        return back()->with('success', $template->name.' restored to its default.');
+        return redirect()->route('admin.settings.index', ['section' => 'templates', 'template' => $template->id])->with('success', $template->name.' restored to its default.');
     }
 }

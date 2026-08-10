@@ -11,7 +11,15 @@ use Illuminate\Validation\ValidationException;
 
 class EmailTemplateService
 {
-    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
+    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'invoice_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
+
+    public const TEMPLATE_VARIABLES = [
+        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
+        'invoice-email' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
+        'payment-receipt' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'company_name', 'company_email', 'company_phone'],
+        'payment-reversal' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'company_name', 'company_email', 'company_phone'],
+        'portal-invitation' => ['client_name', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'],
+    ];
 
     /** @return array<string, array{name:string,subject:string,body_html:string}> */
     public function defaults(): array
@@ -100,6 +108,7 @@ class EmailTemplateService
             'issue_date' => $invoice->issue_date->format('F j, Y'),
             'plan_number' => $plan->plan_number,
             'plan_description' => $plan->title,
+            'invoice_portal_url' => route('portal.invoices.show', $invoice),
             'company_name' => AppSetting::valueFor('company_name', config('app.name', 'LandPay')),
             'company_email' => AppSetting::valueFor('company_email', ''),
             'company_phone' => AppSetting::valueFor('company_phone', ''),
