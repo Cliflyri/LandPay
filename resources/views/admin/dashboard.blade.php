@@ -130,7 +130,7 @@
 
                     @php($statusClass = 'status-' . str($row['operational_status'])->slug())
 
-                    <tr class="dashboard-plan-row">
+                    <tr class="dashboard-plan-row {{ $row['ready_to_close'] ? 'ready-to-close' : '' }}">
 
                         <td class="dashboard-actions-menu">
                             <div class="dropdown">
@@ -194,6 +194,11 @@
                                     <li>
                                         <a class="dropdown-item" href="{{ route('admin.plans.edit',$row['plan']) }}">
                                             Edit plan
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.plans.edit',$row['plan']) }}#plan-status">
+                                            Change status
                                         </a>
                                     </li>
 
@@ -270,6 +275,11 @@
                                 </span>
                             @endif
 
+                            @if ($row['ready_to_close'])
+                                <div class="mt-1">
+                                    <span class="dashboard-status status-ready-to-close">&#10003; Ready to close</span>
+                                </div>
+                            @endif
                             @if ($row['plan']->accelerated_testing_mode)
                                 <div class="mt-1">
                                     <a

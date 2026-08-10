@@ -53,6 +53,7 @@ class DashboardController extends Controller
 
         $nextReminders = $this->reminderAutomation->eligible(Carbon::today(), true)->groupBy(fn ($item) => $item['invoice']->payment_plan_id);
         $plans->getCollection()->transform(fn (PaymentPlan $plan) => $this->dashboardRow($plan, $nextReminders->get($plan->id)?->first()));
+        $plans->setCollection($plans->getCollection()->sortByDesc('ready_to_close')->values());
 
         return view('admin.dashboard', [
             'clientCount' => Client::query()->whereNull('archived_at')->count(),
@@ -106,15 +107,19 @@ class DashboardController extends Controller
         $lastReminder = $plan->invoices->flatMap->reminders->where('status', 'sent')->sortByDesc('sent_at')->first();
         $monthlyPrincipal = (int) ($plan->currentBillingTerms?->scheduled_payment_amount ?? $plan->customary_monthly_payment ?? 0);
         $monthlyServiceFee = (int) ($plan->currentBillingTerms?->monthly_service_fee ?? $plan->monthly_service_fee ?? 0);
+        $contractBalance = $this->balances->contractBalance($plan);
         return [
             'plan' => $plan,
             'primary_client' => $primary?->client,
             'client_name' => $this->clientName($primary?->client),
             'co_client_count' => $plan->memberships->where('role', 'co_client')->count(),
             'email' => $recipient?->client?->email,
-            'contract_balance' => $this->balances->contractBalance($plan),
+            'contract_balance' => $contractBalance,
             'current_payoff' => $this->payoffs->amount($plan),
             'current_balance_due' => $currentBalanceDue,
+            'ready_to_close' => in_array($plan->status, ['active', 'paused'], true)
+                && $contractBalance <= 0
+                && $currentBalanceDue <= 0,
             'current_balance_items' => $currentBalanceItems,
             'balance_invoice' => $oldestDueInvoice,
             'operational_status' => $this->operationalStatus($plan, $oldestDueDate, $currentBalanceDue),

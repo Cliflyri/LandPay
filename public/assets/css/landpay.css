@@ -199,6 +199,8 @@ a { text-underline-offset: .2em; }
 .dashboard-table tbody td { padding: 1.05rem 1rem; border-color: #e8ece8; }
 .dashboard-plan-row { transition: background-color .15s ease; }
 .dashboard-table tbody tr:nth-child(odd) > td { background-color: #fafafa; } .dashboard-table tbody tr:nth-child(even) > td { background-color: #fff; } .dashboard-table tbody .dashboard-plan-row:hover > td { background-color: #f6f6f3; }
+.dashboard-table tbody .dashboard-plan-row.ready-to-close > td { background-color: #eef7ed; }
+.dashboard-table tbody .dashboard-plan-row.ready-to-close > td:first-child { box-shadow: inset 4px 0 #4f8a52; }
 .dashboard-client-link { color: var(--lp-ink-deep); font-weight: 750; text-decoration: none; }
 .dashboard-client-link:hover { color: var(--lp-sun-deep); text-decoration: underline; }
 .dashboard-plan-link { color: var(--lp-teal); font-weight: 800; text-decoration: none; }
@@ -207,6 +209,7 @@ a { text-underline-offset: .2em; }
 .dashboard-status { display: inline-block; padding: .34rem .62rem; border-radius: 100px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
 .dashboard-table .dashboard-status { min-width: 7rem; padding: .45rem .75rem; border-radius: .2rem; text-align: center; }
 .status-current { color: #32683c; background: #e8f2e6; }
+.status-ready-to-close { color: #2f6b38; background: #dff0dc; }
 .status-due-soon { color: #725718; background: #fff1c8; }
 .status-due { color: #864f10; background: #fde2bf; }
 .status-past-due, .status-default-eligible { color: #8a2d28; background: #f8d9d5; }
