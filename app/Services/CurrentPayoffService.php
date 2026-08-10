@@ -14,7 +14,11 @@ class CurrentPayoffService
 
     public function amount(PaymentPlan $plan, ?Carbon $date = null): int
     {
-        return $this->balances->contractBalance($plan)
-            + $this->monthlyFees->summaryForMonth($plan, $date ?? now())['remaining'];
+        $contractBalance = $this->balances->contractBalance($plan);
+        if ($contractBalance <= 0) {
+            return 0;
+        }
+
+        return $contractBalance + $this->monthlyFees->summaryForMonth($plan, $date ?? now())['remaining'];
     }
 }
