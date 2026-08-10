@@ -47,7 +47,7 @@
 </td>
 <td><a class="dashboard-client-link" href="{{route('admin.clients.show',$client)}}">{{$name}}</a></td>
 <td>@if($plan)<a class="dashboard-plan-link text-nowrap" href="{{route('admin.plans.show',$plan)}}">{{$plan->apn ?: $plan->plan_number}}</a>@else<span class="muted-value">&mdash;</span>@endif</td>
-<td class="money-cell">@if($plan){{\App\Support\Money::format($row['contract_balance'])}}@else<span class="muted-value">&mdash;</span>@endif</td>
+<td class="money-cell">@if($plan){{\App\Support\Money::format($row['contract_balance'])}}<small class="d-block text-muted">({{\App\Support\Money::format($row['current_payoff'])}} payoff)</small>@else<span class="muted-value">&mdash;</span>@endif</td>
 <td class="money-cell">@if($plan){{\App\Support\Money::format($row['paid_in_value'])}}@else<span class="muted-value">&mdash;</span>@endif</td>
 <td>@if($client->email)<a class="dashboard-email" href="mailto:{{$client->email}}">{{$client->email}}</a>@else<span class="muted-value">Not provided</span>@endif</td>
 <td class="text-nowrap"><span class="muted-value">{{$client->portalAccount?->last_login_at?->format('M j, Y g:i A') ?? 'Never'}}</span></td>

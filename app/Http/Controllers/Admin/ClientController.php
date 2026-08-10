@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Services\FinancialBalanceService;
+use App\Services\CurrentPayoffService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,10 @@ use Illuminate\View\View;
 
 class ClientController extends Controller
 {
-    public function __construct(private readonly FinancialBalanceService $balances) {}
+    public function __construct(
+        private readonly FinancialBalanceService $balances,
+        private readonly CurrentPayoffService $payoffs,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -56,6 +60,7 @@ class ClientController extends Controller
         $pageRows = $allRows->slice(($page - 1) * $perPage, $perPage)->map(function (array $row): array {
             $plan = $row['plan'];
             $row['contract_balance'] = $plan ? $this->balances->contractBalance($plan) : null;
+            $row['current_payoff'] = $plan ? $this->payoffs->amount($plan) : null;
             $row['paid_in_value'] = $plan ? $this->balances->administratorPaidInValue($plan) : null;
 
             return $row;

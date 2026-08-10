@@ -7,7 +7,7 @@ $primaryMembership = $plan->memberships->firstWhere('role', 'primary');
 $primaryClient = $primaryMembership?->client;
 $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?->first_name ?? '').' '.($primaryClient?->last_name ?? ''));
 @endphp
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div>
         <span class="eyebrow eyebrow-dark">Payment plan</span>
@@ -51,7 +51,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 </div>
 
 <div class="row g-4 mt-3">
-    <div class="col-md-4"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong></article></div>
+    <div class="col-md-4"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">({{ \App\Support\Money::format($currentPayoff) }} payoff)</span></article></div>
     <div class="col-md-4"><article class="admin-summary-card"><span>Paid-in value</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong></article></div>
     <div class="col-md-4"><article class="admin-summary-card"><span>Monthly payment</span><strong>{{\App\Support\Money::format($plan->customary_monthly_payment)}}</strong></article></div>
 </div>

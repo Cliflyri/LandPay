@@ -11,6 +11,7 @@ use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
 use App\Services\ContractAmountAmendmentService;
 use App\Services\ContractOpeningService;
+use App\Services\CurrentPayoffService;
 use App\Services\FinancialBalanceService;
 use App\Services\FirstPaymentInvoiceService;
 use App\Services\OpeningPrincipalCreditService;
@@ -30,6 +31,7 @@ class PaymentPlanController extends Controller
         private readonly PaymentPlanMembershipService $memberships,
         private readonly ContractOpeningService $opening,
         private readonly FinancialBalanceService $balances,
+        private readonly CurrentPayoffService $payoffs,
         private readonly FirstPaymentInvoiceService $firstPaymentInvoices,
         private readonly ContractAmountAmendmentService $contractAmounts,
         private readonly OpeningPrincipalCreditService $openingPrincipalCredit,
@@ -199,6 +201,7 @@ public function index(): View
         return view('admin.plans.show', [
             'plan' => $plan,
             'contractBalance' => $this->balances->contractBalance($plan),
+            'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),
             'amendments' => $amendments,

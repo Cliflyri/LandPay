@@ -105,7 +105,7 @@
     </div>
 </td>
 
-                            <td class="money-cell">{{ \App\Support\Money::format($row['contract_balance']) }}</td>
+                            <td class="money-cell">{{ \App\Support\Money::format($row['contract_balance']) }}<small class="d-block text-muted">({{ \App\Support\Money::format($row['current_payoff']) }} payoff)</small></td>
                             <td class="current-balance-cell {{$row['current_balance_due'] > 0 ? 'balance-due' : ''}}">
                                 <strong class="current-balance-total">{{\App\Support\Money::format($row['current_balance_due'])}}</strong>
                                 @forelse($row['current_balance_items'] as $item)

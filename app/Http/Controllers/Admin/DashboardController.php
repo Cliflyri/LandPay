@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\PaymentPlan;
 use App\Services\FinancialBalanceService;
 use App\Services\AutomaticInvoiceService;
+use App\Services\CurrentPayoffService;
 use App\Services\ReminderAutomationService;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -18,6 +19,7 @@ class DashboardController extends Controller
 {
     public function __construct(
         private readonly FinancialBalanceService $balances,
+        private readonly CurrentPayoffService $payoffs,
         private readonly AutomaticInvoiceService $automaticInvoices,
         private readonly ReminderAutomationService $reminderAutomation,
     ) {}
@@ -111,6 +113,7 @@ class DashboardController extends Controller
             'co_client_count' => $plan->memberships->where('role', 'co_client')->count(),
             'email' => $recipient?->client?->email,
             'contract_balance' => $this->balances->contractBalance($plan),
+            'current_payoff' => $this->payoffs->amount($plan),
             'current_balance_due' => $currentBalanceDue,
             'current_balance_items' => $currentBalanceItems,
             'balance_invoice' => $oldestDueInvoice,
