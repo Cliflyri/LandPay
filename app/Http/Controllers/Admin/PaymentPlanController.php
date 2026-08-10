@@ -39,15 +39,30 @@ class PaymentPlanController extends Controller
 
 public function index(): View
 {
-    return view('admin.plans.index', [
-        'plans' => PaymentPlan::query()
-            ->with([
-                'memberships.client',
-                'currentBillingTerms',
-            ])
-            ->latest()
-            ->paginate(25),
-    ]);
+    $plans = PaymentPlan::query()
+        ->with([
+            'memberships.client',
+            'currentBillingTerms',
+            'invoices.items',
+        ])
+        ->latest()
+        ->paginate(25);
+
+    $plans->getCollection()->each(function (PaymentPlan $plan): void {
+        $outstandingInvoiceBalance = $plan->invoices->sum(
+            fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice))
+        );
+
+        $plan->setAttribute(
+            'ready_to_close',
+            in_array($plan->status, ['active', 'paused'], true)
+                && $this->balances->contractBalance($plan) <= 0
+                && $outstandingInvoiceBalance <= 0
+        );
+    });
+    $plans->setCollection($plans->getCollection()->sortByDesc('ready_to_close')->values());
+
+    return view('admin.plans.index', ['plans' => $plans]);
 }
 
     public function create(): View

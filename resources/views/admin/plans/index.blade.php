@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section('title', 'Payment plans | LandPay')
 @section('body_class', 'admin-page')
@@ -89,7 +89,7 @@
                                 };
                             @endphp
 
-                            <tr class="dashboard-plan-row">
+                            <tr class="dashboard-plan-row {{ $plan->ready_to_close ? 'ready-to-close' : '' }}">
 
                                 <td class="dashboard-actions-menu">
                                     <div class="dropdown">
@@ -120,6 +120,14 @@
                                                     href="{{ route('admin.plans.edit', $plan) }}"
                                                 >
                                                     Edit plan
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a
+                                                    class="dropdown-item"
+                                                    href="{{ route('admin.plans.edit', $plan) }}#plan-status"
+                                                >
+                                                    Change status
                                                 </a>
                                             </li>
 
@@ -195,6 +203,11 @@
                                     <span class="dashboard-status {{ $statusClass }}">
                                         {{ $statusLabel }}
                                     </span>
+                                    @if ($plan->ready_to_close)
+                                        <div class="mt-1">
+                                            <span class="dashboard-status status-ready-to-close">&#10003; Ready to close</span>
+                                        </div>
+                                    @endif
 
                                     @if ($plan->accelerated_testing_mode)
                                         <div class="mt-1">

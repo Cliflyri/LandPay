@@ -502,3 +502,11 @@ body.admin-layout .admin-section > .site-container {
     box-sizing: border-box;
 }
 
+.dashboard-status.status-ready-to-close {
+    background: #fff3cd;
+    color: #7a263a;
+    border: 1px solid #e5c35b;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.15rem 0.4rem;
+}
