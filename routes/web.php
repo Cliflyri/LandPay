@@ -74,6 +74,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
     Route::post('clients/{client}/portal-access', [ClientPortalAccessController::class, 'store'])->name('portal-access.store');
     Route::delete('portal-access', [ClientPortalAccessController::class, 'destroy'])->name('portal-access.destroy');
+    Route::post('clients/{client}/archive', [ClientController::class, 'archive'])->name('clients.archive');
+    Route::post('clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore');
     Route::resource('clients', ClientController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('plans/{plan}/pause', [PaymentPlanPauseController::class, 'pause'])->name('plans.pause');

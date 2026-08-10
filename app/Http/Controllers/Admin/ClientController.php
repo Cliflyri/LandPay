@@ -23,8 +23,11 @@ class ClientController extends Controller
     public function index(Request $request): View
     {
         $showAllPlans = $request->string('plans')->value() === 'all';
+        $requestedStatus = $request->string('clients')->value();
+        $clientStatus = in_array($requestedStatus, ['archived', 'all'], true) ? $requestedStatus : 'active';
         $clients = Client::query()
-            ->whereNull('archived_at')
+            ->when($clientStatus === 'active', fn ($query) => $query->whereNull('archived_at'))
+            ->when($clientStatus === 'archived', fn ($query) => $query->whereNotNull('archived_at'))
             ->with([
                 'portalAccount',
                 'memberships' => function ($query) use ($showAllPlans): void {
@@ -77,6 +80,7 @@ class ClientController extends Controller
         return view('admin.clients.index', [
             'rows' => $rows,
             'showAllPlans' => $showAllPlans,
+            'clientStatus' => $clientStatus,
         ]);
     }
 
@@ -131,6 +135,28 @@ class ClientController extends Controller
         return redirect()->route('admin.clients.show', $client)->with('success', 'Client updated successfully.');
     }
 
+    public function archive(Request $request, Client $client): RedirectResponse
+    {
+        $hasCurrentPlans = $client->memberships()
+            ->whereNull('effective_to')
+            ->whereHas('paymentPlan', fn ($query) => $query->whereIn('status', ['draft', 'active', 'paused']))
+            ->exists();
+
+        if ($hasCurrentPlans) {
+            return back()->withErrors(['client' => 'Resolve the client’s draft, active, or paused plans before archiving.']);
+        }
+
+        $client->update(['archived_at' => now(), 'updated_by_user_id' => $request->user()->id]);
+
+        return redirect()->route('admin.clients.index')->with('success', 'Client archived.');
+    }
+
+    public function restore(Request $request, Client $client): RedirectResponse
+    {
+        $client->update(['archived_at' => null, 'updated_by_user_id' => $request->user()->id]);
+
+        return redirect()->route('admin.clients.show', $client)->with('success', 'Client restored.');
+    }
     private function validatedClient(Request $request): array
     {
         $data = $request->validate([
