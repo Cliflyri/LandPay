@@ -3,7 +3,7 @@
 @section('body_class','admin-page')
 @section('content')
 @php($rows = old('items', $input['items'] ?? [['type' => 'principal', 'description' => 'Plan payment', 'amount' => '']]))
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
 <div><span class="eyebrow eyebrow-dark">Manual invoice</span><h1>Create invoice</h1>
 

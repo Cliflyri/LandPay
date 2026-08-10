@@ -3,7 +3,7 @@
 @section('body_class','admin-page')
 @section('content')
 @php($transaction=$payment->financialTransaction)
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
 <div><span class="eyebrow eyebrow-dark">Payment receipt</span><h1>{{\App\Support\Money::format($payment->gross_amount)}}</h1><p class="mb-0">{{ $transaction->paymentPlan->title }} <span aria-hidden="true">&middot;</span> {{ $payment->received_date->format('M j, Y') }}</p></div>
 <div class="d-flex flex-wrap gap-2">@unless($reversal)<form method="post" action="{{route('admin.payments.receipt-email.store',$payment)}}">@csrf<button class="btn btn-brand" type="submit">Email receipt</button></form>@endunless<a class="btn btn-outline-brand" href="{{ route('admin.plans.show',$transaction->paymentPlan) }}">Back to plan</a></div>

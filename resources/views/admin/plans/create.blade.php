@@ -10,7 +10,7 @@ $defaultStageTwoValue = $defaultStageTwoType === 'percentage' ? ($billingDefault
 $clientOptions = $clients->map(fn ($client) => ['id' => $client->id, 'label' => $client->organization_name ?: trim($client->first_name.' '.$client->last_name), 'email' => $client->email, 'phone' => $client->primary_phone])->values();
 $oldCoClientIds = array_map('strval', old('co_client_ids', []));
 @endphp
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading"><span class="eyebrow eyebrow-dark">Contract setup</span><h1>New payment plan</h1><p>Set up the property, opening balance, first payment, and recurring billing in order.</p></div>
 <form class="admin-form-card" method="POST" action="{{ route('admin.plans.store') }}" id="plan-form">@csrf
 @if($errors->any())<div class="alert alert-danger"><strong>The plan was not activated.</strong><ul class="mb-0 mt-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

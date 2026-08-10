@@ -5,7 +5,7 @@
 @php($primary=$invoice->paymentPlan->memberships->firstWhere('role','primary')?->client)
 @php($clientName=$primary?->organization_name ?: trim(($primary?->first_name ?? '').' '.($primary?->last_name ?? '')) ?: 'Not assigned')
 @php($statusLabel=str($invoice->status->value)->replace('_',' ')->title())
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div><span class="eyebrow eyebrow-dark">Invoice</span><div class="d-flex flex-wrap align-items-center gap-2"><h1 class="mb-0">{{$invoice->invoice_number}}</h1><span class="dashboard-status status-{{str($invoice->status->value)->slug()}}">{{$statusLabel}}</span></div><p class="mb-0 mt-2">{{$invoice->paymentPlan->title}} <span aria-hidden="true">&middot;</span> APN / Plan # {{$invoice->paymentPlan->apn ?: $invoice->paymentPlan->plan_number}}</p></div>
     <div class="d-flex flex-wrap gap-2">

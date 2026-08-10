@@ -11,7 +11,7 @@ $stageTwoType = old('stage_two_fee_type', $terms->stage_two_fee_type?->value ?? 
 $stageOneValue = $stageOneType === 'percentage' ? $terms->stage_one_percentage_rate : number_format(($terms->stage_one_fixed_amount ?? 0) / 100, 2, '.', '');
 $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_rate : number_format(($terms->stage_two_fixed_amount ?? 0) / 100, 2, '.', '');
 @endphp
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading"><span class="eyebrow eyebrow-dark">Plan amendment</span><h1>Edit {{ $plan->plan_number }}</h1><p><strong>{{ $primaryClientName ?: 'No primary client' }}</strong> <span aria-hidden="true">&middot;</span> Plan # {{ $plan->plan_number }}</p><p>Changes create a new effective-dated billing record. Existing invoices and ledger entries remain unchanged.</p></div>
 <form class="admin-form-card" method="POST" action="{{ route('admin.plans.update', $plan) }}">@csrf @method('PUT')
 @if($errors->any())<div class="alert alert-danger"><strong>The amendment was not saved.</strong><ul class="mb-0 mt-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

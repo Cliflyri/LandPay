@@ -2,7 +2,7 @@
 @section('title','Review monthly invoice | LandPay')
 @section('body_class','admin-page')
 @section('content')
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Monthly invoice</span><h1>Review before issuing</h1><p class="mb-0">{{ $plan->title }} <span aria-hidden="true">&middot;</span> APN / Plan # {{ $plan->plan_number }}</p></div><a class="btn btn-outline-brand" href="{{route('admin.plans.show',$plan)}}">Back to plan</a></div>
 @if($errors->any())<div class="alert alert-danger mt-4"><strong>Invoice not ready.</strong><ul class="mb-0 mt-2">@foreach($errors->all() as $error)<li>{{$error}}</li>@endforeach</ul></div>@endif
 @if($plan->status === 'paused')<div class="alert alert-warning mt-4"><strong>This plan is paused.</strong> This is an explicit manual invoice and is not part of the suspended automatic schedule.</div>@endif

@@ -2,7 +2,7 @@
 @section('title','Edit client | LandPay')
 @section('body_class','admin-page')
 @section('content')
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading"><span class="eyebrow eyebrow-dark">Client record</span><h1>Edit client</h1><p>Update contact, address, and internal account information.</p></div>
 <form class="admin-form-card" method="POST" action="{{ route('admin.clients.update',$client) }}">@csrf @method('PUT')
 @if($errors->any())<div class="alert alert-danger"><strong>The client was not updated.</strong><ul class="mb-0 mt-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

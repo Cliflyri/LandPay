@@ -2,7 +2,7 @@
 @section('title','Record payment | LandPay')
 @section('body_class','admin-page')
 @section('content')
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div><span class="eyebrow eyebrow-dark">Record payment</span><h1>{{ $primaryClientName }}</h1><p class="mb-0"><strong>APN / Plan # {{ $plan->plan_number }}</strong> <span aria-hidden="true">&mdash;</span> {{ $plan->title }}</p></div>
     <a class="btn btn-outline-brand" href="{{ route('admin.plans.show',$plan) }}">Back to plan</a>
