@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Payment;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
+use App\Services\AutomaticInvoiceService;
 use App\Services\ContractAmountAmendmentService;
 use App\Services\ContractOpeningService;
 use App\Services\CurrentPayoffService;
@@ -35,6 +36,7 @@ class PaymentPlanController extends Controller
         private readonly FirstPaymentInvoiceService $firstPaymentInvoices,
         private readonly ContractAmountAmendmentService $contractAmounts,
         private readonly OpeningPrincipalCreditService $openingPrincipalCredit,
+        private readonly AutomaticInvoiceService $automaticInvoices,
     ) {}
 
 public function index(): View
@@ -199,6 +201,17 @@ public function index(): View
     public function show(PaymentPlan $plan): View
     {
         $plan->load(['memberships.client', 'currentBillingTerms', 'billingTerms.createdBy', 'invoices.items']);
+        $contractBalance = $this->balances->contractBalance($plan);
+        $monthlyPrincipal = (int) ($plan->currentBillingTerms?->scheduled_payment_amount ?? $plan->customary_monthly_payment ?? 0);
+        $nextInvoiceDate = $this->automaticInvoices->nextDate($plan);
+        $estimatedPayoff = match (true) {
+            $contractBalance <= 0 => 'Paid off',
+            $monthlyPrincipal <= 0 || $nextInvoiceDate === null => 'Not available',
+            default => $nextInvoiceDate->copy()
+                ->addMonthsNoOverflow(max(0, (int) ceil($contractBalance / $monthlyPrincipal) - 1))
+                ->format('F Y'),
+        };
+
         $payments = Payment::query()
             ->with(['financialTransaction.reversedBy', 'payer', 'allocations.invoice'])
             ->whereHas('financialTransaction', fn ($query) => $query->where('payment_plan_id', $plan->id))
@@ -208,7 +221,8 @@ public function index(): View
 
         return view('admin.plans.show', [
             'plan' => $plan,
-            'contractBalance' => $this->balances->contractBalance($plan),
+            'contractBalance' => $contractBalance,
+            'estimatedPayoff' => $estimatedPayoff,
             'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),

@@ -101,6 +101,8 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         <dt class="col-sm-4 col-lg-3">Invoice day</dt><dd class="col-sm-8 col-lg-9">Day {{ $plan->monthly_due_day }} of each month</dd>
         <dt class="col-sm-4 col-lg-3">Contract start</dt><dd class="col-sm-8 col-lg-9">{{ $plan->plan_start_date?->format('M j, Y') }}</dd>
         <dt class="col-sm-4 col-lg-3">Notes</dt><dd class="col-sm-8 col-lg-9">{{ $plan->notes ?: 'None' }}</dd>
+        <dt class="col-sm-4 col-lg-3">Estimated payoff</dt><dd class="col-sm-8 col-lg-9"><strong>{{ $estimatedPayoff }}</strong><span class="d-block text-muted small">Based on the current principal balance and payment schedule.</span></dd>
+
     </dl>
 </div>
 
