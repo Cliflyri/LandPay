@@ -2,7 +2,7 @@
 @section('title','Settings | LandPay')
 @section('body_class','admin-page')
 @section('content')
-<section class="admin-section"><div class="container site-container">
+<section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading"><div><span class="eyebrow eyebrow-dark">Administration</span><h1>Settings</h1><p class="mb-0">Manage company identity and reusable customer email templates.</p></div><div><a class="btn btn-brand" href="{{route('admin.payment-methods.index')}}">Payment methods</a> <a class="btn btn-outline-brand" href="{{route('admin.dashboard')}}">Back to dashboard</a></div></div>
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
 @if($errors->any())<div class="alert alert-danger mt-4">{{$errors->first()}}</div>@endif
