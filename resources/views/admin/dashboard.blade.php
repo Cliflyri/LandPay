@@ -3,7 +3,7 @@
 @section('body_class', 'admin-page')
 @section('content')
 <section class="admin-section dashboard-section">
-    <div class="container-fluid dashboard-container">
+    <div class="container-fluid dashboard-container px-2">
         <div class="admin-heading dashboard-heading">
             <div>
                 <span class="eyebrow eyebrow-dark">Administrator dashboard</span>
@@ -31,7 +31,7 @@
                 <table class="table dashboard-table align-middle mb-0">
                     <thead><tr>
                         <th scope="col"><span class="visually-hidden">Actions</span></th><th scope="col">Client</th><th scope="col">APN / Plan #</th><th scope="col">Status</th><th scope="col" class="text-center dashboard-monthly-column">Monthly</th>
-                        <th scope="col" class="text-end">Contract balance</th><th scope="col">Current balance</th>
+                        <th scope="col" class="text-end">Contract balance</th><th scope="col">Current Due</th>
                         <th scope="col">Last reminder</th><th scope="col">Next reminder</th><th scope="col">Next invoice</th><th scope="col">Email</th>
                     </tr></thead>
                     <tbody>
@@ -53,7 +53,7 @@
                                 @if(in_array($row['plan']->status, ['active','paused'], true))<li><a class="dropdown-item" href="{{route('admin.plans.show',$row['plan'])}}#pause-plan-controls">{{$row['plan']->status === 'paused' ? 'Resume plan' : 'Pause plan'}}</a></li>@endif
                                 @if($row['balance_invoice'] && $row['email'])<li><hr class="dropdown-divider"></li><li><form method="post" action="{{route('admin.invoices.reminders.store',$row['balance_invoice'])}}" onsubmit="return confirm('Send a payment reminder to {{$row['email']}}?');">@csrf<button class="dropdown-item" type="submit">Send reminder</button></form></li>@endif
                             </ul></div></td>
-                            <td>@if($row['primary_client'])<a class="dashboard-client-link" href="{{ route('admin.clients.show', $row['primary_client']) }}">{{ $row['client_name'] }}</a>@else<span class="muted-value">{{ $row['client_name'] }}</span>@endif @if($row['co_client_count'] > 0)<span class="co-client-count" title="{{ $row['co_client_count'] }} co-client(s)">+{{ $row['co_client_count'] }}</span>@endif</td>
+                            <td class="text-nowrap">@if($row['primary_client'])<a class="dashboard-client-link" href="{{ route('admin.clients.show', $row['primary_client']) }}">{{ $row['client_name'] }}</a>@else<span class="muted-value">{{ $row['client_name'] }}</span>@endif @if($row['co_client_count'] > 0)<span class="co-client-count" title="{{ $row['co_client_count'] }} co-client(s)">+{{ $row['co_client_count'] }}</span>@endif</td>
                             <td class="text-nowrap">
                                 
                             <a class="dashboard-plan-link" href="{{ route('admin.plans.show', $row['plan']) }}">{{ $row['plan']->plan_number }}</a></td>

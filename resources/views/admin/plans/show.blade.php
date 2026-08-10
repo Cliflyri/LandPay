@@ -7,7 +7,7 @@ $primaryMembership = $plan->memberships->firstWhere('role', 'primary');
 $primaryClient = $primaryMembership?->client;
 $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?->first_name ?? '').' '.($primaryClient?->last_name ?? ''));
 @endphp
-<section class="admin-section"><div class="container-fluid dashboard-container">
+<section class="admin-section"><div class="container-fluid dashboard-container px-2">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div>
         <span class="eyebrow eyebrow-dark">Payment plan</span>

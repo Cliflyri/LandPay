@@ -2,9 +2,9 @@
 @section('title','Clients | LandPay')
 @section('body_class','admin-page')
 @section('content')
-<section class="admin-section"><div class="container-fluid dashboard-container">
+<section class="admin-section"><div class="container-fluid dashboard-container px-2">
 <div class="admin-heading d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
-    <div><span class="eyebrow eyebrow-dark">Administration</span><h1>Clients</h1><p>One row per client and payment-plan relationship.</p></div>
+    <div><h1>Clients</h1><span class="eyebrow eyebrow-dark">Administration</span></div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
         <form method="get" action="{{route('admin.clients.index')}}">
             <label class="visually-hidden" for="plans">Plans shown</label>
@@ -45,7 +45,7 @@
         </div>
     </div>
 </td>
-<td><a class="dashboard-client-link" href="{{route('admin.clients.show',$client)}}">{{$name}}</a></td>
+<td class="text-nowrap"><a class="dashboard-client-link" href="{{route('admin.clients.show',$client)}}">{{$name}}</a></td>
 <td>@if($plan)<a class="dashboard-plan-link text-nowrap" href="{{route('admin.plans.show',$plan)}}">{{$plan->apn ?: $plan->plan_number}}</a>@else<span class="muted-value">&mdash;</span>@endif</td>
 <td class="money-cell">@if($plan){{\App\Support\Money::format($row['contract_balance'])}}<small class="d-block text-muted">({{\App\Support\Money::format($row['current_payoff'])}} payoff)</small>@else<span class="muted-value">&mdash;</span>@endif</td>
 <td class="money-cell">@if($plan){{\App\Support\Money::format($row['paid_in_value'])}}@else<span class="muted-value">&mdash;</span>@endif</td>

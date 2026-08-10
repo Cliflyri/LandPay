@@ -65,3 +65,41 @@ document.querySelectorAll('[data-current-balance-toggle]').forEach((button) => {
         button.textContent = expanding ? button.dataset.expandedLabel : button.dataset.collapsedLabel;
     });
 });
+
+document.querySelectorAll('.dashboard-table-card .table-responsive').forEach((container) => {
+    let startX = 0;
+    let startScrollLeft = 0;
+    let mouseDown = false;
+    let dragged = false;
+
+    container.addEventListener('mousedown', (event) => {
+        if (event.button !== 0 || container.scrollWidth <= container.clientWidth) return;
+        if (event.target.closest('a, button, input, select, textarea, [role="button"]')) return;
+        startX = event.clientX;
+        startScrollLeft = container.scrollLeft;
+        mouseDown = true;
+        dragged = false;
+    });
+
+    window.addEventListener('mousemove', (event) => {
+        if (!mouseDown) return;
+        const distance = event.clientX - startX;
+        if (Math.abs(distance) < 5) return;
+        dragged = true;
+        container.classList.add('is-dragging');
+        container.scrollLeft = startScrollLeft - distance;
+        event.preventDefault();
+    });
+
+    window.addEventListener('mouseup', () => {
+        mouseDown = false;
+        container.classList.remove('is-dragging');
+    });
+
+    container.addEventListener('click', (event) => {
+        if (!dragged) return;
+        event.preventDefault();
+        event.stopPropagation();
+        dragged = false;
+    }, true);
+});

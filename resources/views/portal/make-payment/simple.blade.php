@@ -23,21 +23,56 @@
 @endif
 <h2 class="mt-4">Choose a payment method</h2>
 <input type="hidden" name="method" id="selected-method" value="{{ $input['method'] }}">
-<div class="portal-payment-tabs" role="tablist">@foreach($methods as $method)<button type="button" class="portal-payment-tab" data-tab="{{ $method['key'] }}" aria-selected="false">{{ $method['name'] }} @if($method['recommended'])<span class="badge text-bg-success">Recommended</span>@endif</button>@endforeach</div>
+<div class="portal-payment-tabs" role="tablist">@foreach($methods as $method)<button type="button" class="portal-payment-tab" data-tab="{{ $method['key'] }}" aria-selected="false">{{ $method['name'] }} 
+    
+@if($method['recommended'])
+<span class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle ms-1"
+      style="font-size: 0.8rem;">
+    ✓ Preferred
+</span>
+@endif
+
+</button>@endforeach</div>
 @foreach($methods as $method)
 <section class="portal-payment-panel mt-3" data-panel="{{ $method['key'] }}" hidden>
+
 <h3>{{ $method['name'] }}</h3>
 <p>Payment amount: <strong>$<span data-amount>{{ $input['amount'] }}</span></strong></p>
-<p class="form-text mt-2">Would you like to notify admin of your intentions first?  Not required - this step simply notifies us to watch for your payment.</p>
 
-<div data-notice-state hidden class="alert alert-success"><span data-notice-message></span></div>
+<div data-notice-state hidden class="alert alert-success">
+    <span data-notice-message></span>
+</div>
+
 @if($method['key']==='card')
-<button class="btn btn-brand" type="button" data-start-payment>Pay Now (Credit Card)</button>
-<p class="form-text mt-2">You will continue to secure {{ ucfirst($general['card_provider']) }} checkout. LandPay posts the payment after the processor confirms it.</p>
+<p class="form-text fs-6 mt-2 mb-3">
+    If convenient, please consider one of the different direct payment methods above.
+    Direct payments help avoid fees.
+</p>
+
+<button class="btn btn-brand" type="button" data-start-payment>
+    Pay Now (Credit Card)
+</button>
+
+<p class="form-text mt-2">
+    You will continue to secure {{ ucfirst($general['card_provider']) }} checkout.
+    LandPay posts the payment after the processor confirms it.
+</p>
 @else
-<button class="btn btn-brand" type="button" data-start-payment>Notify Admin of intended $<span data-amount>{{ $input['amount'] }}</span> {{ $method['name'] }} Payment</button>
-<p class="form-text mt-2">Admin will post the payment once it is received and verified.<br><b>Note:</b> Notification is optional, you may simply send payment.</p>
+<p class="form-text mt-2">
+    <b>Note:</b> Notification is optional, you may simply send payment.
+    <br>(this step simply notifies us to watch for your payment)
+</p>
+
+<button class="btn btn-brand" type="button" data-start-payment>
+    Notify Admin of intended $<span data-amount>{{ $input['amount'] }}</span> {{ $method['name'] }} Payment
+</button>
+
+<p class="form-text mt-2">
+    Admin will post the payment once it is received and verified.
+</p>
 @endif
+
+
 <div class="border rounded p-3 mt-3" data-payment-drawer hidden>
 
 <fieldset
@@ -80,20 +115,22 @@
 <button class="btn btn-brand mt-3" type="button" data-send-payment>{{ $method['key']==='card' ? 'Continue to secure checkout' : 'Send notification' }}</button>
 </div>
 @if($method['key']!=='card')
-<div class="d-flex align-items-center gap-3 my-4"><hr class="flex-grow-1"><span class="small fw-bold text-muted">THEN</span><hr class="flex-grow-1"></div>
+<div class="d-flex align-items-center gap-3 my-4"><hr class="flex-grow-1"><span class="fw-bold text-muted">THEN</span><hr class="flex-grow-1"></div>
 <div class="portal-payment-instructions text-left">
+<div class="alert alert-success fw-semibold mt-3 py-2 d-none" data-copy-payment-status role="status" aria-live="polite"></div>
 @if($method['key']==='zelle' && $method['recipient'])
 <p class="small text-muted">Click the Zelle logo or payment address to copy it.</p>
 @if($method['image_url'])<button class="btn border-0 bg-transparent p-0" type="button" data-copy-payment-handle="{{ $method['recipient'] }}" aria-label="Copy Zelle payment address"><img class="portal-payment-logo" src="{{ $method['image_url'] }}" alt="Zelle"></button>@endif
 @if($method['link'])<p class="mt-2"><a class="btn btn-sm btn-outline-brand" href="{{ $method['link'] }}" target="_blank" rel="noopener">Open Zelle</a></p>@endif
 <p class="mt-3 fs-5">Send $<span data-amount>{{ $input['amount'] }}</span> to <button class="btn btn-link p-0 fw-bold align-baseline" type="button" data-copy-payment-handle="{{ $method['recipient'] }}">{{ $method['recipient'] }}</button> in your banking app.</p>
-<div class="alert alert-success fw-semibold mt-3 py-2" data-copy-payment-status role="status" aria-live="polite"></div>
+
 @else
 @if($method['image_url'] && $method['link']) Click the logo:<br><a href="{{ $method['link'] }}" target="_blank" rel="noopener"><img class="portal-payment-logo" src="{{ $method['image_url'] }}" alt="{{ $method['name'] }}"></a>
 @elseif($method['image_url'])<img class="portal-payment-logo" src="{{ $method['image_url'] }}" alt="{{ $method['name'] }}">
 @elseif($method['link'])<a class="btn btn-outline-brand" href="{{ $method['link'] }}" target="_blank" rel="noopener">Open {{ $method['name'] }}</a>@endif
 @if($method['recipient'])<p class="mt-3">Send $<span data-amount>{{ $input['amount'] }}</span> to <strong>{{ $method['recipient'] }}</strong>.</p>@endif
 @endif
+
 @if($method['instructions'])<p>{!! nl2br(e($method['instructions'])) !!}</p>@endif
 </div>
 @endif
@@ -112,7 +149,17 @@ function syncNotificationGroups(){document.querySelectorAll('[data-notification-
 function notificationGroup(){let area=document.querySelector('[data-pending-notifications]');if(!area){area=document.createElement('div');area.dataset.pendingNotifications='';document.querySelector('h2.mt-4').before(area)}let group=area.querySelector('[data-notification-plan="'+plan.value+'"]');if(!group){group=document.createElement('div');group.dataset.notificationPlan=plan.value;area.appendChild(group)}return group}
 function appendNotification(data){const banner=document.createElement('div');banner.className='alert alert-success py-2 px-3 d-flex justify-content-between align-items-center gap-3';banner.dataset.paymentNotification=data.intent_id;const message=document.createElement('span');message.textContent=data.message;const cancel=document.createElement('button');cancel.type='button';cancel.className='btn btn-sm btn-outline-success flex-shrink-0';cancel.dataset.cancelPaymentNotification=data.cancel_url;cancel.textContent='Cancel';banner.append(message,cancel);notificationGroup().prepend(banner);syncNotificationGroups()}
 document.addEventListener('click',async event=>{const button=event.target.closest('[data-cancel-payment-notification]');if(!button)return;button.disabled=true;const response=await fetch(button.dataset.cancelPaymentNotification,{method:'DELETE',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf}});if(response.ok){const group=button.closest('[data-notification-plan]');button.closest('[data-payment-notification]').remove();if(group&&!group.querySelector('[data-payment-notification]'))group.remove()}else{button.disabled=false;alert('Unable to cancel this notification.')}});
-async function copyPaymentHandle(button){const value=button.dataset.copyPaymentHandle;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}const status=button.closest('[data-panel]').querySelector('[data-copy-payment-status]');if(status){status.textContent='Copied '+value;setTimeout(()=>{status.textContent=''},2500)}}catch{alert('Unable to copy automatically. Select and copy '+value+'.')}}
+async function copyPaymentHandle(button){const value=button.dataset.copyPaymentHandle;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}const status=button.closest('[data-panel]').querySelector('[data-copy-payment-status]');
+        if(status){
+            status.textContent='Copied '+value;
+            status.classList.remove('d-none');
+
+            setTimeout(()=>{
+                status.textContent='';
+                status.classList.add('d-none');
+            },2500);
+        }
+    }catch{alert('Unable to copy automatically. Select and copy '+value+'.')}}
 document.querySelectorAll('[data-copy-payment-handle]').forEach(button=>button.addEventListener('click',()=>copyPaymentHandle(button)));
 const states=@json($activeStates);let active=null;
 const cents=v=>Math.round((parseFloat(v)||0)*100),money=v=>(v/100).toFixed(2);

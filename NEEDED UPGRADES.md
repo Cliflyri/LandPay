@@ -19,3 +19,5 @@ within 2 payments of payoff - client dash notice, email reminder adjustment (you
 sms reminder flow
 
 auto cron update
+
+TODO dashboard horizontal drag panning - Click-and-drag horizontal scrolling on dashboard tables is still not working. Both pointer-event and mouse-event implementations were attempted in public/assets/js/landpay.js. Revisit later; verify asset loading/cache and test the actual table scroll container in-browser before revising the handler.

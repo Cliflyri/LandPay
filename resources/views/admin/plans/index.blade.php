@@ -5,11 +5,10 @@
 
 @section('content')
 <section class="admin-section">
-    <div class="container-fluid dashboard-container">
+    <div class="container-fluid dashboard-container px-2">
 
         <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
             <div>
-                <span class="eyebrow eyebrow-dark">Administrator</span>
                 <h1>Payment plans</h1>
                 <p class="mb-0">
                     Manage client plans, billing schedules, and payment status.
@@ -155,7 +154,7 @@
                                     </div>
                                 </td>
 
-                                <td>
+                                <td class="text-nowrap">
                                     @if ($primaryClient)
                                         <a
                                             class="dashboard-client-link"

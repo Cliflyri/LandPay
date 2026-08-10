@@ -4,7 +4,7 @@
 @section('content')
 @php($name=$client->organization_name ?: collect([$client->first_name,$client->middle_name,$client->last_name])->filter()->join(' '))
 @php($cityLine=collect([$client->city,$client->state_region,$client->postal_code])->filter()->join(', '))
-<section class="admin-section"><div class="container-fluid dashboard-container">
+<section class="admin-section"><div class="container-fluid dashboard-container px-2">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Client record</span><h1>{{$name}}</h1>{{ $client->first_name }} {{ $client->middle_name }} {{$client->last_name }} @if($client->preferred_name)<p class="mb-0">Preferred name: {{$client->preferred_name}}</p>@endif</div><div class="d-flex gap-2"><a class="btn btn-outline-brand" href="{{route('admin.clients.edit',$client)}}">Edit client</a><a class="btn btn-sun" href="{{route('admin.plans.create',['client'=>$client->id])}}">Create plan</a></div></div>
 
 
