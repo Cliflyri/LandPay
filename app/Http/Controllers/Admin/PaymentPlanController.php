@@ -184,13 +184,6 @@ public function index(): View
     public function show(PaymentPlan $plan): View
     {
         $plan->load(['memberships.client', 'currentBillingTerms', 'billingTerms.createdBy', 'invoices.items']);
-        $amendments = AuditLog::query()
-            ->with('actorUser')
-            ->where('auditable_type', PaymentPlan::class)
-            ->where('auditable_id', $plan->id)
-            ->where('event', 'payment_plan.amended')
-            ->latest('created_at')
-            ->get();
         $payments = Payment::query()
             ->with(['financialTransaction.reversedBy', 'payer', 'allocations.invoice'])
             ->whereHas('financialTransaction', fn ($query) => $query->where('payment_plan_id', $plan->id))
@@ -204,7 +197,6 @@ public function index(): View
             'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),
-            'amendments' => $amendments,
             'payments' => $payments,
         ]);
     }
@@ -293,7 +285,7 @@ public function index(): View
             ]);
 
             $effectiveFrom = Carbon::parse($data['effective_from']);
-            $lockedTerms->update(['effective_to' => $effectiveFrom->copy()->subDay()->format('Y-m-d'), 'reason' => $data['amendment_reason']]);
+            $lockedTerms->update(['effective_to' => $effectiveFrom->copy()->subDay()->format('Y-m-d')]);
             $newTerms = PaymentPlanBillingTerm::query()->create([
                 'payment_plan_id' => $lockedPlan->id, 'frequency' => 'monthly', 'invoice_day' => $data['invoice_day'],
                 'due_days_after_issue' => $data['due_days_after_issue'], 'grace_days' => $data['grace_days'],

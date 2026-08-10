@@ -178,7 +178,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 
 <div class="admin-next-card mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div><h2 class="mb-1">Amendment history</h2><p class="text-muted mb-0">Current and previous billing terms are retained below.</p></div>
+        <div><h2 class="mb-1">Plan Amendment history</h2><p class="text-muted mb-0">Current and previous billing terms are retained below.</p></div>
         <span class="badge text-bg-light">{{ $plan->billingTerms->count() }} {{ str('version')->plural($plan->billingTerms->count()) }}</span>
     </div>
     <div class="table-responsive mt-3">
@@ -194,39 +194,13 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
                     <td><strong>{{\App\Support\Money::format($term->scheduled_payment_amount + $term->monthly_service_fee)}}</strong></td>
                     <td>Day {{ $term->invoice_day }}</td>
                     <td>{{ $term->createdBy?->name ?? 'System' }}</td>
-                    <td>{{ $term->reason ?: ($plan->billingTerms->count() === 1 ? 'Original terms' : '&mdash;') }}</td>
+                    <td>{{ $plan->billingTerms->sortBy('effective_from')->first()?->is($term) ? 'Original terms' : ($term->reason ?: '—') }}</td>
                 </tr>
             @endforeach
             </tbody>
         </table>
     </div>
-    @if($amendments->isNotEmpty())
-        <div class="amendment-timeline mt-4">
-        @foreach($amendments as $amendment)
-            @php
-                $beforeTerms = $amendment->before_values['billing_terms'] ?? [];
-                $afterTerms = $amendment->after_values['billing_terms'] ?? [];
-                $beforePlan = $amendment->before_values['plan'] ?? [];
-                $afterPlan = $amendment->after_values['plan'] ?? [];
-            @endphp
-            <article class="amendment-entry">
-                <div class="amendment-entry-heading">
-                    <strong>{{ $amendment->after_values['reason'] ?? 'Plan amendment' }}</strong>
-                    <span>{{ $amendment->created_at->format('M j, Y g:i A') }} by {{ $amendment->actorUser?->name ?? 'Unknown administrator' }}</span>
-                </div>
-                <ul class="amendment-change-list">
-                    @if(($beforeTerms['scheduled_payment_amount'] ?? null) !== ($afterTerms['scheduled_payment_amount'] ?? null))<li><strong>Monthly payment:</strong> {{\App\Support\Money::format((int)($beforeTerms['scheduled_payment_amount'] ?? 0))}} &rarr; {{\App\Support\Money::format((int)($afterTerms['scheduled_payment_amount'] ?? 0))}}</li>@endif
-                    @if(($beforeTerms['monthly_service_fee'] ?? null) !== ($afterTerms['monthly_service_fee'] ?? null))<li><strong>Service fee:</strong> {{\App\Support\Money::format((int)($beforeTerms['monthly_service_fee'] ?? 0))}} &rarr; {{\App\Support\Money::format((int)($afterTerms['monthly_service_fee'] ?? 0))}}</li>@endif
-                    @if(($beforeTerms['invoice_day'] ?? null) !== ($afterTerms['invoice_day'] ?? null))<li><strong>Invoice day:</strong> {{ $beforeTerms['invoice_day'] ?? 'None' }} &rarr; {{ $afterTerms['invoice_day'] ?? 'None' }}</li>@endif
-                    @if(($beforeTerms['grace_days'] ?? null) !== ($afterTerms['grace_days'] ?? null))<li><strong>Grace period:</strong> {{ $beforeTerms['grace_days'] ?? 'None' }} days &rarr; {{ $afterTerms['grace_days'] ?? 'None' }} days</li>@endif
-                    @foreach(['plan_number'=>'APN / Plan #','title'=>'Property','status'=>'Status'] as $field=>$label)
-                        @if(($beforePlan[$field] ?? null) !== ($afterPlan[$field] ?? null))<li><strong>{{ $label }}:</strong> {{ $beforePlan[$field] ?? 'None' }} &rarr; {{ $afterPlan[$field] ?? 'None' }}</li>@endif
-                    @endforeach
-                </ul>
-            </article>
-        @endforeach
-        </div>
-    @endif
+
 </div>
 </div></section>
 @endsection
