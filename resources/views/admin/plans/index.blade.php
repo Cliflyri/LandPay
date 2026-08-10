@@ -204,9 +204,17 @@
                                         {{ $statusLabel }}
                                     </span>
                                     @if ($plan->ready_to_close)
-                                        <div class="mt-1">
-                                            <span class="dashboard-status status-ready-to-close">&#10003; Ready to close</span>
-                                        </div>
+<div class="mt-1">
+    <a
+        href="{{ route('admin.plans.edit', $plan) }}#plan-status"
+        class="text-decoration-none"
+        title="Change plan status"
+    >
+        <span class="dashboard-status status-ready-to-close">
+            &#10003; Ready to close
+        </span>
+    </a>
+</div>
                                     @endif
 
                                     @if ($plan->accelerated_testing_mode)

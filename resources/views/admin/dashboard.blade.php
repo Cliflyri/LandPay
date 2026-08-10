@@ -276,9 +276,17 @@
                             @endif
 
                             @if ($row['ready_to_close'])
-                                <div class="mt-1">
-                                    <span class="dashboard-status status-ready-to-close">&#10003; Ready to close</span>
-                                </div>
+<div class="mt-1">
+    <a
+        href="{{ route('admin.plans.edit', $row['plan']) }}#plan-status"
+        class="text-decoration-none"
+        title="Change plan status"
+    >
+        <span class="dashboard-status status-ready-to-close">
+            &#10003; Ready to close
+        </span>
+    </a>
+</div>
                             @endif
                             @if ($row['plan']->accelerated_testing_mode)
                                 <div class="mt-1">
