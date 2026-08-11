@@ -38,3 +38,5 @@ DONE - Added a reusable in-field X that cancels pending plan search, clears filt
 DONE - Added lean invoice editing for invoice/due dates and add, edit, or delete line items with clean current output.
 
 DONE - Added reusable revoke and reset client portal access controls with replacement invitations and disabled-session enforcement.
+
+DONE - Fixed the client portal access Blade conditional parse error.
