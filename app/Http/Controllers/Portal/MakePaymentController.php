@@ -48,6 +48,8 @@ class MakePaymentController extends Controller {
   return redirect()->route('portal.make-payment.create',['plan'=>$intent->payment_plan_id,'amount'=>number_format($intent->amount/100,2,'.',''),'method'=>$intent->method])->with('success','Payment notification cancelled.');
  }
  private function form(Request $request,?array $preview=null,array $input=[]): View {
+  $oldInput=$request->old();
+  if(is_array($oldInput))$input=array_replace($oldInput,$input);
   $account=$request->user('client');
   $plans=PaymentPlan::query()->whereIn('id',$account->activePlanIds())->whereIn('status',['active','paused'])->with('invoices')->get();
   abort_if($plans->isEmpty(),403);

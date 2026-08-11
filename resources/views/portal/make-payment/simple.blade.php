@@ -90,6 +90,7 @@
                 type="radio"
                 name="overpayment_disposition"
                 value="principal"
+                @checked(($input['overpayment_disposition'] ?? null) === 'principal')
             >
             <span class="form-check-label">Apply to principal</span>
         </label>
@@ -100,6 +101,7 @@
                 type="radio"
                 name="overpayment_disposition"
                 value="next_invoice_credit"
+                @checked(($input['overpayment_disposition'] ?? null) === 'next_invoice_credit')
             >
             <span class="form-check-label">Keep as account credit toward next invoice</span>
         </label>
@@ -110,7 +112,7 @@
 
 
 <label class="form-label mt-2" for="client-note-{{ $method['key'] }}">Payment note (optional)  If none, just click send below.</label>
-<input class="form-control" id="client-note-{{ $method['key'] }}" name="client_note" maxlength="1000" disabled placeholder="Example: This payment will arrive under the name Billy Jones.">
+<input class="form-control" id="client-note-{{ $method['key'] }}" name="client_note" maxlength="1000" value="{{ $input['client_note'] ?? '' }}" disabled placeholder="Example: This payment will arrive under the name Billy Jones.">
 <button class="btn btn-brand mt-3" type="button" data-send-payment>{{ $method['key']==='card' ? 'Continue to secure checkout' : 'Send notification' }}</button>
 </div>
 @if($method['key']!=='card')

@@ -48,3 +48,5 @@ DONE - Added generic client portal and payment-detail email variables and update
 DONE - Highlighted daily test-billing plans in pale yellow and sorted them below ready-to-close plans on admin listings.
 
 DONE - Reused the debounced list filter on Clients with full-name, preferred name, organization, contact, APN, and plan-number search.
+
+DONE - Added sanitized Square checkout diagnostics, failed-intent handling, and retained Credit Card form state after checkout errors.

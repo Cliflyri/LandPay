@@ -3,6 +3,7 @@ namespace App\Services;
 use App\Models\AppSetting;
 use App\Models\ClientPaymentIntent;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 class HostedPaymentService {
  public function create(ClientPaymentIntent $intent): ClientPaymentIntent {
@@ -13,7 +14,13 @@ class HostedPaymentService {
  private function square(ClientPaymentIntent $intent,string $secret): ClientPaymentIntent {
   $sandbox=AppSetting::valueFor('square_environment','sandbox')!=='live';$url=($sandbox?'https://connect.squareupsandbox.com':'https://connect.squareup.com').'/v2/online-checkout/payment-links';
   $response=Http::withToken($secret)->withHeaders(['Square-Version'=>'2026-07-15'])->post($url,['idempotency_key'=>$intent->uuid,'quick_pay'=>['name'=>'LandPay plan '.$intent->paymentPlan->plan_number,'price_money'=>['amount'=>$intent->amount,'currency'=>'USD'],'location_id'=>AppSetting::valueFor('square_public_id','')],'checkout_options'=>['redirect_url'=>route('portal.make-payment.show',$intent)]]);
-  if(!$response->successful()||blank($response->json('payment_link.url')))throw ValidationException::withMessages(['method'=>'Square checkout could not be started.']);
+  if(!$response->successful()||blank($response->json('payment_link.url'))){
+   $errors=collect($response->json('errors',[]))->map(fn($error)=>collect($error)->only(['category','code','detail','field'])->all())->values()->all();
+   Log::warning('Square checkout could not be started.',['intent_uuid'=>$intent->uuid,'http_status'=>$response->status(),'errors'=>$errors]);
+   $intent->update(['status'=>'failed','provider'=>'square']);
+   $detail=collect($errors)->pluck('detail')->filter()->first();
+   throw ValidationException::withMessages(['method'=>'Square checkout could not be started.'.($detail?' '.$detail:'')]);
+  }
   $intent->update(['status'=>'checkout_pending','provider'=>'square','provider_checkout_id'=>$response->json('payment_link.order_id'),'checkout_url'=>$response->json('payment_link.url'),'expires_at'=>now()->addDay()]);return $intent->fresh();
  }
  private function stripe(ClientPaymentIntent $intent,string $secret): ClientPaymentIntent {
