@@ -44,7 +44,7 @@ $oldestDue = $open->first();
   $status=$this->status($amountDue,$oldestDue?->due_date);
   $planSummaries=$plans->map(function(PaymentPlan $plan){$terms=$plan->currentBillingTerms;$monthly=($terms?->scheduled_payment_amount??$plan->customary_monthly_payment)+($terms?->monthly_service_fee??$plan->monthly_service_fee);return ['plan'=>$plan,'monthly_payment'=>$monthly];});
   $paymentQuery=Payment::query()->whereHas('financialTransaction',fn($q)=>$q->whereIn('payment_plan_id',$planIds))->whereDoesntHave('financialTransaction.reversedBy');
-  $payments=(clone $paymentQuery)->with('financialTransaction.paymentPlan')->latest('received_date')->limit(3)->get();
+  $payments=(clone $paymentQuery)->with('financialTransaction.paymentPlan')->newestFirst()->limit(3)->get();
   $pendingPaymentIntents=ClientPaymentIntent::query()->where('client_id',$account->client_id)->where(function($query){$query->whereIn('status',['checkout_pending','review_required'])->orWhere(function($announced){$announced->where('status','announced')->whereHas('adminNotice',fn($notice)=>$notice->whereNull('dismissed_at'));});})->with('paymentPlan')->latest()->get();
   
 $invoices = $allInvoices

@@ -58,3 +58,5 @@ DONE - Simplified card checkout to an always-visible optional note followed by o
 DONE - Consolidated the admin payment receipt into one natural-height summary, compact email history, and subdued cancellation panel.
 
 DONE - Added a clear Square or Stripe provider row to online-card payment receipts.
+
+DONE - Added reusable newest-first payment ordering for portal recent/history lists and the admin plan payment list.

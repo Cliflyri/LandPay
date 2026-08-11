@@ -222,8 +222,7 @@ public function index(Request $request): View
         $payments = Payment::query()
             ->with(['financialTransaction.reversedBy', 'payer', 'allocations.invoice'])
             ->whereHas('financialTransaction', fn ($query) => $query->where('payment_plan_id', $plan->id))
-            ->latest('received_date')
-            ->latest('id')
+            ->newestFirst()
             ->get();
 
         return view('admin.plans.show', [

@@ -6,6 +6,7 @@ use App\Enums\OverpaymentDisposition;
 use App\Enums\PaymentAllocationType;
 use App\Enums\PaymentMethod;
 use App\Models\Concerns\IsAppendOnly;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,6 +28,11 @@ class Payment extends Model
             'received_date' => 'date',
             'decision_selected_at' => 'datetime',
         ];
+    }
+
+    public function scopeNewestFirst(Builder $query): Builder
+    {
+        return $query->orderByDesc('payments.received_date')->orderByDesc('payments.id');
     }
 
     public function financialTransaction(): BelongsTo
