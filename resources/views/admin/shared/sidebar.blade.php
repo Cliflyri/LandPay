@@ -1,3 +1,4 @@
+@php($noticeLinkBackground = false)
 <div class="admin-sidebar-brand">
     <a href="{{ route('admin.dashboard') }}" aria-label="LandPay administrator dashboard">
         <img
@@ -10,6 +11,23 @@
 </div>
 
 <nav class="admin-sidebar-nav" aria-label="Administrator navigation">
+    @if($openAdminNoticeCount > 0)
+        <a
+            class="admin-sidebar-link admin-notice-link {{ $noticeLinkBackground ? 'admin-notice-link-background' : '' }}"
+            href="{{ route('admin.dashboard') }}#admin-notices"
+            aria-label="{{ $openAdminNoticeCount }} open administrator {{ Str::plural('notice', $openAdminNoticeCount) }}"
+        >
+            <span aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                    <path d="M10 21h4"></path>
+                </svg>
+            </span>
+            Notices
+            <span class="admin-notice-badge">{{ $openAdminNoticeCount }} open</span>
+        </a>
+    @endif
+
     <a
         class="admin-sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
         href="{{ route('admin.dashboard') }}"
@@ -62,7 +80,7 @@
         </div>
 
         <div class="admin-sidebar-user">
-            <strong>{{ auth()->user()?->name ?? 'Administrator' }}</strong>
+            {{ auth()->user()?->name ?? 'Administrator' }}
             <small>Administrator</small>
         </div>
     </div>

@@ -38,7 +38,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ asset('assets/css/landpay.css') }}"
+        href="{{ asset('assets/css/landpay.css') }}?v={{ filemtime(public_path('assets/css/landpay.css')) }}"
     >
 
     @stack('styles')

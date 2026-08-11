@@ -40,3 +40,5 @@ DONE - Added lean invoice editing for invoice/due dates and add, edit, or delete
 DONE - Added reusable revoke and reset client portal access controls with replacement invitations and disabled-session enforcement.
 
 DONE - Fixed the client portal access Blade conditional parse error.
+
+DONE - Added a conditional priority Notices sidebar link with bell icon, open-count badge, dashboard anchor, and locally switchable background.

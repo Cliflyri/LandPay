@@ -26,7 +26,7 @@
     </div>
 
     @if($notices->isNotEmpty())
-        <div class="admin-next-card mb-4">
+        <div class="admin-next-card mb-4" id="admin-notices">
             <div class="d-flex align-items-center gap-4">
                 <h2 class="mb-0">Notices</h2>
                 <span class="dashboard-status status-due position-relative"

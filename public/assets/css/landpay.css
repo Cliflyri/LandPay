@@ -378,7 +378,7 @@ a { text-underline-offset: .2em; }
     border-radius: .5rem;
     color: rgba(255,255,255,.82);
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 400;
     transition: background .15s;
 }
 
@@ -445,7 +445,7 @@ a { text-underline-offset: .2em; }
     text-decoration: none;
     background: none;
     border: 0;
-    font-weight: 600;
+    font-weight: 400;
     text-align: left;
 }
 
@@ -509,4 +509,24 @@ body.admin-layout .admin-section > .site-container {
     font-weight: 700;
     font-size: 0.9rem;
     padding: 0.15rem 0.4rem;
+}
+.admin-notice-link {
+    margin-bottom: .65rem;
+}
+
+.admin-sidebar-link .admin-notice-badge {
+    width: auto;
+    min-width: max-content;
+    margin-left: auto;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    background: #f3c969;
+    color: #173f40;
+    font-size: .75rem;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.admin-notice-link-background {
+    background: rgba(255,255,255,.08);
 }
