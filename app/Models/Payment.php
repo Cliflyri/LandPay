@@ -9,6 +9,7 @@ use App\Models\Concerns\IsAppendOnly;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payment extends Model
 {
@@ -46,6 +47,11 @@ class Payment extends Model
     public function emailDeliveries(): HasMany
     {
         return $this->hasMany(EmailDelivery::class);
+    }
+
+    public function clientPaymentIntent(): HasOne
+    {
+        return $this->hasOne(ClientPaymentIntent::class);
     }
 
     public function purposeLabel(): string

@@ -37,6 +37,10 @@
                 <dd class="col-sm-4">{{ str($payment->payment_method->value)->replace('_',' ')->title() }}</dd>
                 <dt class="col-sm-2">Payer</dt>
                 <dd class="col-sm-4">{{ $payment->payer?->organization_name ?: trim(($payment->payer?->first_name ?? '').' '.($payment->payer?->last_name ?? '')) ?: 'Not specified' }}</dd>
+                @if(in_array($payment->clientPaymentIntent?->provider, ['square', 'stripe'], true))
+                    <dt class="col-sm-2">Provider</dt>
+                    <dd class="col-sm-4">{{ str($payment->clientPaymentIntent->provider)->title() }}</dd>
+                @endif
                 <dt class="col-sm-2">Reference</dt>
                 <dd class="col-sm-4">{{ $payment->external_reference ?: 'None' }}</dd>
                 <dt class="col-sm-2">Transaction</dt>

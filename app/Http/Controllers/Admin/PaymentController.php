@@ -155,7 +155,7 @@ class PaymentController extends Controller
 
     public function show(Payment $payment): View
     {
-        $payment->load(['financialTransaction.paymentPlan.memberships.client', 'financialTransaction.effects', 'allocations.invoice', 'allocations.invoiceItem', 'payer', 'emailDeliveries']);
+        $payment->load(['financialTransaction.paymentPlan.memberships.client', 'financialTransaction.effects', 'allocations.invoice', 'allocations.invoiceItem', 'payer', 'emailDeliveries', 'clientPaymentIntent']);
         $reversal = $payment->financialTransaction->reversedBy()->first();
 
         return view('admin.payments.show', ['payment' => $payment, 'reversal' => $reversal]);

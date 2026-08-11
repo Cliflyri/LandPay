@@ -56,3 +56,5 @@ DONE - Removed duplicate payment actions by hiding the initial button while chec
 DONE - Simplified card checkout to an always-visible optional note followed by one Pay Now button.
 
 DONE - Consolidated the admin payment receipt into one natural-height summary, compact email history, and subdued cancellation panel.
+
+DONE - Added a clear Square or Stripe provider row to online-card payment receipts.
