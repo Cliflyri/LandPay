@@ -60,14 +60,49 @@ class MonthlyServiceFeeHistoryService
             ->select(['payments.id as payment_id', 'payments.received_date', 'invoices.id as invoice_id', 'invoices.invoice_number', 'payment_allocations.amount'])
             ->get();
 
+        $directEntries = DB::table('payment_allocations')
+            ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
+            ->join('financial_transactions', 'financial_transactions.id', '=', 'payments.financial_transaction_id')
+            ->where('financial_transactions.payment_plan_id', $plan->id)
+            ->where('payment_allocations.allocation_type', 'service_fee')
+            ->whereDate('payment_allocations.billing_month', $monthStart)
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('financial_transactions as reversals')->whereColumn('reversals.reversal_of_transaction_id', 'financial_transactions.id'))
+            ->orderBy('payments.received_date')
+            ->orderBy('payments.id')
+            ->select(['payments.id as payment_id', 'payments.received_date', 'payment_allocations.amount'])
+            ->get()
+            ->each(function ($entry): void {
+                $entry->invoice_id = null;
+                $entry->invoice_number = null;
+            });
+        $directApplied = (int) $directEntries->sum('amount');
+        $remaining = max(0, $remaining - $directApplied);
+        $entries = $entries->concat($directEntries)->sortBy(['received_date', 'payment_id'])->values();
+
+        $applied = max(0, $assessed - $remaining);
+
+        $satisfaction = DB::table('monthly_service_fee_satisfactions')
+            ->leftJoin('users as created_by', 'created_by.id', '=', 'monthly_service_fee_satisfactions.created_by_user_id')
+            ->where('monthly_service_fee_satisfactions.payment_plan_id', $plan->id)
+            ->whereDate('monthly_service_fee_satisfactions.billing_month', $monthStart)
+            ->whereNull('monthly_service_fee_satisfactions.revoked_at')
+            ->select(['monthly_service_fee_satisfactions.id', 'monthly_service_fee_satisfactions.note', 'monthly_service_fee_satisfactions.billing_month', 'created_by.name as created_by_name', 'monthly_service_fee_satisfactions.created_at'])
+            ->first();
+
+        if ($satisfaction !== null) {
+            $remaining = 0;
+        }
+
         return [
             'monthLabel' => $date->format('F Y'),
+            'monthValue' => $date->format('Y-m'),
             'assessed' => $assessed,
-            'total' => max(0, $assessed - $remaining),
+            'total' => $applied,
             'remaining' => $remaining,
             'count' => $entries->count(),
             'entries' => $entries,
             'hasAssessment' => $hasAssessment,
+            'satisfaction' => $satisfaction,
         ];
     }
 }

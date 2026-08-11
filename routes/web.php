@@ -110,6 +110,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::put('settings/templates/{template}', [SettingsController::class, 'updateTemplate'])->name('settings.templates.update');
     Route::put('settings/reminders', [SettingsController::class, 'updateReminders'])->name('settings.reminders.update');
     Route::post('settings/templates/{template}/restore', [SettingsController::class, 'restoreTemplate'])->name('settings.templates.restore');
+    Route::post('plans/{plan}/service-fee-satisfaction', [PaymentController::class, 'satisfyServiceFee'])->name('plans.service-fee-satisfaction.store');
+    Route::delete('plans/{plan}/service-fee-satisfaction/{satisfaction}', [PaymentController::class, 'revokeServiceFeeSatisfaction'])->name('plans.service-fee-satisfaction.destroy');
     Route::post('plans/{plan}/payments/preview', [PaymentController::class, 'preview'])->name('plans.payments.preview');
     Route::post('plans/{plan}/payments', [PaymentController::class, 'store'])->name('plans.payments.store');
     Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');

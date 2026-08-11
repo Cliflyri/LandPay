@@ -52,7 +52,7 @@ class PaymentController extends Controller
 
     public function create(PaymentPlan $plan): View
     {
-        return $this->form($plan, null, request()->only(['client_payment_intent_id','amount','payment_method','payer_client_id','external_reference','overpayment_disposition','client_note']));
+        return $this->form($plan, null, request()->only(['received_date','client_payment_intent_id','amount','payment_method','payer_client_id','external_reference','overpayment_disposition','client_note']));
     }
 
     public function preview(Request $request, PaymentPlan $plan): View
@@ -63,6 +63,8 @@ class PaymentController extends Controller
             Money::toCents($data['amount']),
             $data['payment_type'],
             $data['overpayment_disposition'] ?? null,
+            Money::toCents($data['service_fee_amount'] ?? '0'),
+            \Illuminate\Support\Carbon::parse($data['received_date'])->startOfMonth()->toDateString(),
         );
 
         return $this->form($plan, $preview, $data);
@@ -82,6 +84,8 @@ class PaymentController extends Controller
             $data['external_reference'] ?? null,
             isset($data['overpayment_disposition']) ? OverpaymentDisposition::from($data['overpayment_disposition']) : null,
             'payment:'.$data['idempotency_token'],
+            Money::toCents($data['service_fee_amount'] ?? '0'),
+            \Illuminate\Support\Carbon::parse($data['received_date'])->startOfMonth()->toDateString(),
         );
         $payment = isset($data['client_payment_intent_id'])
             ? DB::transaction(function () use ($data, $plan, $request, $post): Payment {
@@ -104,6 +108,49 @@ class PaymentController extends Controller
             $message .= ' Receipt emailed to '.$delivery->recipient_email.'.';
         }
         return redirect()->route('admin.payments.show', $payment)->with('success', $message);
+    }
+
+    public function satisfyServiceFee(Request $request, PaymentPlan $plan): RedirectResponse
+    {
+        $data = $request->validate([
+            'billing_month' => ['required', 'date_format:Y-m'],
+            'note' => ['required', 'string', 'max:500'],
+        ]);
+        $month = \Illuminate\Support\Carbon::createFromFormat('Y-m', $data['billing_month'])->startOfMonth();
+
+        DB::table('monthly_service_fee_satisfactions')->updateOrInsert(
+            ['payment_plan_id' => $plan->id, 'billing_month' => $month->toDateString()],
+            [
+                'note' => trim($data['note']),
+                'created_by_user_id' => $request->user()->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'revoked_by_user_id' => null,
+                'revoked_at' => null,
+            ]
+        );
+
+        return redirect()->route('admin.plans.payments.create', [$plan, 'received_date' => $month->toDateString()])
+            ->with('success', 'Monthly service fee marked satisfied without payment.');
+    }
+
+    public function revokeServiceFeeSatisfaction(Request $request, PaymentPlan $plan, int $satisfaction): RedirectResponse
+    {
+        $record = DB::table('monthly_service_fee_satisfactions')
+            ->where('id', $satisfaction)
+            ->where('payment_plan_id', $plan->id)
+            ->whereNull('revoked_at')
+            ->first();
+        abort_unless($record, 404);
+
+        DB::table('monthly_service_fee_satisfactions')->where('id', $record->id)->update([
+            'revoked_by_user_id' => $request->user()->id,
+            'revoked_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('admin.plans.payments.create', [$plan, 'received_date' => $record->billing_month])
+            ->with('success', 'Monthly service-fee satisfaction reversed.');
     }
 
     public function show(Payment $payment): View
@@ -151,6 +198,7 @@ class PaymentController extends Controller
             'preview' => $preview,
             'input' => $input,
             'monthlyServiceFeeSummary' => $monthlyServiceFeeSummary,
+            'defaultServiceFee' => number_format(($monthlyServiceFeeSummary['hasAssessment'] ? 0 : $monthlyServiceFeeSummary['remaining']) / 100, 2, '.', ''),
             'contractBalance' => $this->balances->contractBalance($plan),
             'invoiceBalance' => $invoiceBalance,
             'uninvoicedFirstPaymentDue' => $uninvoicedFirstPaymentDue,
@@ -166,6 +214,7 @@ class PaymentController extends Controller
         return $request->validate([
             'received_date' => ['required', 'date'],
             'amount' => ['required', 'decimal:0,2', 'gt:0'],
+            'service_fee_amount' => ['nullable', 'decimal:0,2', 'min:0', 'lte:amount', 'prohibited_unless:payment_type,regular'],
             'payment_type' => ['required', Rule::in(['regular', 'principal_only'])],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
             'email_receipt' => ['nullable', 'boolean'],

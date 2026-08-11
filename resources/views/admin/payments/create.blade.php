@@ -24,6 +24,7 @@
 <div class="row g-3 mt-1">
     <div class="col-md-6"><label class="form-label" for="received_date">Date received</label><input class="form-control" id="received_date" name="received_date" type="date" required value="{{ old('received_date',$input['received_date'] ?? now()->toDateString()) }}"></div>
     <div class="col-md-6"><label class="form-label" for="amount">Amount</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="amount" name="amount" inputmode="decimal" required value="{{ old('amount',$input['amount'] ?? '') }}"></div></div>
+    <div class="col-md-6"><label class="form-label" for="service_fee_amount">Service fee from this payment</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="service_fee_amount" name="service_fee_amount" inputmode="decimal" value="{{ old('service_fee_amount', $input['service_fee_amount'] ?? $defaultServiceFee) }}"></div><div class="form-text">Non-principal fee for {{ $monthlyServiceFeeSummary['monthLabel'] }}; editable, including zero.</div></div>
     <div class="col-md-6"><label class="form-label" for="payment_type">Payment type</label><select class="form-select" id="payment_type" name="payment_type" required><option value="regular" @selected(old('payment_type',$input['payment_type'] ?? 'regular')==='regular')>Regular payment</option><option value="principal_only" @selected(old('payment_type',$input['payment_type'] ?? '')==='principal_only')>Principal only</option></select></div>
     <div class="col-md-6"><label class="form-label" for="payment_method">Method</label><select class="form-select" id="payment_method" name="payment_method" required>@foreach($methods as $method)<option value="{{$method->value}}" @selected(old('payment_method',$input['payment_method'] ?? 'other')===$method->value)>{{ str($method->value)->replace('_',' ')->title() }}</option>@endforeach</select></div>
     <div class="col-md-6"><label class="form-label" for="payer_client_id">Payer (optional)</label><select class="form-select" id="payer_client_id" name="payer_client_id"><option value="">Not specified</option>@foreach($plan->memberships as $membership)@php($client=$membership->client)<option value="{{$client->id}}" @selected((string)old('payer_client_id',$input['payer_client_id'] ?? '')===(string)$client->id)>{{ $client->organization_name ?: trim($client->first_name.' '.$client->last_name) }}</option>@endforeach</select></div>
@@ -51,6 +52,11 @@
     @if($preview && ($preview['overpayment_amount']===0 || filled($input['overpayment_disposition'] ?? null)))<button class="btn btn-brand" type="submit" formaction="{{ route('admin.plans.payments.store',$plan) }}">Confirm and post payment</button><button class="btn btn-sun" type="submit" name="email_receipt" value="1" formaction="{{ route('admin.plans.payments.store',$plan) }}">Post and email receipt</button>@endif
 </div>
 </form>
+@if($monthlyServiceFeeSummary['satisfaction'])
+<form id="reverse-service-fee-satisfaction-form" method="post" action="{{ route('admin.plans.service-fee-satisfaction.destroy', [$plan, $monthlyServiceFeeSummary['satisfaction']->id]) }}">@csrf @method('delete')</form>
+@else
+<form id="service-fee-satisfaction-form" method="post" action="{{ route('admin.plans.service-fee-satisfaction.store', $plan) }}">@csrf<input type="hidden" name="billing_month" value="{{ $monthlyServiceFeeSummary['monthValue'] }}"></form>
+@endif
 </div>
 <div class="col-lg-5">
     @if($uninvoicedFirstPaymentDue > 0)<div><dt>Uninvoiced first payment due</dt><dd>{{\App\Support\Money::format($uninvoicedFirstPaymentDue)}}</dd></div>
@@ -97,19 +103,22 @@
     if (!drawer) return;
     const amount = document.getElementById('amount');
     const paymentType = document.getElementById('payment_type');
+    const serviceFee = document.getElementById('service_fee_amount');
     const principal = document.getElementById('live_overpayment_principal');
     const extra = document.getElementById('live-overpayment-extra');
     const payable = Number(drawer.dataset.currentlyPayable || 0);
     const currency = new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'});
     const update = () => {
         const cents = Math.round((Number(String(amount.value).replace(/[^0-9.-]/g, '')) || 0) * 100);
-        const show = paymentType.value === 'regular' && cents > payable;
+        const feeCents = Math.round((Number(String(serviceFee?.value || 0).replace(/[^0-9.-]/g, '')) || 0) * 100);
+        const show = paymentType.value === 'regular' && cents > payable + feeCents;
         drawer.hidden = !show;
-        extra.textContent = currency.format(Math.max(0, cents - payable) / 100);
+        extra.textContent = currency.format(Math.max(0, cents - payable - feeCents) / 100);
         if (!show) principal.checked = true;
     };
     amount.addEventListener('input', update);
     paymentType.addEventListener('change', update);
+    serviceFee?.addEventListener('input', update);
     update();
 })();
 </script>

@@ -32,7 +32,7 @@ class PaymentService
     ) {}
 
     /** @return array<string, mixed> */
-    public function preview(PaymentPlan $plan, int $amount, string $paymentType, ?string $overpaymentDisposition = null): array
+    public function preview(PaymentPlan $plan, int $amount, string $paymentType, ?string $overpaymentDisposition = null, int $serviceFeeAmount = 0, ?string $serviceFeeMonth = null): array
     {
         if (! in_array($plan->status, ['active', 'paused'], true)) {
             throw ValidationException::withMessages(['payment_plan' => 'Payments can only be posted to an active or paused payment plan.']);
@@ -44,6 +44,9 @@ class PaymentService
             throw ValidationException::withMessages(['payment_type' => 'Choose a valid payment type.']);
         }
 
+        if ($serviceFeeAmount < 0 || $serviceFeeAmount > $amount || ($paymentType === 'principal_only' && $serviceFeeAmount > 0)) {
+            throw ValidationException::withMessages(['service_fee_amount' => 'Choose a valid service-fee amount.']);
+        }
         $contractBalance = $this->balances->contractBalance($plan);
         if ($paymentType === 'principal_only') {
             if ($amount > $contractBalance) {
@@ -68,8 +71,21 @@ class PaymentService
             ];
         }
 
+
         $remaining = $amount;
         $allocations = [];
+        if ($serviceFeeAmount > 0) {
+            $allocations[] = [
+                'type' => PaymentAllocationType::ServiceFee,
+                'amount' => $serviceFeeAmount,
+                'component' => FinancialEffectComponent::MonthlyServiceFee,
+                'label' => 'Monthly service fee'.($serviceFeeMonth ? ' — '.date('F Y', strtotime($serviceFeeMonth)) : ''),
+                'invoice_id' => null,
+                'invoice_item_id' => null,
+                'billing_month' => $serviceFeeMonth,
+            ];
+            $remaining -= $serviceFeeAmount;
+        }
         if ($this->hasUninvoicedDueFirstPayment($plan)) {
             $allocated = min($remaining, $plan->first_payment_amount);
             $allocations[] = [
@@ -124,7 +140,7 @@ class PaymentService
             }
         }
 
-        $invoiceAmount = $amount - $remaining;
+        $invoiceAmount = (int) collect($allocations)->where('type', PaymentAllocationType::InvoiceItem)->sum('amount');
         $principalAmount = collect($allocations)
             ->where('component', FinancialEffectComponent::ScheduledPurchasePayment)
             ->sum('amount');
@@ -169,6 +185,7 @@ class PaymentService
             'overpayment_amount' => $overpaymentAmount,
             'principal_amount' => $principalAmount,
             'credit_amount' => $creditAmount,
+            'service_fee_amount' => $serviceFeeAmount,
             'allocations' => $allocations,
         ];
     }
@@ -184,8 +201,10 @@ class PaymentService
         ?string $externalReference = null,
         ?OverpaymentDisposition $overpaymentDisposition = null,
         ?string $idempotencyKey = null,
+        int $serviceFeeAmount = 0,
+        ?string $serviceFeeMonth = null,
     ): Payment {
-        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey): Payment {
+        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey, $serviceFeeAmount, $serviceFeeMonth): Payment {
             if ($idempotencyKey !== null) {
                 $existing = FinancialTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
                 if ($existing !== null) {
@@ -202,7 +221,7 @@ class PaymentService
                     $lockedPlan->first_due_date,
                 );
             }
-            $preview = $this->preview($lockedPlan, $amount, $paymentType, $overpaymentDisposition?->value);
+            $preview = $this->preview($lockedPlan, $amount, $paymentType, $overpaymentDisposition?->value, $serviceFeeAmount, $serviceFeeMonth);
             if (false && $preview['overpayment_amount'] > 0 && $overpaymentDisposition === null) {
                 throw ValidationException::withMessages(['overpayment_disposition' => 'Record the client’s instruction for the overpayment before posting.']);
             }
@@ -226,6 +245,8 @@ class PaymentService
                             description: 'Scheduled payment applied to principal',
                         );
                     }
+                } elseif ($allocation['type'] === PaymentAllocationType::ServiceFee) {
+                    // Collected directly as a non-principal fee; no receivable or principal balance changes.
                 } elseif ($allocation['type'] === PaymentAllocationType::PurchaseBalance) {
                     $effects[] = new PostingEffect(FinancialEffectType::PurchaseBalance, -$allocation['amount'], $allocation['component'], description: $allocation['label']);
                 } else {
@@ -265,6 +286,7 @@ class PaymentService
                     'allocation_type' => $allocation['type'],
                     'invoice_id' => $allocation['invoice_id'],
                     'invoice_item_id' => $allocation['invoice_item_id'],
+                    'billing_month' => $allocation['billing_month'] ?? null,
                     'amount' => $allocation['amount'],
                     'display_order' => $index + 1,
                 ]);

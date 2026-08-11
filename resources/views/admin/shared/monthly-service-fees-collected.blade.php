@@ -28,9 +28,12 @@
         <div class="small text-muted mt-1">
             Payment allocations applied to
             @foreach ($monthlyServiceFeeSummary['entries'] as $entry)
-                <a href="{{ route('admin.invoices.show', $entry->invoice_id) }}">
-                    {{ $entry->invoice_number }}
-                </a>@if (! $loop->last), @endif
+                @if($entry->invoice_id)
+                    <a href="{{ route('admin.invoices.show', $entry->invoice_id) }}">{{ $entry->invoice_number }}</a>
+                @else
+                    payment {{ \Illuminate\Support\Carbon::parse($entry->received_date)->format('M j, Y') }}
+                @endif
+                @if (! $loop->last)<span aria-hidden="true">,</span>@endif
             @endforeach
         </div>
     @elseif (($monthlyServiceFeeSummary['total'] ?? 0) > 0)
@@ -42,7 +45,7 @@
             No amount has been applied to this billing month's service fee.
         </div>
 
-        @unless(request()->routeIs('admin.plans.invoices.manual.*'))
+        @unless(request()->routeIs('admin.plans.invoices.manual.*') || request()->routeIs('admin.plans.payments.*'))
         <div class="small mt-1">
             To collect service fees first
             <a href="{{ route('admin.plans.invoices.manual.create', $plan) }}">
@@ -58,4 +61,15 @@
         @endif
 
     @endif
-</div>
+
+    @if(request()->routeIs('admin.plans.payments.*') && $monthlyServiceFeeSummary['assessed'] > 0)
+        @if($monthlyServiceFeeSummary['satisfaction'])
+            <div class="small mt-2"><strong>Marked satisfied without payment:</strong> {{ $monthlyServiceFeeSummary['satisfaction']->note }}</div>
+            <button class="btn btn-sm btn-outline-danger mt-2" type="submit" form="reverse-service-fee-satisfaction-form">Reverse satisfied status</button>
+        @elseif($monthlyServiceFeeSummary['remaining'] > 0)
+            <div class="row g-2 align-items-end mt-1">
+                <div class="col-md"><label class="form-label small mb-1" for="service_fee_satisfaction_note">Reason</label><input class="form-control form-control-sm" id="service_fee_satisfaction_note" name="note" maxlength="500" required form="service-fee-satisfaction-form" placeholder="Included in imported payment history"></div>
+                <div class="col-md-auto"><button class="btn btn-sm btn-outline-brand" type="submit" form="service-fee-satisfaction-form">Mark satisfied without payment</button></div>
+            </div>
+        @endif
+    @endif</div>
