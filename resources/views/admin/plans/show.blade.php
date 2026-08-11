@@ -14,7 +14,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         
 <h1 class="d-flex flex-wrap align-items-center gap-2">
     @if($primaryClient)
-        <a class="dashboard-client-link" href="{{ route('admin.clients.show',$primaryClient) }}">
+        <a class="dashboard-client-link" style="font-size: inherit;" href="{{ route('admin.clients.show',$primaryClient) }}">
             {{ $primaryClientName }}
         </a>
     @else
