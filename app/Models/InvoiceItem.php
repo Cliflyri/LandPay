@@ -17,7 +17,7 @@ class InvoiceItem extends Model
 
     protected function casts(): array
     {
-        return ['item_type' => InvoiceItemType::class, 'waived_at' => 'datetime'];
+        return ['item_type' => InvoiceItemType::class, 'waived_at' => 'datetime', 'retired_at' => 'datetime'];
     }
 
     public function invoice(): BelongsTo

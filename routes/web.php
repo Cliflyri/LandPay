@@ -48,7 +48,7 @@ Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(func
     Route::post('invitation/{token}', [PortalInvitationAcceptanceController::class, 'accept'])->name('invitation.accept');
 });
 
-Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.read-only'])->group(function (): void {
+Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.enabled', 'portal.read-only'])->group(function (): void {
     Route::get('/', PortalDashboardController::class)->name('dashboard');
     Route::get('invoices', [PortalInvoiceController::class, 'index'])->name('invoices.index');
     Route::get('invoices/{invoice}', [PortalInvoiceController::class, 'show'])->name('invoices.show');
@@ -73,6 +73,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
     Route::post('clients/{client}/portal-access', [ClientPortalAccessController::class, 'store'])->name('portal-access.store');
+    Route::post('clients/{client}/portal-access/reset', [ClientPortalAccessController::class, 'reset'])->name('portal-access.reset');
+    Route::delete('clients/{client}/portal-access', [ClientPortalAccessController::class, 'revoke'])->name('portal-access.revoke');
     Route::delete('portal-access', [ClientPortalAccessController::class, 'destroy'])->name('portal-access.destroy');
     Route::post('clients/{client}/archive', [ClientController::class, 'archive'])->name('clients.archive');
     Route::post('clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore');
@@ -94,6 +96,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::post('plans/{plan}/invoices/manual/preview', [InvoiceController::class, 'manualPreview'])->name('plans.invoices.manual.preview');
     Route::post('plans/{plan}/invoices/manual', [InvoiceController::class, 'manualStore'])->name('plans.invoices.manual.store');
     Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
+    Route::put('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
     Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
     Route::post('invoices/{invoice}/first-payment', [InvoiceController::class, 'createFirstPayment'])->name('invoices.first-payment.store');
     Route::post('invoices/{invoice}/email', [InvoiceEmailController::class, 'store'])->name('invoices.email.store');

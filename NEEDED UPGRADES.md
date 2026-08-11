@@ -34,3 +34,7 @@ DONE - Added debounced automatic plan search and tokenized full/preferred/organi
 DONE - Preserved the plan-filter layout while adding anchored search results and cache-busting for reliable automatic submission.
 
 DONE - Added a reusable in-field X that cancels pending plan search, clears filters, and reloads the full Active list.
+
+DONE - Added lean invoice editing for invoice/due dates and add, edit, or delete line items with clean current output.
+
+DONE - Added reusable revoke and reset client portal access controls with replacement invitations and disabled-session enforcement.

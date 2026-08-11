@@ -27,9 +27,12 @@
 
     @if($notices->isNotEmpty())
         <div class="admin-next-card mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2>Notices</h2>
-                <span class="dashboard-status status-due">{{ $notices->count() }} open</span>
+            <div class="d-flex align-items-center gap-4">
+                <h2 class="mb-0">Notices</h2>
+                <span class="dashboard-status status-due position-relative"
+                    style="top: 8px;">
+                    {{ $notices->count() }} open
+                </span>
             </div>
 
             @foreach($notices as $notice)

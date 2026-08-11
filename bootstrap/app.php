@@ -19,7 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(
             fn (Request $request): string => $request->is('portal', 'portal/*') ? route('portal.dashboard') : route('admin.dashboard')
         );
-        $middleware->alias(['portal.read-only' => \App\Http\Middleware\EnsurePortalImpersonationIsReadOnly::class]);
+        $middleware->alias([
+            'portal.enabled' => \App\Http\Middleware\EnsurePortalAccountIsEnabled::class,
+            'portal.read-only' => \App\Http\Middleware\EnsurePortalImpersonationIsReadOnly::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

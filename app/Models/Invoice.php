@@ -35,6 +35,11 @@ class Invoice extends Model
 
     public function items(): HasMany
     {
+        return $this->hasMany(InvoiceItem::class)->whereNull('retired_at');
+    }
+
+    public function allItems(): HasMany
+    {
         return $this->hasMany(InvoiceItem::class);
     }
 

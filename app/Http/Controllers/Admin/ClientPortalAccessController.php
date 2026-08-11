@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Client;
+use App\Services\PortalAccessService;
+use App\Services\PortalInvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class ClientPortalAccessController extends Controller
 {
+    public function __construct(
+        private readonly PortalAccessService $portalAccess,
+        private readonly PortalInvitationService $invitations,
+    ) {}
+
     public function store(Request $request, Client $client): RedirectResponse
     {
         $client->load('portalAccount');
@@ -50,6 +57,20 @@ class ClientPortalAccessController extends Controller
         return redirect()->route('portal.dashboard');
     }
 
+    public function revoke(Client $client): RedirectResponse
+    {
+        $this->portalAccess->revoke($client);
+
+        return back()->with('success', 'Client portal access revoked.');
+    }
+
+    public function reset(Request $request, Client $client): RedirectResponse
+    {
+        $this->portalAccess->revoke($client);
+        $invitation = $this->invitations->invite($client, $request->user());
+
+        return back()->with('success', 'Portal access reset. A new invitation was sent to '.$invitation->email.'.');
+    }
     public function destroy(Request $request): RedirectResponse
     {
         $access = $request->session()->get('portal_impersonation');
