@@ -25,7 +25,9 @@ class ClientController extends Controller
         $showAllPlans = $request->string('plans')->value() === 'all';
         $requestedStatus = $request->string('clients')->value();
         $clientStatus = in_array($requestedStatus, ['archived', 'all'], true) ? $requestedStatus : 'active';
+        $clientSearch = trim($request->string('search')->value());
         $clients = Client::query()
+            ->matchingAdminSearch($clientSearch, $showAllPlans)
             ->when($clientStatus === 'active', fn ($query) => $query->whereNull('archived_at'))
             ->when($clientStatus === 'archived', fn ($query) => $query->whereNotNull('archived_at'))
             ->with([
@@ -81,6 +83,7 @@ class ClientController extends Controller
             'rows' => $rows,
             'showAllPlans' => $showAllPlans,
             'clientStatus' => $clientStatus,
+            'clientSearch' => $clientSearch,
         ]);
     }
 

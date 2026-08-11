@@ -91,7 +91,7 @@
                                 };
                             @endphp
 
-                            <tr class="dashboard-plan-row {{ $plan->ready_to_close ? 'ready-to-close' : '' }}">
+                            <tr class="dashboard-plan-row {{ $plan->ready_to_close ? 'ready-to-close' : ($plan->accelerated_testing_mode ? 'test-daily-billing' : '') }}">
 
                                 <td class="dashboard-actions-menu">
                                     <div class="dropdown">

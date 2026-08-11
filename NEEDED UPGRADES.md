@@ -44,3 +44,7 @@ DONE - Fixed the client portal access Blade conditional parse error.
 DONE - Added a conditional priority Notices sidebar link with bell icon, open-count badge, dashboard anchor, and locally switchable background.
 
 DONE - Added generic client portal and payment-detail email variables and updated invoice, reminder, receipt, and reversal defaults with appropriate portal links.
+
+DONE - Highlighted daily test-billing plans in pale yellow and sorted them below ready-to-close plans on admin listings.
+
+DONE - Reused the debounced list filter on Clients with full-name, preferred name, organization, contact, APN, and plan-number search.

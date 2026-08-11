@@ -67,7 +67,9 @@ public function index(Request $request): View
                 && $outstandingInvoiceBalance <= 0
         );
     });
-    $plans->setCollection($plans->getCollection()->sortByDesc('ready_to_close')->values());
+    $plans->setCollection($plans->getCollection()->sortByDesc(
+        fn (PaymentPlan $plan) => ((int) $plan->ready_to_close * 2) + (int) $plan->accelerated_testing_mode
+    )->values());
 
     return view('admin.plans.index', compact('plans', 'planStatus', 'planSearch'));
 }

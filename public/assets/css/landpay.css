@@ -199,6 +199,8 @@ a { text-underline-offset: .2em; }
 .dashboard-table tbody td { padding: 1.05rem 1rem; border-color: #e8ece8; }
 .dashboard-plan-row { transition: background-color .15s ease; }
 .dashboard-table tbody tr:nth-child(odd) > td { background-color: #fafafa; } .dashboard-table tbody tr:nth-child(even) > td { background-color: #fff; } .dashboard-table tbody .dashboard-plan-row:hover > td { background-color: #f6f6f3; }
+.dashboard-table tbody .dashboard-plan-row.test-daily-billing > td { background-color: #fff9df; }
+.dashboard-table tbody .dashboard-plan-row.test-daily-billing > td:first-child { box-shadow: inset 4px 0 #d8b84e; }
 .dashboard-table tbody .dashboard-plan-row.ready-to-close > td { background-color: #eef7ed; }
 .dashboard-table tbody .dashboard-plan-row.ready-to-close > td:first-child { box-shadow: inset 4px 0 #4f8a52; }
 .dashboard-client-link { color: var(--lp-ink-deep); font-weight: 400; font-size: 1.1rem; text-decoration: none; }

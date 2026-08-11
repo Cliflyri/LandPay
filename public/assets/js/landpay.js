@@ -103,10 +103,9 @@ document.querySelectorAll('.dashboard-table-card .table-responsive').forEach((co
         dragged = false;
     }, true);
 });
-document.querySelectorAll('[data-plan-filter-form]').forEach((form) => {
+document.querySelectorAll('[data-list-filter-form]').forEach((form) => {
     const search = form.querySelector('input[name="search"]');
-    const status = form.querySelector('select[name="status"]');
-    const clearSearch = form.querySelector('[data-plan-search-clear]');
+    const clearSearch = form.querySelector('[data-list-search-clear]');
     let timer;
 
     search?.addEventListener('input', () => {
@@ -122,8 +121,8 @@ document.querySelectorAll('[data-plan-filter-form]').forEach((form) => {
         window.location.assign(form.dataset.clearUrl);
     });
 
-    status?.addEventListener('change', () => {
+    form.querySelectorAll('select').forEach((select) => select.addEventListener('change', () => {
         window.clearTimeout(timer);
         form.requestSubmit();
-    });
+    }));
 });

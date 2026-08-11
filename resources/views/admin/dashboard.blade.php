@@ -135,7 +135,7 @@
 
                     @php($statusClass = 'status-' . str($row['operational_status'])->slug())
 
-                    <tr class="dashboard-plan-row {{ $row['ready_to_close'] ? 'ready-to-close' : '' }}">
+                    <tr class="dashboard-plan-row {{ $row['ready_to_close'] ? 'ready-to-close' : ($row['plan']->accelerated_testing_mode ? 'test-daily-billing' : '') }}">
 
                         <td class="dashboard-actions-menu">
                             <div class="dropdown">

@@ -6,29 +6,35 @@
 <div class="admin-heading d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
     <div><h1>Clients</h1><span class="eyebrow eyebrow-dark">Administration</span></div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
-        <form method="get" action="{{route('admin.clients.index')}}">
-            <input type="hidden" name="plans" value="{{request('plans','active')}}">
-            <label class="visually-hidden" for="clients">Clients shown</label>
-            <select class="form-select" id="clients" name="clients" onchange="this.form.submit()">
-                <option value="active" @selected($clientStatus==='active')>Active clients</option>
-                <option value="archived" @selected($clientStatus==='archived')>Archived clients</option>
-                <option value="all" @selected($clientStatus==='all')>All clients</option>
-            </select>
-        </form>
-        <form method="get" action="{{route('admin.clients.index')}}">
-            <input type="hidden" name="clients" value="{{$clientStatus}}">
-            <label class="visually-hidden" for="plans">Plans shown</label>
-            <select class="form-select" id="plans" name="plans" onchange="this.form.submit()">
-                <option value="active" @selected(!$showAllPlans)>Active plans</option>
-                <option value="all" @selected($showAllPlans)>All plans</option>
-            </select>
-        </form>
         <a class="btn btn-sun" href="{{ route('admin.clients.create') }}">Add client</a>
     </div>
 </div>
 @if(session('success'))<div class="alert alert-success mt-4">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="alert alert-danger mt-4">{{ $errors->first() }}</div>@endif
-<div class="dashboard-table-card mt-4"><div class="table-responsive"><table class="table dashboard-table client-plan-table align-middle mb-0">
+<div class="mt-4">
+    @include('admin.plans.partials.filters', [
+        'filterId' => 'client-filters',
+        'searchValue' => $clientSearch,
+        'searchLabel' => 'Search clients',
+        'filterSelects' => [
+            [
+                'name' => 'clients',
+                'label' => 'Clients shown',
+                'value' => $clientStatus,
+                'default' => 'active',
+                'options' => ['active' => 'Active clients', 'archived' => 'Archived clients', 'all' => 'All clients'],
+            ],
+            [
+                'name' => 'plans',
+                'label' => 'Plans shown',
+                'value' => $showAllPlans ? 'all' : 'active',
+                'default' => 'active',
+                'options' => ['active' => 'Active plans', 'all' => 'All plans'],
+            ],
+        ],
+    ])
+</div>
+<div class="dashboard-table-card"><div class="table-responsive"><table class="table dashboard-table client-plan-table align-middle mb-0">
 <thead><tr><th><span class="visually-hidden">Actions</span></th><th>Name</th><th>APN / Plan #</th><th class="text-end">Contract Balance</th><th class="text-end">Paid-in Value</th><th>Email</th><th>Last Login</th><th>Private Notes</th></tr></thead>
 <tbody>
 @forelse($rows as $row)
