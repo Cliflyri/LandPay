@@ -37,6 +37,8 @@ class PaymentReceiptService
             'amount_due' => Money::format($payment->allocations->pluck('invoice')->filter()->unique('id')->sum(fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice)))),
             'due_date' => 'Not applicable', 'issue_date' => 'Not applicable',
             'plan_number' => $plan->plan_number, 'plan_description' => $plan->title,
+            'client_portal_url' => route('portal.dashboard'),
+            'payment_portal_url' => route('portal.payments.show', $payment),
             'payment_amount' => Money::format($payment->gross_amount),
             'payment_date' => $payment->received_date->format('F j, Y'),
             'payment_method' => str($payment->payment_method->value)->replace('_', ' ')->title()->toString(),

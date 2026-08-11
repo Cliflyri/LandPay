@@ -42,3 +42,5 @@ DONE - Added reusable revoke and reset client portal access controls with replac
 DONE - Fixed the client portal access Blade conditional parse error.
 
 DONE - Added a conditional priority Notices sidebar link with bell icon, open-count badge, dashboard anchor, and locally switchable background.
+
+DONE - Added generic client portal and payment-detail email variables and updated invoice, reminder, receipt, and reversal defaults with appropriate portal links.

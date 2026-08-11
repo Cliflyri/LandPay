@@ -11,13 +11,13 @@ use Illuminate\Validation\ValidationException;
 
 class EmailTemplateService
 {
-    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'invoice_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
+    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'payment_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
 
     public const TEMPLATE_VARIABLES = [
-        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
-        'invoice-email' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
-        'payment-receipt' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'company_name', 'company_email', 'company_phone'],
-        'payment-reversal' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'company_name', 'company_email', 'company_phone'],
+        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
+        'invoice-email' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
+        'payment-receipt' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
+        'payment-reversal' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
         'portal-invitation' => ['client_name', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'],
     ];
 
@@ -28,22 +28,22 @@ class EmailTemplateService
             'payment-reminder' => [
                 'name' => 'Payment reminder',
                 'subject' => 'Payment reminder for invoice {{ invoice_number }}',
-                'body_html' => '<p>Hello {{ client_name }},</p><p>This is a friendly reminder that invoice <strong>{{ invoice_number }}</strong> has a remaining balance of <strong>{{ amount_due }}</strong> and was due on {{ due_date }}.</p><p>If payment has already been sent, please disregard this message. Contact us if you have questions or need to discuss the account.</p>',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>This is a friendly reminder that invoice <strong>{{ invoice_number }}</strong> has a remaining balance of <strong>{{ amount_due }}</strong> and was due on {{ due_date }}.</p><p>View this invoice: <a href="{{ invoice_portal_url }}">{{ invoice_portal_url }}</a></p><p>If payment has already been sent, please disregard this message. Contact us if you have questions or need to discuss the account.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
             ],
             'invoice-email' => [
                 'name' => 'Invoice email',
                 'subject' => 'Invoice {{ invoice_number }} from {{ company_name }}',
-                'body_html' => '<p>Hello {{ client_name }},</p><p>Your invoice <strong>{{ invoice_number }}</strong> is ready. The amount due is <strong>{{ amount_due }}</strong> by {{ due_date }}.</p><p>Invoice details are included with this email. Please contact us if you have any questions.</p>',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>Your invoice <strong>{{ invoice_number }}</strong> is ready. The amount due is <strong>{{ amount_due }}</strong> by {{ due_date }}.</p><p>View this invoice: <a href="{{ invoice_portal_url }}">{{ invoice_portal_url }}</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
             ],
             'payment-receipt' => [
                 'name' => 'Payment receipt',
                 'subject' => 'Payment receipt for {{ payment_amount }}',
-                'body_html' => '<p>Hello {{ client_name }},</p><p>Thank you. We received your payment of <strong>{{ payment_amount }}</strong> on {{ payment_date }}.</p><p>Your payment receipt is included below and attached as a PDF.</p>',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>Thank you. We received your payment of <strong>{{ payment_amount }}</strong> on {{ payment_date }}.</p><p>View this payment: <a href="{{ payment_portal_url }}">{{ payment_portal_url }}</a></p><p>Your payment receipt is included below and attached as a PDF.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
             ],
             'payment-reversal' => [
                 'name' => 'Payment reversal notice',
                 'subject' => 'Payment reversal notice for {{ payment_amount }}',
-                'body_html' => '<p>Hello {{ client_name }},</p><p>A payment of <strong>{{ payment_amount }}</strong> dated {{ payment_date }} was reversed by the plan administrator.</p><p>The earlier receipt should no longer be treated as valid. Please contact us if you have questions.</p>',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>A payment of <strong>{{ payment_amount }}</strong> dated {{ payment_date }} was reversed by the plan administrator.</p><p>View this payment: <a href="{{ payment_portal_url }}">{{ payment_portal_url }}</a></p><p>The earlier receipt should no longer be treated as valid. Please contact us if you have questions.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
             ],
             'portal-invitation' => [
                 'name' => 'Client portal invitation',
@@ -108,6 +108,7 @@ class EmailTemplateService
             'issue_date' => $invoice->issue_date->format('F j, Y'),
             'plan_number' => $plan->plan_number,
             'plan_description' => $plan->title,
+            'client_portal_url' => route('portal.dashboard'),
             'invoice_portal_url' => route('portal.invoices.show', $invoice),
             'company_name' => AppSetting::valueFor('company_name', config('app.name', 'LandPay')),
             'company_email' => AppSetting::valueFor('company_email', ''),
