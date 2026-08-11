@@ -2,7 +2,7 @@
 namespace App\Services;
 use App\Models\AppSetting;
 class PaymentMethodConfigurationService {
- public const METHODS=['zelle','cash_app','venmo','chime','card','check','money_order','other'];
+ public const METHODS=['zelle','cash_app','venmo','melio','chime','card','check','money_order','other'];
  public function all(): array{return collect(self::METHODS)->mapWithKeys(fn($method)=>[$method=>$this->method($method)])->all();}
  public function method(string $method): array {
   abort_unless(in_array($method,self::METHODS,true),404);
@@ -10,6 +10,10 @@ class PaymentMethodConfigurationService {
    'zelle'=>['name'=>'Zelle','button'=>'I sent this payment','recommended'=>true],
    'cash_app'=>['name'=>'Cash App','button'=>'I sent this payment'],
    'venmo'=>['name'=>'Venmo','button'=>'I sent this payment'],
+   'melio' => [
+        'name' => 'Melio',
+        'button' => 'I sent this payment',
+        ],
    'chime'=>['name'=>'Chime','button'=>'I sent this payment'],
    'card'=>['name'=>'Credit or debit card','button'=>'Continue to secure checkout'],
    'check'=>['name'=>'Check','button'=>'I mailed this payment'],

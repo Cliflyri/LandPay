@@ -27,7 +27,7 @@
     
 @if($method['recommended'])
 <span class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle ms-1"
-      style="font-size: 0.8rem;">
+      style="font-size: 0.8rem; position: relative; top: -2px;">
     ✓ Preferred
 </span>
 @endif
@@ -37,7 +37,7 @@
 <section class="portal-payment-panel mt-3" data-panel="{{ $method['key'] }}" hidden>
 
 <h3>{{ $method['name'] }}</h3>
-<p>Payment amount: <strong>$<span data-amount>{{ $input['amount'] }}</span></strong></p>
+<p class="fs-5">Payment amount: <strong>$<span data-amount>{{ $input['amount'] }}</span></strong></p>
 
 <div data-notice-state hidden class="alert alert-success">
     <span data-notice-message></span>
@@ -58,14 +58,13 @@
     LandPay posts the payment after the processor confirms it.
 </p>
 @else
-<p class="form-text mt-2">
-    <b>Note:</b> Notification is optional, you may simply send payment.
-    <br>(this step simply notifies us to watch for your payment)
+<p class="form-text fs-6 mt-2">
+    <b>Notify First?</b> Notification is optional. You may simply send your payment.
+    <br>(This only notifies us to watch for your payment.)
 </p>
 
-<button class="btn btn-brand" type="button" data-start-payment>
-    Notify Admin of intended $<span data-amount>{{ $input['amount'] }}</span> {{ $method['name'] }} Payment
-</button>
+<button  class="btn btn-outline-brand py-2" style="--bs-btn-bg: #f2f4ed;" type="button" data-start-payment>
+    Notify Admin I plan to pay $<span data-amount>{{ $input['amount'] }}</span> by {{ $method['name'] }}</button>
 
 <p class="form-text mt-2">
     Admin will post the payment once it is received and verified.
@@ -115,7 +114,7 @@
 <button class="btn btn-brand mt-3" type="button" data-send-payment>{{ $method['key']==='card' ? 'Continue to secure checkout' : 'Send notification' }}</button>
 </div>
 @if($method['key']!=='card')
-<div class="d-flex align-items-center gap-3 my-4"><hr class="flex-grow-1"><span class="fw-bold text-muted">THEN</span><hr class="flex-grow-1"></div>
+<div class="d-flex align-items-center gap-3 my-4"><hr class="flex-grow-1"><span class="fw-bold text-muted">THEN MAKE YOUR PAYMENT</span><hr class="flex-grow-1"></div>
 <div class="portal-payment-instructions text-left">
 <div class="alert alert-success fw-semibold mt-3 py-2 d-none" data-copy-payment-status role="status" aria-live="polite"></div>
 @if($method['key']==='zelle' && $method['recipient'])

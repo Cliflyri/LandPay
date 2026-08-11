@@ -13,5 +13,6 @@ enum PaymentMethod: string
     case CashApp = 'cash_app';
     case Venmo = 'venmo';
     case Chime = 'chime';
+    case Melio = 'melio';
     case Other = 'other';
 }
