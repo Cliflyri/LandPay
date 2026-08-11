@@ -50,3 +50,7 @@ DONE - Highlighted daily test-billing plans in pale yellow and sorted them below
 DONE - Reused the debounced list filter on Clients with full-name, preferred name, organization, contact, APN, and plan-number search.
 
 DONE - Added sanitized Square checkout diagnostics, failed-intent handling, and retained Credit Card form state after checkout errors.
+
+DONE - Removed duplicate payment actions by hiding the initial button while checkout details are open and restoring the expanded card form after errors.
+
+DONE - Simplified card checkout to an always-visible optional note followed by one Pay Now button.

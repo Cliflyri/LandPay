@@ -49,10 +49,6 @@
     Direct payments help avoid fees.
 </p>
 
-<button class="btn btn-brand" type="button" data-start-payment>
-    Pay Now (Credit Card)
-</button>
-
 <p class="form-text mt-2">
     You will continue to secure {{ ucfirst($general['card_provider']) }} checkout.
     LandPay posts the payment after the processor confirms it.
@@ -72,7 +68,7 @@
 @endif
 
 
-<div class="border rounded p-3 mt-3" data-payment-drawer hidden>
+<div class="border rounded p-3 mt-3" data-payment-drawer @if($method['key']!=='card') hidden @endif>
 
 <fieldset
     data-overpayment-choice
@@ -111,9 +107,9 @@
 
 
 
-<label class="form-label mt-2" for="client-note-{{ $method['key'] }}">Payment note (optional)  If none, just click send below.</label>
-<input class="form-control" id="client-note-{{ $method['key'] }}" name="client_note" maxlength="1000" value="{{ $input['client_note'] ?? '' }}" disabled placeholder="Example: This payment will arrive under the name Billy Jones.">
-<button class="btn btn-brand mt-3" type="button" data-send-payment>{{ $method['key']==='card' ? 'Continue to secure checkout' : 'Send notification' }}</button>
+<label class="form-label mt-2" for="client-note-{{ $method['key'] }}">Payment note (optional)</label>
+<input class="form-control" id="client-note-{{ $method['key'] }}" name="client_note" maxlength="1000" value="{{ $input['client_note'] ?? '' }}" @disabled($method['key']!=='card') placeholder="Example: This payment will arrive under the name Billy Jones.">
+<button class="btn btn-brand mt-3" type="button" data-send-payment>{{ $method['key']==='card' ? 'Pay Now (Credit Card)' : 'Send notification' }}</button>
 </div>
 @if($method['key']!=='card')
 <div class="d-flex align-items-center gap-3 my-4"><hr class="flex-grow-1"><span class="fw-bold text-muted">THEN MAKE YOUR PAYMENT</span><hr class="flex-grow-1"></div>
@@ -167,11 +163,11 @@ const cents=v=>Math.round((parseFloat(v)||0)*100),money=v=>(v/100).toFixed(2);
 function sync(){document.querySelectorAll('[data-amount]').forEach(el=>el.textContent=money(cents(amount.value)));updateExtra();}
 function updateExtra(){const panel=document.querySelector('[data-panel="'+method.value+'"]'),choice=panel?.querySelector('[data-overpayment-choice]');if(!choice)return;const extra=Math.max(0,cents(amount.value)-Number(plan.selectedOptions[0].dataset.openCents));choice.hidden=extra===0;choice.querySelector('[data-extra-amount]').textContent=money(extra);}
 function lock(value){amount.readOnly=value||{{ $general['allow_custom_amount']?'false':'true' }};tabs.forEach(t=>t.disabled=value);}
-function showActive(){panels.forEach(p=>{p.querySelector('[data-notice-state]').hidden=true;p.querySelector('[data-start-payment]').hidden=false});active=states[plan.value]||null;if(!active){lock(false);return}amount.value=active.amount;activate(active.method);lock(true);const panel=document.querySelector('[data-panel="'+active.method+'"]');panel.querySelector('[data-start-payment]').hidden=true;const state=panel.querySelector('[data-notice-state]');state.hidden=false;state.querySelector('[data-notice-message]').textContent=active.message;sync();}
-function activate(key){method.value=key;tabs.forEach(t=>{const on=t.dataset.tab===key;t.classList.toggle('active',on);t.setAttribute('aria-selected',on?'true':'false')});panels.forEach(p=>{p.hidden=p.dataset.panel!==key;p.querySelector('[data-payment-drawer]').hidden=true;p.querySelectorAll('[name="client_note"]').forEach(i=>i.disabled=true)});sync();}
+function showActive(){panels.forEach(p=>{p.querySelector('[data-notice-state]').hidden=true;const start=p.querySelector('[data-start-payment]');if(start)start.hidden=false});active=states[plan.value]||null;if(!active){lock(false);return}amount.value=active.amount;activate(active.method);lock(true);const panel=document.querySelector('[data-panel="'+active.method+'"]');panel.querySelector('[data-start-payment]').hidden=true;const state=panel.querySelector('[data-notice-state]');state.hidden=false;state.querySelector('[data-notice-message]').textContent=active.message;sync();}
+function activate(key){method.value=key;tabs.forEach(t=>{const on=t.dataset.tab===key;t.classList.toggle('active',on);t.setAttribute('aria-selected',on?'true':'false')});panels.forEach(p=>{const card=p.dataset.panel==='card',start=p.querySelector('[data-start-payment]');p.hidden=p.dataset.panel!==key;if(start)start.hidden=false;p.querySelector('[data-payment-drawer]').hidden=!card;p.querySelectorAll('[name="client_note"]').forEach(i=>i.disabled=!card)});sync();}
 tabs.forEach(t=>t.addEventListener('click',()=>activate(t.dataset.tab)));
 plan.addEventListener('change',()=>{amount.value=money(Number(plan.selectedOptions[0].dataset.openCents));activate(method.value);showActive();syncNotificationGroups();sync()});amount.addEventListener('input',sync);
-document.querySelectorAll('[data-start-payment]').forEach(b=>b.addEventListener('click',()=>{const p=b.closest('[data-panel]'),d=p.querySelector('[data-payment-drawer]');d.hidden=false;d.querySelector('[name="client_note"]').disabled=false;updateExtra()}));
+document.querySelectorAll('[data-start-payment]').forEach(b=>b.addEventListener('click',()=>{const p=b.closest('[data-panel]'),d=p.querySelector('[data-payment-drawer]');b.hidden=true;d.hidden=false;d.querySelector('[name="client_note"]').disabled=false;updateExtra()}));
 document.querySelectorAll('[data-send-payment]').forEach(b=>b.addEventListener('click',async()=>{
  const panel=b.closest('[data-panel]'),extra=cents(amount.value)>Number(plan.selectedOptions[0].dataset.openCents),choice=panel.querySelector('[name="overpayment_disposition"]:checked');
  if(extra&&!choice){alert('Choose how the extra amount should be used.');return}
