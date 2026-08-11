@@ -54,3 +54,5 @@ DONE - Added sanitized Square checkout diagnostics, failed-intent handling, and 
 DONE - Removed duplicate payment actions by hiding the initial button while checkout details are open and restoring the expanded card form after errors.
 
 DONE - Simplified card checkout to an always-visible optional note followed by one Pay Now button.
+
+DONE - Consolidated the admin payment receipt into one natural-height summary, compact email history, and subdued cancellation panel.
