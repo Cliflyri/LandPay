@@ -118,7 +118,7 @@
     crossorigin="anonymous"
 ></script>
 
-<script src="{{ asset('assets/js/landpay.js') }}"></script>
+<script src="{{ asset('assets/js/landpay.js') }}?v={{ filemtime(public_path('assets/js/landpay.js')) }}"></script>
 
 @stack('scripts')
 </body>

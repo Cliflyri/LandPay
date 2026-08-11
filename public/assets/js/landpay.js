@@ -103,3 +103,27 @@ document.querySelectorAll('.dashboard-table-card .table-responsive').forEach((co
         dragged = false;
     }, true);
 });
+document.querySelectorAll('[data-plan-filter-form]').forEach((form) => {
+    const search = form.querySelector('input[name="search"]');
+    const status = form.querySelector('select[name="status"]');
+    const clearSearch = form.querySelector('[data-plan-search-clear]');
+    let timer;
+
+    search?.addEventListener('input', () => {
+        window.clearTimeout(timer);
+        clearSearch?.classList.toggle('d-none', search.value.trim() === '');
+        timer = window.setTimeout(() => form.requestSubmit(), 800);
+    });
+
+    clearSearch?.addEventListener('click', () => {
+        window.clearTimeout(timer);
+        search.value = '';
+        clearSearch.classList.add('d-none');
+        window.location.assign(form.dataset.clearUrl);
+    });
+
+    status?.addEventListener('change', () => {
+        window.clearTimeout(timer);
+        form.requestSubmit();
+    });
+});

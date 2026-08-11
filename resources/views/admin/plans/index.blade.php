@@ -20,7 +20,9 @@
             </a>
         </div>
 
-        <div class="dashboard-table-card mt-4">
+        <div class="mt-4">@include('admin.plans.partials.filters')</div>
+
+        <div class="dashboard-table-card">
             <div class="table-responsive">
                 <table class="table dashboard-table align-middle mb-0">
                     <thead>
@@ -249,8 +251,8 @@
                         @empty
                             <tr>
                                 <td colspan="6" class="dashboard-empty">
-                                    <strong>No payment plans yet.</strong>
-                                    <span>Create a payment plan to begin.</span>
+                                    <strong>No plans match these filters.</strong>
+                                    <span>Change or clear the filters to see other plans.</span>
                                 </td>
                             </tr>
                         @endforelse

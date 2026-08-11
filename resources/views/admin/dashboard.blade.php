@@ -106,6 +106,8 @@
         
     </div>
 
+    @include('admin.plans.partials.filters')
+
     <div class="dashboard-table-card">
         <div class="table-responsive">
             <table class="table dashboard-table align-middle mb-0">
@@ -420,8 +422,8 @@
 
                     <tr>
                         <td colspan="11" class="dashboard-empty">
-                            <strong>No payment plans yet.</strong>
-                            <span>Create a payment plan to begin tracking client balances and billing.</span>
+                            <strong>No plans match these filters.</strong>
+                            <span>Change or clear the filters to see other plans.</span>
                         </td>
                     </tr>
 

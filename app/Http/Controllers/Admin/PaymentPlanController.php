@@ -39,16 +39,21 @@ class PaymentPlanController extends Controller
         private readonly AutomaticInvoiceService $automaticInvoices,
     ) {}
 
-public function index(): View
+public function index(Request $request): View
 {
+    $planStatus = PaymentPlan::normalizeAdminStatusFilter($request->string('status')->value());
+    $planSearch = trim($request->string('search')->value());
+
     $plans = PaymentPlan::query()
+        ->forAdminListing($planStatus, $planSearch)
         ->with([
             'memberships.client',
             'currentBillingTerms',
             'invoices.items',
         ])
         ->latest()
-        ->paginate(25);
+        ->paginate(25)
+        ->withQueryString();
 
     $plans->getCollection()->each(function (PaymentPlan $plan): void {
         $outstandingInvoiceBalance = $plan->invoices->sum(
@@ -64,7 +69,7 @@ public function index(): View
     });
     $plans->setCollection($plans->getCollection()->sortByDesc('ready_to_close')->values());
 
-    return view('admin.plans.index', ['plans' => $plans]);
+    return view('admin.plans.index', compact('plans', 'planStatus', 'planSearch'));
 }
 
     public function create(): View

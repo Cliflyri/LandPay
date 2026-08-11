@@ -12,6 +12,7 @@ use App\Services\FinancialBalanceService;
 use App\Services\AutomaticInvoiceService;
 use App\Services\CurrentPayoffService;
 use App\Services\ReminderAutomationService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -24,9 +25,13 @@ class DashboardController extends Controller
         private readonly ReminderAutomationService $reminderAutomation,
     ) {}
 
-    public function __invoke(): View
+    public function __invoke(Request $request): View
     {
+        $planStatus = PaymentPlan::normalizeAdminStatusFilter($request->string('status')->value());
+        $planSearch = trim($request->string('search')->value());
+
         $plans = PaymentPlan::query()
+            ->forAdminListing($planStatus, $planSearch)
             ->leftJoin('payment_plan_clients as primary_membership', function ($join): void {
                 $join->on('primary_membership.payment_plan_id', '=', 'payment_plans.id')
                     ->where('primary_membership.role', 'primary')
@@ -49,7 +54,8 @@ class DashboardController extends Controller
                 ))
             END")
             ->orderBy('payment_plans.plan_number')
-            ->paginate(25);
+            ->paginate(25)
+            ->withQueryString();
 
         $nextReminders = $this->reminderAutomation->eligible(Carbon::today(), true)->groupBy(fn ($item) => $item['invoice']->payment_plan_id);
         $plans->getCollection()->transform(fn (PaymentPlan $plan) => $this->dashboardRow($plan, $nextReminders->get($plan->id)?->first()));
@@ -57,9 +63,11 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', [
             'clientCount' => Client::query()->whereNull('archived_at')->count(),
-            'planCount' => PaymentPlan::query()->whereNotIn('status', ['terminated', 'closed'])->count(),
+            'planCount' => PaymentPlan::query()->whereIn('status', ['active', 'paused'])->count(),
             'openInvoiceCount' => Invoice::query()->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])->count(),
             'plans' => $plans,
+            'planStatus' => $planStatus,
+            'planSearch' => $planSearch,
             'notices' => AdminNotice::query()->whereNull('dismissed_at')->with(['client', 'changeRequest', 'paymentIntent.payment'])->latest()->limit(10)->get(),
         ]);
     }

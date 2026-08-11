@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasPublicUuid;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -26,6 +27,46 @@ class PaymentPlan extends Model
             'accelerated_testing_mode' => 'boolean',
             'closed_at' => 'datetime',
         ];
+    }
+
+    public static function normalizeAdminStatusFilter(?string $status): string
+    {
+        return in_array($status, ['active', 'draft', 'terminated', 'closed', 'all'], true) ? $status : 'active';
+    }
+
+    public function scopeForAdminListing(Builder $query, ?string $status = 'active', ?string $search = null): Builder
+    {
+        $status = self::normalizeAdminStatusFilter($status);
+        $statuses = match ($status) {
+            'active' => ['active', 'paused'],
+            'draft' => ['draft'],
+            'terminated' => ['terminated'],
+            'closed' => ['closed'],
+            default => null,
+        };
+        if ($statuses !== null) $query->whereIn('payment_plans.status', $statuses);
+        $terms = preg_split('/\s+/', trim((string) $search), -1, PREG_SPLIT_NO_EMPTY);
+        if ($terms === false || $terms === []) return $query;
+
+        foreach ($terms as $term) {
+            $like = '%'.$term.'%';
+            $query->where(function (Builder $query) use ($like): void {
+                $query->where('payment_plans.plan_number', 'like', $like)
+                    ->orWhere('payment_plans.apn', 'like', $like)
+                    ->orWhereHas('memberships.client', function (Builder $client) use ($like): void {
+                        $client->where('organization_name', 'like', $like)
+                            ->orWhere('preferred_name', 'like', $like)
+                            ->orWhere('first_name', 'like', $like)
+                            ->orWhere('middle_name', 'like', $like)
+                            ->orWhere('last_name', 'like', $like)
+                            ->orWhere('email', 'like', $like)
+                            ->orWhere('primary_phone', 'like', $like)
+                            ->orWhere('secondary_phone', 'like', $like);
+                    });
+            });
+        }
+
+        return $query;
     }
 
     public function memberships(): HasMany

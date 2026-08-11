@@ -14,6 +14,8 @@ DONE  multiple payment notice fix
 
 DONE schedule adjustment 1 hr earlier
 
+DONE added favicon
+
 within 2 payments of payoff - client dash notice, email reminder adjustment (your payoff is xx.xx if you would like to make a larger payoff month prior)
 
 sms reminder flow
@@ -21,3 +23,14 @@ sms reminder flow
 auto cron update
 
 TODO dashboard horizontal drag panning - Click-and-drag horizontal scrolling on dashboard tables is still not working. Both pointer-event and mouse-event implementations were attempted in public/assets/js/landpay.js. Revisit later; verify asset loading/cache and test the actual table scroll container in-browser before revising the handler.
+Git Deployment Admin Feature
+
+DONE - Documented the lean proposal in GIT_DEPLOYMENT_ADMIN_FEATURE.md; no application code implemented.
+
+DONE - Added reusable active/draft/terminated/closed/all plan filtering and client/APN/plan/email/phone search to the Admin Dashboard and Payment Plans list.
+
+DONE - Added debounced automatic plan search and tokenized full/preferred/organization name matching.
+
+DONE - Preserved the plan-filter layout while adding anchored search results and cache-busting for reliable automatic submission.
+
+DONE - Added a reusable in-field X that cancels pending plan search, clears filters, and reloads the full Active list.
