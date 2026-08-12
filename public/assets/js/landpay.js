@@ -127,3 +127,34 @@ document.querySelectorAll('[data-list-filter-form]').forEach((form) => {
         form.requestSubmit();
     }));
 });
+
+const adminStatusRoot = document.querySelector('[data-admin-status-url]');
+if (adminStatusRoot) {
+    let polling = false;
+    const refreshAdminStatus = async () => {
+        if (polling || document.hidden) return;
+        polling = true;
+        try {
+            const notices = document.querySelector('[data-admin-notices]');
+            const statusUrl = new URL(adminStatusRoot.dataset.adminStatusUrl, window.location.origin);
+            if (notices) statusUrl.searchParams.set('notices', '1');
+            const response = await fetch(statusUrl, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+            if (!response.ok) return;
+            const status = await response.json();
+            const messageText = [status.unread_messages ? status.unread_messages + ' unread' : '', status.starred_messages ? '★ ' + status.starred_messages : ''].filter(Boolean).join(' · ');
+            document.querySelectorAll('[data-admin-message-badge]').forEach(badge => { badge.textContent = messageText; badge.classList.toggle('d-none', !messageText); });
+            document.querySelectorAll('[data-admin-notice-link]').forEach(link => {
+                link.classList.toggle('d-none', !status.open_notices);
+                const badge = link.querySelector('[data-admin-notice-badge]');
+                if (badge) badge.textContent = status.open_notices + ' open';
+            });
+            if (notices && notices.dataset.adminNoticesRevision !== status.notices_revision) notices.outerHTML = status.notices_html;
+        } catch (_) {
+            // Keep the existing display and try again later.
+        } finally {
+            polling = false;
+        }
+    };
+    window.setInterval(refreshAdminStatus, 60000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAdminStatus(); });
+}

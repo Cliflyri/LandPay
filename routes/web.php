@@ -97,6 +97,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::post('client-change-requests/{changeRequest}/apply', [ClientChangeRequestController::class, 'apply'])->name('client-change-requests.apply');
     Route::post('client-change-requests/{changeRequest}/reject', [ClientChangeRequestController::class, 'reject'])->name('client-change-requests.reject');
     Route::post('notices/{notice}/dismiss', [AdminNoticeController::class, 'dismiss'])->name('notices.dismiss');
+    Route::get('dashboard/status', [DashboardController::class, 'status'])->name('dashboard.status');
     Route::get('messages', [AdminSecureMessageController::class, 'index'])->name('messages.index');
     Route::get('messages/create', [AdminSecureMessageController::class, 'create'])->name('messages.create');
     Route::post('messages', [AdminSecureMessageController::class, 'store'])->name('messages.store');

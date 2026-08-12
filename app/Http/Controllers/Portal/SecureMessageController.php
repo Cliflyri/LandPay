@@ -60,13 +60,19 @@ class SecureMessageController extends Controller
         return back()->with('success', 'Your reply was sent securely.');
     }
 
-    public function download(Request $request, SecureMessageThread $thread, SecureMessage $message): StreamedResponse
+    public function download(Request $request, SecureMessageThread $thread, SecureMessage $message)
     {
         $this->authorizeThread($request, $thread);
         abort_unless($message->secure_message_thread_id === $thread->id && filled($message->attachment_path), 404);
-        abort_unless(Storage::disk($message->attachment_disk)->exists($message->attachment_path), 404);
+        $disk = Storage::disk($message->attachment_disk ?: 'local');
+        abort_unless($disk->exists($message->attachment_path), 404);
+
+        if ($request->boolean('inline') && in_array($message->attachment_mime, ['image/jpeg', 'image/png'], true)) {
+            return response()->file($disk->path($message->attachment_path), ['Content-Type' => $message->attachment_mime]);
+        }
+
         $message->update(['attachment_downloaded_at' => $message->attachment_downloaded_at ?? now()]);
-        return Storage::disk($message->attachment_disk)->download($message->attachment_path, $message->attachment_name);
+        return $disk->download($message->attachment_path, $message->attachment_name);
     }
 
     private function authorizeThread(Request $request, SecureMessageThread $thread): void

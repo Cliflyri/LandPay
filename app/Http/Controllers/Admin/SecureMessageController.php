@@ -115,11 +115,17 @@ class SecureMessageController extends Controller
         return back()->with($sent ? 'success' : 'error', $sent ? 'Email reminder sent.' : 'Email reminder could not be sent.');
     }
 
-    public function download(SecureMessageThread $thread, SecureMessage $message): StreamedResponse
+    public function download(Request $request, SecureMessageThread $thread, SecureMessage $message)
     {
         abort_unless($message->secure_message_thread_id === $thread->id && filled($message->attachment_path), 404);
-        abort_unless(Storage::disk($message->attachment_disk)->exists($message->attachment_path), 404);
-        return Storage::disk($message->attachment_disk)->download($message->attachment_path, $message->attachment_name);
+        $disk = Storage::disk($message->attachment_disk ?: 'local');
+        abort_unless($disk->exists($message->attachment_path), 404);
+
+        if ($request->boolean('inline') && in_array($message->attachment_mime, ['image/jpeg', 'image/png'], true)) {
+            return response()->file($disk->path($message->attachment_path), ['Content-Type' => $message->attachment_mime]);
+        }
+
+        return $disk->download($message->attachment_path, $message->attachment_name);
     }
 
     public function destroyAttachment(SecureMessageThread $thread, SecureMessage $message): RedirectResponse

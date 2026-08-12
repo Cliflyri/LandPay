@@ -81,3 +81,7 @@ DONE - Added a right-aligned secure-message actions menu with a larger passive f
 DONE - Corrected secure-message actions placement, star rendering, and clipped admin dropdown behavior.
 
 DONE - Expanded secure messages to private PDF/JPG/PNG attachments with automatic image resizing, admin attachment deletion, and permanent conversation deletion with storage cleanup.
+
+DONE - Added authenticated image thumbnails and modal previews plus shared admin/client conversation bubbles for secure-message threads.
+
+DONE - Added low-impact admin polling to refresh sidebar notice/message badges and only the dashboard notices area without reloading pages or disturbing form input.

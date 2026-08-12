@@ -11,9 +11,9 @@
 </div>
 
 <nav class="admin-sidebar-nav" aria-label="Administrator navigation">
-    @if($openAdminNoticeCount > 0)
         <a
-            class="admin-sidebar-link admin-notice-link {{ $noticeLinkBackground ? 'admin-notice-link-background' : '' }}"
+            class="admin-sidebar-link admin-notice-link {{ $noticeLinkBackground ? 'admin-notice-link-background' : '' }} {{ $openAdminNoticeCount > 0 ? '' : 'd-none' }}"
+            data-admin-notice-link
             href="{{ route('admin.dashboard') }}#admin-notices"
             aria-label="{{ $openAdminNoticeCount }} open administrator {{ Str::plural('notice', $openAdminNoticeCount) }}"
         >
@@ -24,9 +24,8 @@
                 </svg>
             </span>
             Notices
-            <span class="admin-notice-badge">{{ $openAdminNoticeCount }} open</span>
+            <span class="admin-notice-badge" data-admin-notice-badge>{{ $openAdminNoticeCount }} open</span>
         </a>
-    @endif
 
     
     <a
@@ -39,9 +38,7 @@
             $unreadSecureMessageCount > 0 ? $unreadSecureMessageCount.' unread' : null,
             $starredSecureMessageCount > 0 ? '★ '.$starredSecureMessageCount : null,
         ])->filter()->join(' · '))
-        @if($messageBadge !== '')
-            <span class="admin-notice-badge">{{ $messageBadge }}</span>
-        @endif
+        <span class="admin-notice-badge {{$messageBadge === '' ? 'd-none' : ''}}" data-admin-message-badge>{{$messageBadge}}</span>
     </a>
 
 <div style="border-top: 1px solid rgba(255,255,255,0.15); margin: 8px 12px;"></div>

@@ -7,7 +7,12 @@
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
 @if($errors->any())<div class="alert alert-danger mt-4">{{$errors->first()}}</div>@endif
 <div class="admin-next-card h-auto mt-4">
-@foreach($thread->messages as $message)<article class="border-bottom pb-3 mb-3"><div class="d-flex justify-content-between gap-3"><strong>{{$message->sender_type==='admin'?'LandPay':'You'}}</strong><span class="text-muted">{{$message->created_at->format('M j, Y g:i A')}}</span></div><div style="white-space:pre-wrap">{{$message->body}}</div>@if($message->attachment_path)<p class="mt-3 mb-0"><a class="btn btn-sm btn-outline-brand" href="{{route('portal.messages.download',[$thread,$message])}}">Download {{$message->attachment_name}}</a></p>@endif</article>@endforeach
+<div class="secure-message-thread">
+@foreach($thread->messages as $message)
+    @include('shared.secure-message', ['portal' => true])
+@endforeach
+</div>
+@include('shared.secure-message-image-modal')
 <form method="post" action="{{route('portal.messages.reply',$thread)}}">@csrf<label class="form-label" for="body">Reply securely</label><textarea class="form-control" id="body" name="body" rows="4" maxlength="10000" required></textarea><button class="btn btn-brand mt-3">Send reply</button></form>
 </div></div></section>
 @endsection
