@@ -28,6 +28,24 @@
         </a>
     @endif
 
+    
+    <a
+        class="admin-sidebar-link {{ request()->routeIs('admin.messages.*') ? 'active' : '' }}"
+        href="{{ route('admin.messages.index') }}"
+    >
+        <span aria-hidden="true">✉</span>
+        Messages
+        @php($messageBadge = collect([
+            $unreadSecureMessageCount > 0 ? $unreadSecureMessageCount.' unread' : null,
+            $starredSecureMessageCount > 0 ? '★ '.$starredSecureMessageCount : null,
+        ])->filter()->join(' · '))
+        @if($messageBadge !== '')
+            <span class="admin-notice-badge">{{ $messageBadge }}</span>
+        @endif
+    </a>
+
+<div style="border-top: 1px solid rgba(255,255,255,0.15); margin: 8px 12px;"></div>
+
     <a
         class="admin-sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
         href="{{ route('admin.dashboard') }}"
@@ -66,6 +84,10 @@
 </span>
         Settings
     </a>
+
+
+
+
 </nav>
 
 <div class="admin-sidebar-footer">

@@ -70,7 +70,7 @@ class DashboardController extends Controller
             'plans' => $plans,
             'planStatus' => $planStatus,
             'planSearch' => $planSearch,
-            'notices' => AdminNotice::query()->whereNull('dismissed_at')->with(['client', 'changeRequest', 'paymentIntent.payment'])->latest()->get(),
+            'notices' => AdminNotice::query()->whereNull('dismissed_at')->with(['client', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread'])->latest()->get(),
         ]);
     }
 

@@ -8,4 +8,5 @@ class AdminNotice extends Model {
  public function client(): BelongsTo {return $this->belongsTo(Client::class);}
  public function changeRequest(): BelongsTo {return $this->belongsTo(ClientChangeRequest::class,'client_change_request_id');}
  public function paymentIntent(): BelongsTo {return $this->belongsTo(ClientPaymentIntent::class,'client_payment_intent_id');}
+ public function secureMessageThread(): BelongsTo {return $this->belongsTo(SecureMessageThread::class);}
 }

@@ -79,6 +79,11 @@
                                    href="{{ route('admin.payment-intents.receive',$notice->paymentIntent) }}">
                                     Receive payment
                                 </a>
+                            @elseif($notice->secureMessageThread)
+                                <a class="btn btn-sm btn-outline-brand"
+                                   href="{{ route('admin.messages.show',$notice->secureMessageThread) }}">
+                                    Open message
+                                </a>
                             @elseif($notice->client)
                                 <a class="btn btn-sm btn-outline-brand"
                                    href="{{ route('admin.clients.show',$notice->client) }}">

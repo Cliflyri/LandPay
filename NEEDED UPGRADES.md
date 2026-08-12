@@ -16,16 +16,7 @@ DONE schedule adjustment 1 hr earlier
 
 DONE added favicon
 
-within 2 payments of payoff - client dash notice, email reminder adjustment (your payoff is xx.xx if you would like to make a larger payoff month prior)
-
-sms reminder flow
-
-auto cron update
-
-TODO dashboard horizontal drag panning - Click-and-drag horizontal scrolling on dashboard tables is still not working. Both pointer-event and mouse-event implementations were attempted in public/assets/js/landpay.js. Revisit later; verify asset loading/cache and test the actual table scroll container in-browser before revising the handler.
-Git Deployment Admin Feature
-
-DONE - Documented the lean proposal in GIT_DEPLOYMENT_ADMIN_FEATURE.md; no application code implemented.
+DONE dashboard horizontal drag panning - Click-and-drag horizontal scrolling on dashboard tables is still not working. Both pointer-event and mouse-event implementations were attempted in public/assets/js/landpay.js. Revisit later; verify asset loading/cache and test the actual table scroll container in-browser before revising the handler.
 
 DONE - Added reusable active/draft/terminated/closed/all plan filtering and client/APN/plan/email/phone search to the Admin Dashboard and Payment Plans list.
 
@@ -60,3 +51,33 @@ DONE - Consolidated the admin payment receipt into one natural-height summary, c
 DONE - Added a clear Square or Stripe provider row to online-card payment receipts.
 
 DONE - Added reusable newest-first payment ordering for portal recent/history lists and the admin plan payment list.
+
+Stripe ACH hosted checkout, payment amount normalization, and provider-label cleanup -- deferred; see STRIPE_ACH_README.md.
+
+  Stripe ACH, amount validation, provider labels, webhook lifecycle, and testing proposal in STRIPE_ACH_README.md; no application code implemented.
+
+within 2 payments of payoff - client dash notice, email reminder adjustment (your payoff is xx.xx if you would like to make a larger payoff month prior)
+
+sms reminder flow
+
+auto cron update
+
+Git Deployment Admin Feature GIT_DEPLOYMENT_ADMIN_FEATURE.md; no application code implemented.
+
+At plan closure a document (pdf) and instructions need to be shared with the client.  I would like an interface between the admin and client portals, sort of a message bridge between the portals with the ability to attach a file.  This also may be helpful for storing the clients contracts at plan implementation, though that use case is not the primary goal.  I would like ideas for implementing this keeping it lean and very usable from a client and admin perspective.
+
+Near-payoff client dashboard and payment-reminder experience -- deferred; see PAYOFF_OPPORTUNITY_README.md.
+
+Reusable payoff-opportunity calculation, dashboard callout, prefilled payoff link, conditional reminder callout, and testing proposal in PAYOFF_OPPORTUNITY_README.md; no application code implemented.
+
+DONE - Created feature/secure-client-messages as the isolated development branch for the secure messaging feature.
+
+DONE - Implemented secure client messaging with optional plan references, private PDF attachments, client replies, unread notices, admin follow-up stars, viewed/downloaded timestamps, and generic email reminders.
+
+DONE - Fixed the secure-message sidebar badge Blade parse error.
+
+DONE - Added a right-aligned secure-message actions menu with a larger passive follow-up star indicator.
+
+DONE - Corrected secure-message actions placement, star rendering, and clipped admin dropdown behavior.
+
+DONE - Expanded secure messages to private PDF/JPG/PNG attachments with automatic image resizing, admin attachment deletion, and permanent conversation deletion with storage cleanup.

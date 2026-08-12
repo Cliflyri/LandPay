@@ -5,6 +5,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentPlan;
 use App\Models\ClientPaymentIntent;
+use App\Models\SecureMessageThread;
 use App\Services\FinancialBalanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -46,6 +47,7 @@ $oldestDue = $open->first();
   $paymentQuery=Payment::query()->whereHas('financialTransaction',fn($q)=>$q->whereIn('payment_plan_id',$planIds))->whereDoesntHave('financialTransaction.reversedBy');
   $payments=(clone $paymentQuery)->with('financialTransaction.paymentPlan')->newestFirst()->limit(3)->get();
   $pendingPaymentIntents=ClientPaymentIntent::query()->where('client_id',$account->client_id)->where(function($query){$query->whereIn('status',['checkout_pending','review_required'])->orWhere(function($announced){$announced->where('status','announced')->whereHas('adminNotice',fn($notice)=>$notice->whereNull('dismissed_at'));});})->with('paymentPlan')->latest()->get();
+  $unreadMessageThreads=SecureMessageThread::query()->where('client_id',$account->client_id)->unreadByClient()->orderByDesc('latest_message_at')->limit(3)->get();
   
 $invoices = $allInvoices
     ->sortBy(function (Invoice $invoice) use ($invoiceBalances): array {
@@ -68,7 +70,7 @@ $invoices = $allInvoices
         ]
     );
   
-  return view('portal.dashboard',compact('account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents'));
+  return view('portal.dashboard',compact('account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents','unreadMessageThreads'));
  
  
   }

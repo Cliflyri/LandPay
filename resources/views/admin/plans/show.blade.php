@@ -42,6 +42,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         
     </div>
     <div class="d-flex flex-wrap gap-2">
+        @if($primaryClient)<a class="btn btn-outline-brand" href="{{ route('admin.messages.create',['client'=>$primaryClient->id,'plan'=>$plan->id]) }}">Secure message</a>@endif
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.create',$plan) }}">Review next invoice</a>
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.manual.create',$plan) }}">Create invoice</a>
         <a class="btn btn-brand" href="{{ route('admin.plans.payments.create',$plan) }}">Record payment</a>

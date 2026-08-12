@@ -1,0 +1,16 @@
+@extends('layouts.admin')
+@section('title','New secure message | LandPay')
+@section('body_class','admin-page')
+@section('content')
+<section class="admin-section"><div class="container-fluid dashboard-container"><div class="admin-heading"><span class="eyebrow eyebrow-dark">Secure messages</span><h1>New secure message</h1><p>Send private instructions with one optional attachment.</p></div>
+@if($errors->any())<div class="alert alert-danger mt-4">{{$errors->first()}}</div>@endif
+<form class="admin-next-card h-auto mt-4" method="post" action="{{route('admin.messages.store')}}" enctype="multipart/form-data">@csrf<div class="row g-3">
+<div class="col-md-6"><label class="form-label" for="client_id">Client</label><select class="form-select" id="client_id" name="client_id" required><option value="">Choose client</option>@foreach($clients as $client)<option value="{{$client->id}}" @selected((int)old('client_id',$selectedClientId)===$client->id)>{{$client->organization_name ?: trim($client->last_name.', '.$client->first_name)}}</option>@endforeach</select></div>
+<div class="col-md-6"><label class="form-label" for="payment_plan_id">Plan reference (optional)</label><select class="form-select" id="payment_plan_id" name="payment_plan_id"><option value="">No plan reference</option>@foreach($plans as $plan)<option value="{{$plan->id}}" data-client-ids="{{$plan->memberships->pluck('client_id')->join(',')}}" @selected((int)old('payment_plan_id',$selectedPlanId)===$plan->id)>{{$plan->plan_number}} &mdash; {{$plan->title}}</option>@endforeach</select></div>
+<div class="col-md-8"><label class="form-label" for="subject">Subject</label><input class="form-control" id="subject" name="subject" maxlength="150" value="{{old('subject')}}" required></div>
+<div class="col-md-4"><label class="form-label" for="category">Category</label><select class="form-select" id="category" name="category">@foreach(['general'=>'General','closing_documents'=>'Closing documents','contract'=>'Contract'] as $value=>$label)<option value="{{$value}}" @selected(old('category','general')===$value)>{{$label}}</option>@endforeach</select></div>
+<div class="col-12"><label class="form-label" for="body">Message</label><textarea class="form-control" id="body" name="body" rows="8" maxlength="10000" required>{{old('body')}}</textarea></div>
+<div class="col-12"><label class="form-label" for="attachment">Attachment (optional)</label><input class="form-control" id="attachment" name="attachment" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"><div class="form-text">PDF, JPG, or PNG, up to 10 MB. Images are resized automatically and files stay in private storage.</div></div>
+<div class="col-12 d-flex gap-2"><button class="btn btn-brand" type="submit">Send secure message</button><a class="btn btn-outline-brand" href="{{route('admin.messages.index')}}">Cancel</a></div></div></form></div></section>
+@push('scripts')<script>(()=>{const client=document.getElementById('client_id'),plan=document.getElementById('payment_plan_id');function filterPlans(){[...plan.options].forEach((option,index)=>{if(index===0)return;option.hidden=!option.dataset.clientIds.split(',').includes(client.value)});if(plan.selectedOptions[0]?.hidden)plan.value=''}client.addEventListener('change',filterPlans);filterPlans()})()</script>@endpush
+@endsection
