@@ -25,6 +25,8 @@ use App\Http\Controllers\Portal\PaymentController as PortalPaymentController;
 use App\Http\Controllers\Portal\MakePaymentController;
 use App\Http\Controllers\Admin\PaymentMethodSettingsController;
 use App\Http\Controllers\Admin\ClientPaymentIntentController;
+use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
+use App\Http\Controllers\Portal\SecureMessageController as PortalSecureMessageController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProviderWebhookController;
 
@@ -66,6 +68,12 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('account/contact', [PortalAccountController::class, 'edit'])->name('account.edit');
     Route::put('account/contact', [PortalAccountController::class, 'update'])->name('account.update');
     Route::put('account/password', [PortalAccountController::class, 'password'])->name('account.password');
+    Route::get('messages', [PortalSecureMessageController::class, 'index'])->name('messages.index');
+    Route::get('messages/create', [PortalSecureMessageController::class, 'create'])->name('messages.create');
+    Route::post('messages', [PortalSecureMessageController::class, 'store'])->middleware('throttle:5,1')->name('messages.store');
+    Route::get('messages/{thread}', [PortalSecureMessageController::class, 'show'])->name('messages.show');
+    Route::post('messages/{thread}/reply', [PortalSecureMessageController::class, 'reply'])->middleware('throttle:10,1')->name('messages.reply');
+    Route::get('messages/{thread}/attachments/{message}', [PortalSecureMessageController::class, 'download'])->name('messages.download');
 });
 
 
@@ -91,6 +99,18 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::post('client-change-requests/{changeRequest}/apply', [ClientChangeRequestController::class, 'apply'])->name('client-change-requests.apply');
     Route::post('client-change-requests/{changeRequest}/reject', [ClientChangeRequestController::class, 'reject'])->name('client-change-requests.reject');
     Route::post('notices/{notice}/dismiss', [AdminNoticeController::class, 'dismiss'])->name('notices.dismiss');
+    Route::get('dashboard/status', [DashboardController::class, 'status'])->name('dashboard.status');
+    Route::get('messages', [AdminSecureMessageController::class, 'index'])->name('messages.index');
+    Route::post('messages/email-notifications', [AdminSecureMessageController::class, 'updateEmailNotifications'])->name('messages.email-notifications');
+    Route::get('messages/create', [AdminSecureMessageController::class, 'create'])->name('messages.create');
+    Route::post('messages', [AdminSecureMessageController::class, 'store'])->name('messages.store');
+    Route::get('messages/{thread}', [AdminSecureMessageController::class, 'show'])->name('messages.show');
+    Route::post('messages/{thread}/reply', [AdminSecureMessageController::class, 'reply'])->name('messages.reply');
+    Route::post('messages/{thread}/star', [AdminSecureMessageController::class, 'star'])->name('messages.star');
+    Route::post('messages/{thread}/remind', [AdminSecureMessageController::class, 'remind'])->name('messages.remind');
+    Route::get('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'download'])->name('messages.download');
+    Route::delete('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'destroyAttachment'])->name('messages.attachments.destroy');
+    Route::delete('messages/{thread}', [AdminSecureMessageController::class, 'destroy'])->name('messages.destroy');
     Route::post('plans/{plan}/invoices/preview', [InvoiceController::class, 'preview'])->name('plans.invoices.preview');
     Route::post('plans/{plan}/invoices', [InvoiceController::class, 'store'])->name('plans.invoices.store');
     Route::post('plans/{plan}/invoices/manual/preview', [InvoiceController::class, 'manualPreview'])->name('plans.invoices.manual.preview');

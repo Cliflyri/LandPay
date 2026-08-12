@@ -25,77 +25,7 @@
         </div>
     </div>
 
-    @if($notices->isNotEmpty())
-        <div class="admin-next-card mb-4" id="admin-notices">
-            <div class="d-flex align-items-center gap-4">
-                <h2 class="mb-0">Notices</h2>
-                <span class="dashboard-status status-due position-relative"
-                    style="top: 8px;">
-                    {{ $notices->count() }} open
-                </span>
-            </div>
-
-            @foreach($notices as $notice)
-                <div class="amendment-entry">
-                    <div class="amendment-entry-heading">
-                        <div>
-                            <strong>{{ $notice->title }}</strong>
-
-                            @if($notice->type === 'online_payment_received' && $notice->client && $notice->paymentIntent?->payment)
-                                <p class="mb-0">
-                                    <a href="{{ route('admin.clients.show',$notice->client) }}">
-                                        {{ trim($notice->client->first_name.' '. $notice->client->last_name) }}
-                                    </a>
-                                    paid
-                                    <a href="{{ route('admin.payments.show',$notice->paymentIntent->payment) }}">
-                                        {{ \App\Support\Money::format($notice->paymentIntent->amount) }}
-                                    </a>
-                                    by {{ str($notice->paymentIntent->provider)->title() }}
-                                    on {{ $notice->paymentIntent->payment->received_date->format('M j, Y') }}.
-                                    Payment posted successfully.
-                                </p>
-                            @else
-                                <p class="mb-0">{{ $notice->message }}</p>
-                            @endif
-
-                            @if($notice->paymentIntent?->overpayment_disposition)
-                                <p class="mb-0 mt-1">
-                                    <strong>Client overpayment instruction:</strong>
-                                    {{ $notice->paymentIntent->overpayment_disposition === 'next_invoice_credit'
-                                        ? 'Keep extra as account credit.'
-                                        : 'Apply extra to principal.' }}
-                                </p>
-                            @endif
-                        </div>
-
-                        <div class="d-flex align-items-start gap-2 flex-shrink-0">
-                            @if($notice->changeRequest)
-                                <a class="btn btn-sm btn-brand"
-                                   href="{{ route('admin.client-change-requests.show',$notice->changeRequest) }}">
-                                    Review
-                                </a>
-                            @elseif($notice->paymentIntent?->status === 'announced')
-                                <a class="btn btn-sm btn-brand"
-                                   href="{{ route('admin.payment-intents.receive',$notice->paymentIntent) }}">
-                                    Receive payment
-                                </a>
-                            @elseif($notice->client)
-                                <a class="btn btn-sm btn-outline-brand"
-                                   href="{{ route('admin.clients.show',$notice->client) }}">
-                                    Open client
-                                </a>
-                            @endif
-
-                            <form method="post" action="{{ route('admin.notices.dismiss',$notice) }}">
-                                @csrf
-                                <button class="btn btn-sm btn-outline-brand">Dismiss</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    @endif
+    @include('admin.partials.dashboard-notices')
 
     <div class="mb-3">
         <h2 class="mb-1">Payment plans</h2>

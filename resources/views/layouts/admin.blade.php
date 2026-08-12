@@ -49,7 +49,7 @@
     Skip to main content
 </a>
 
-<div class="admin-shell">
+<div class="admin-shell" data-admin-status-url="{{route('admin.dashboard.status')}}">
     <aside class="admin-sidebar d-none d-lg-flex">
         @include('admin.shared.sidebar')
     </aside>

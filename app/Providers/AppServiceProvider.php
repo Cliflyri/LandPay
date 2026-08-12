@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\SmtpConfigurationService;
 use App\Models\AdminNotice;
 use App\Models\PortalAccount;
+use App\Models\SecureMessageThread;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -25,10 +26,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         app(SmtpConfigurationService::class)->apply();
-        View::composer('layouts.admin', fn ($view) => $view->with(
-            'openAdminNoticeCount',
-            AdminNotice::query()->whereNull('dismissed_at')->count(),
-        ));
+        View::composer('layouts.admin', fn ($view) => $view->with([
+            'openAdminNoticeCount' => AdminNotice::query()->whereNull('dismissed_at')->count(),
+            'unreadSecureMessageCount' => SecureMessageThread::query()->unreadByAdmin()->count(),
+            'starredSecureMessageCount' => SecureMessageThread::query()->whereNotNull('starred_at')->count(),
+        ]));
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
             return $notifiable instanceof PortalAccount
                 ? route('portal.password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()])

@@ -2,7 +2,21 @@
 @section('title','My account | LandPay')
 @section('body_class','admin-page')
 @section('content')
-<section class="admin-section"><div class="container site-container"><div class="admin-heading d-flex justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Client portal</span><h1>Hello, {{$account->displayName()}}</h1><p>Your current payment status and recent account activity.</p></div><div><a class="btn btn-outline-brand" href="{{route('portal.account.show')}}">Account</a> @if(session('portal_impersonation'))<form class="d-inline" method="post" action="{{route('admin.portal-access.destroy')}}">@csrf @method('DELETE')<button class="btn btn-outline-brand">Return to administration</button></form>@else<form class="d-inline" method="post" action="{{route('portal.logout')}}">@csrf<button class="btn btn-outline-brand">Sign out</button></form>@endif</div></div>
+<section class="admin-section"><div class="container site-container"><div class="admin-heading d-flex justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Client portal</span><h1>Hello, {{$account->displayName()}}</h1><p>Your current payment status and recent account activity.</p></div><div><a class="btn btn-outline-brand" href="{{route('portal.messages.index')}}">Messages &amp; documents</a> <a class="btn btn-outline-brand" href="{{route('portal.account.show')}}">Account</a> @if(session('portal_impersonation'))<form class="d-inline" method="post" action="{{route('admin.portal-access.destroy')}}">@csrf @method('DELETE')<button class="btn btn-outline-brand">Return to administration</button></form>@else<form class="d-inline" method="post" action="{{route('portal.logout')}}">@csrf<button class="btn btn-outline-brand">Sign out</button></form>@endif</div></div>
+
+@if($unreadMessageThreads->isNotEmpty())
+<div class="alert alert-warning  portal-message-alert mt-4" role="status">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <strong>{{ $unreadMessageThreads->count() === 1 ? 'New secure message' : 'Unread secure messages' }}</strong>
+            @foreach($unreadMessageThreads as $messageThread)
+                <div><a href="{{ route('portal.messages.show',$messageThread) }}">{{ $messageThread->subject }}</a></div>
+            @endforeach
+        </div>
+        <a class="btn btn-sm btn-outline-brand" href="{{ route('portal.messages.index') }}">View all messages</a>
+    </div>
+</div>
+@endif
 
 <div class="row g-4 mt-2">
     <div class="col-12">

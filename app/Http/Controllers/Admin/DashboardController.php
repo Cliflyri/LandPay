@@ -12,6 +12,7 @@ use App\Services\FinancialBalanceService;
 use App\Services\AutomaticInvoiceService;
 use App\Services\CurrentPayoffService;
 use App\Services\ReminderAutomationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -70,8 +71,28 @@ class DashboardController extends Controller
             'plans' => $plans,
             'planStatus' => $planStatus,
             'planSearch' => $planSearch,
-            'notices' => AdminNotice::query()->whereNull('dismissed_at')->with(['client', 'changeRequest', 'paymentIntent.payment'])->latest()->get(),
+            'notices' => $this->notices(),
         ]);
+    }
+
+    public function status(Request $request): JsonResponse
+    {
+        $notices = $request->boolean('notices') ? $this->notices() : null;
+
+        return response()->json([
+            'open_notices' => AdminNotice::query()->whereNull('dismissed_at')->count(),
+            'notices_revision' => $notices ? sha1($notices->pluck('updated_at', 'id')->toJson()) : null,
+            'unread_messages' => \App\Models\SecureMessageThread::query()->unreadByAdmin()->count(),
+            'starred_messages' => \App\Models\SecureMessageThread::query()->whereNotNull('starred_at')->count(),
+            'notices_html' => $notices ? view('admin.partials.dashboard-notices', compact('notices'))->render() : null,
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    private function notices()
+    {
+        return AdminNotice::query()->whereNull('dismissed_at')
+            ->with(['client', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread'])
+            ->latest()->get();
     }
 
     /** @return array<string, mixed> */
