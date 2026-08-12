@@ -85,3 +85,5 @@ DONE - Expanded secure messages to private PDF/JPG/PNG attachments with automati
 DONE - Added authenticated image thumbnails and modal previews plus shared admin/client conversation bubbles for secure-message threads.
 
 DONE - Added low-impact admin polling to refresh sidebar notice/message badges and only the dashboard notices area without reloading pages or disturbing form input.
+
+DONE - Added client-initiated secure messages with processed JPG/PNG uploads and optional generic administrator email notifications sent to the configured reply-to address.

@@ -8,19 +8,20 @@ use App\Models\Client;
 use App\Models\PaymentPlan;
 use App\Models\SecureMessage;
 use App\Models\SecureMessageThread;
+use App\Services\SecureMessageAttachmentService;
 use App\Services\SecureMessageNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class SecureMessageController extends Controller
 {
-    public function __construct(private readonly SecureMessageNotificationService $notifications) {}
+    public function __construct(private readonly SecureMessageNotificationService $notifications, private readonly SecureMessageAttachmentService $attachments) {}
 
     public function index(Request $request): View
     {
@@ -38,7 +39,7 @@ class SecureMessageController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('admin.messages.index', compact('threads', 'filter'));
+        return view('admin.messages.index', ['threads'=>$threads,'filter'=>$filter,'adminEmailEnabled'=>\App\Models\AppSetting::valueFor('secure_message_admin_email_enabled','0')==='1','adminEmail'=>\App\Models\AppSetting::valueFor('reply_to_email','')]);
     }
 
     public function create(Request $request): View
@@ -55,23 +56,28 @@ class SecureMessageController extends Controller
     {
         $data = $this->validateMessage($request, true);
         $this->validatePlanReference((int) $data['client_id'], $data['payment_plan_id'] ?? null);
-        $attachment = $this->storeAttachment($request);
+        $attachment = $this->attachments->store($request->file('attachment'), true);
 
-        $thread = DB::transaction(function () use ($request, $data, $attachment): SecureMessageThread {
-            $thread = SecureMessageThread::query()->create([
-                'client_id' => $data['client_id'],
-                'payment_plan_id' => $data['payment_plan_id'] ?? null,
-                'subject' => $data['subject'],
-                'category' => $data['category'],
-                'latest_message_at' => now(),
-            ]);
-            $thread->messages()->create($attachment + [
-                'sender_type' => 'admin',
-                'sender_user_id' => $request->user()->id,
-                'body' => $data['body'],
-            ]);
-            return $thread;
-        });
+        try {
+            $thread = DB::transaction(function () use ($request, $data, $attachment): SecureMessageThread {
+                $thread = SecureMessageThread::query()->create([
+                    'client_id' => $data['client_id'],
+                    'payment_plan_id' => $data['payment_plan_id'] ?? null,
+                    'subject' => $data['subject'],
+                    'category' => $data['category'],
+                    'latest_message_at' => now(),
+                ]);
+                $thread->messages()->create($attachment + [
+                    'sender_type' => 'admin',
+                    'sender_user_id' => $request->user()->id,
+                    'body' => $data['body'],
+                ]);
+                return $thread;
+            });
+        } catch (Throwable $exception) {
+            $this->attachments->delete($attachment);
+            throw $exception;
+        }
 
         $sent = $this->notifications->send($thread->load('client'));
         return redirect()->route('admin.messages.show', $thread)
@@ -92,14 +98,28 @@ class SecureMessageController extends Controller
     public function reply(Request $request, SecureMessageThread $thread): RedirectResponse
     {
         $data = $this->validateMessage($request, false);
-        $thread->messages()->create($this->storeAttachment($request) + [
-            'sender_type' => 'admin',
-            'sender_user_id' => $request->user()->id,
-            'body' => $data['body'],
-        ]);
-        $thread->update(['latest_message_at' => now()]);
+        $attachment = $this->attachments->store($request->file('attachment'), true);
+        try {
+            DB::transaction(function () use ($request, $thread, $data, $attachment): void {
+                $thread->messages()->create($attachment + [
+                    'sender_type' => 'admin',
+                    'sender_user_id' => $request->user()->id,
+                    'body' => $data['body'],
+                ]);
+                $thread->update(['latest_message_at' => now()]);
+            });
+        } catch (Throwable $exception) {
+            $this->attachments->delete($attachment);
+            throw $exception;
+        }
         $sent = $this->notifications->send($thread->load('client'));
         return back()->with('success', 'Reply sent.'.($sent ? ' Email notification sent.' : ' Email notification was not sent.'));
+    }
+
+    public function updateEmailNotifications(Request $request): RedirectResponse
+    {
+        \App\Models\AppSetting::putMany(['secure_message_admin_email_enabled' => $request->boolean('enabled') ? '1' : '0']);
+        return back()->with('success', 'Administrator email notifications updated.');
     }
 
     public function star(SecureMessageThread $thread): RedirectResponse
@@ -185,66 +205,5 @@ class SecureMessageController extends Controller
         abort_unless(DB::table('payment_plan_clients')->where('client_id', $clientId)->where('payment_plan_id', $planId)->exists(), 422, 'The selected plan is not associated with this client.');
     }
 
-    private function storeAttachment(Request $request): array
-    {
-        $file = $request->file('attachment');
-        if (! $file) return [];
 
-        $mime = $file->getMimeType();
-        if ($mime === 'application/pdf') {
-            $path = $file->store('secure-messages', 'local');
-        } else {
-            $extension = $mime === 'image/png' ? 'png' : 'jpg';
-            $path = 'secure-messages/'.Str::uuid().'.'.$extension;
-            Storage::disk('local')->makeDirectory('secure-messages');
-            $this->resizeImage($file->getPathname(), Storage::disk('local')->path($path), $mime);
-        }
-
-        return [
-            'attachment_disk' => 'local',
-            'attachment_path' => $path,
-            'attachment_name' => $file->getClientOriginalName(),
-            'attachment_mime' => $mime,
-            'attachment_size' => Storage::disk('local')->size($path),
-        ];
-    }
-
-    private function resizeImage(string $sourcePath, string $destinationPath, string $mime): void
-    {
-        $source = $mime === 'image/png'
-            ? @imagecreatefrompng($sourcePath)
-            : @imagecreatefromjpeg($sourcePath);
-        abort_unless($source, 422, 'The image could not be processed.');
-
-        if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
-            $orientation = @exif_read_data($sourcePath)['Orientation'] ?? 1;
-            $angle = match ($orientation) { 3 => 180, 6 => -90, 8 => 90, default => 0 };
-            if ($angle) {
-                $rotated = imagerotate($source, $angle, 0);
-                imagedestroy($source);
-                abort_unless($rotated, 422, 'The image orientation could not be corrected.');
-                $source = $rotated;
-            }
-        }
-
-        $width = imagesx($source);
-        $height = imagesy($source);
-        $scale = min(1, 2000 / max($width, $height));
-        $targetWidth = max(1, (int) round($width * $scale));
-        $targetHeight = max(1, (int) round($height * $scale));
-        $target = imagecreatetruecolor($targetWidth, $targetHeight);
-        abort_unless($target, 422, 'The image could not be resized.');
-
-        if ($mime === 'image/png') {
-            imagealphablending($target, false);
-            imagesavealpha($target, true);
-        }
-        imagecopyresampled($target, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
-        $saved = $mime === 'image/png'
-            ? imagepng($target, $destinationPath, 6)
-            : imagejpeg($target, $destinationPath, 85);
-        imagedestroy($target);
-        imagedestroy($source);
-        abort_unless($saved, 422, 'The processed image could not be saved.');
-    }
 }

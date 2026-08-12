@@ -553,8 +553,8 @@ body.admin-layout .admin-section > .site-container {
 
 .secure-message-thread { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
 .secure-message-bubble { width: min(82%, 850px); padding: 1rem; border: 1px solid var(--lp-border); border-radius: 1rem; }
-.secure-message-bubble.is-admin { margin-right: auto; background: #f4f6f5; border-bottom-left-radius: .3rem; }
-.secure-message-bubble.is-client { margin-left: auto; background: #fff9e8; border-color: #ead9a4; border-bottom-right-radius: .3rem; }
+.secure-message-bubble.is-admin { margin-right: auto; background: #f4f6f5; border-bottom-left-radius: .2rem; }
+.secure-message-bubble.is-client { margin-left: auto; background: #fff9e8; border-color: #ead9a4; border-bottom-right-radius: .2rem; }
 .secure-message-meta { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: .45rem; }
 .secure-message-meta span, .secure-message-tracking { color: var(--lp-muted); font-size: .82rem; }
 .secure-message-body { white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -69,8 +69,10 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::put('account/contact', [PortalAccountController::class, 'update'])->name('account.update');
     Route::put('account/password', [PortalAccountController::class, 'password'])->name('account.password');
     Route::get('messages', [PortalSecureMessageController::class, 'index'])->name('messages.index');
+    Route::get('messages/create', [PortalSecureMessageController::class, 'create'])->name('messages.create');
+    Route::post('messages', [PortalSecureMessageController::class, 'store'])->middleware('throttle:5,1')->name('messages.store');
     Route::get('messages/{thread}', [PortalSecureMessageController::class, 'show'])->name('messages.show');
-    Route::post('messages/{thread}/reply', [PortalSecureMessageController::class, 'reply'])->name('messages.reply');
+    Route::post('messages/{thread}/reply', [PortalSecureMessageController::class, 'reply'])->middleware('throttle:10,1')->name('messages.reply');
     Route::get('messages/{thread}/attachments/{message}', [PortalSecureMessageController::class, 'download'])->name('messages.download');
 });
 
@@ -99,6 +101,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::post('notices/{notice}/dismiss', [AdminNoticeController::class, 'dismiss'])->name('notices.dismiss');
     Route::get('dashboard/status', [DashboardController::class, 'status'])->name('dashboard.status');
     Route::get('messages', [AdminSecureMessageController::class, 'index'])->name('messages.index');
+    Route::post('messages/email-notifications', [AdminSecureMessageController::class, 'updateEmailNotifications'])->name('messages.email-notifications');
     Route::get('messages/create', [AdminSecureMessageController::class, 'create'])->name('messages.create');
     Route::post('messages', [AdminSecureMessageController::class, 'store'])->name('messages.store');
     Route::get('messages/{thread}', [AdminSecureMessageController::class, 'show'])->name('messages.show');
