@@ -89,3 +89,7 @@ DONE - Added low-impact admin polling to refresh sidebar notice/message badges a
 DONE - Added client-initiated secure messages with processed JPG/PNG uploads and optional generic administrator email notifications sent to the configured reply-to address.
 
 DONE - Disabled secure-message admin email notifications when no valid reply-to address is configured and added clear guidance with a Settings link.
+
+Dedicated administrator Notices page -- proposed; see NOTICES_PAGE_README.md. Move open notices off the dashboard, retain the live sidebar badge, reuse existing notice actions, and refresh details only on the Notices page; no application code implemented.
+
+DONE - Reused the latest-two secure-message collapse in both portals, moved its behavior to shared JavaScript, simplified the client subject heading, preserved failed replies, and made the history control full width.

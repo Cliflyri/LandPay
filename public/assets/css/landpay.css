@@ -564,3 +564,39 @@ body.admin-layout .admin-section > .site-container {
 .secure-message-tracking { display: block; margin-top: .5rem; }
 .secure-message-preview { max-width: 100%; max-height: 75vh; object-fit: contain; }
 @media (max-width: 575.98px) { .secure-message-bubble { width: 94%; } .secure-message-meta { flex-direction: column; gap: .15rem; } }
+
+/* Spacing between messages inside the expanded older-message section */
+#olderMessages .secure-message-bubble {
+    margin-bottom: 1rem;
+}
+
+/* Older messages show/collapse button */
+.secure-message-history-toggle {
+    width: 100%;
+    padding: .55rem 1rem;
+    border-radius: .75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Small CSS-drawn arrow */
+.secure-message-history-toggle .history-chevron {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: .6rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform .2s ease;
+}
+
+/* Turn arrow upward when older messages are expanded */
+.secure-message-history-toggle[aria-expanded="true"] .history-chevron {
+    transform: rotate(225deg) translate(-2px, -2px);
+}
+
+.secure-message-history-toggle:hover {
+    background-color: var(--lp-sun);
+    color: #332a18;
+}

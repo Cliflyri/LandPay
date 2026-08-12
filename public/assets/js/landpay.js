@@ -158,3 +158,11 @@ if (adminStatusRoot) {
     window.setInterval(refreshAdminStatus, 60000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAdminStatus(); });
 }
+
+document.querySelectorAll('.secure-message-history-toggle').forEach((toggle) => {
+    const target = document.querySelector(toggle.dataset.bsTarget);
+    const label = toggle.querySelector('.history-label');
+    if (!target || !label) return;
+    target.addEventListener('show.bs.collapse', () => { label.textContent = 'Collapse older messages'; });
+    target.addEventListener('hide.bs.collapse', () => { label.textContent = toggle.dataset.showLabel; });
+});
