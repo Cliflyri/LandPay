@@ -95,3 +95,5 @@ Dedicated administrator Notices page -- proposed; see NOTICES_PAGE_README.md. Mo
 DONE - Reused the latest-two secure-message collapse in both portals, moved its behavior to shared JavaScript, simplified the client subject heading, preserved failed replies, and made the history control full width.
 
 DONE - Changed generic administrator secure-message notification emails to link directly to the relevant authenticated conversation.
+
+DONE - Made the payment-plans list portal action match the dashboard and client list by disabling it when the primary client portal account is not active.

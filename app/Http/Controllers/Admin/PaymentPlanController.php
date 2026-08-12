@@ -47,7 +47,7 @@ public function index(Request $request): View
     $plans = PaymentPlan::query()
         ->forAdminListing($planStatus, $planSearch)
         ->with([
-            'memberships.client',
+            'memberships.client.portalAccount',
             'currentBillingTerms',
             'invoices.items',
         ])

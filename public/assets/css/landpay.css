@@ -195,7 +195,17 @@ a { text-underline-offset: .2em; }
 .dashboard-summary strong { color: var(--lp-ink-deep); }
 .dashboard-table-card { overflow: hidden; background: #fff; border: 1px solid var(--lp-border); border-radius: .25rem; box-shadow: none; }
 .dashboard-table { min-width: 1100px; color: var(--lp-text); font-size: .88rem; }
-.dashboard-table thead th { padding: .9rem 1rem; color: var(--lp-muted); background: #fff; border-bottom: 1px solid var(--lp-border); font-size: .78rem; font-weight: 750; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+.dashboard-table thead th {
+    padding: .9rem 1rem;
+    color: var(--lp-muted);
+    background: #fff;
+    border-bottom: 1px solid var(--lp-border);
+    font-size: 1rem;
+    font-weight: 525;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+}
 .dashboard-table tbody td { padding: 1.05rem 1rem; border-color: #e8ece8; }
 .dashboard-plan-row { transition: background-color .15s ease; }
 .dashboard-table tbody tr:nth-child(odd) > td { background-color: #fafafa; } .dashboard-table tbody tr:nth-child(even) > td { background-color: #fff; } .dashboard-table tbody .dashboard-plan-row:hover > td { background-color: #f6f6f3; }

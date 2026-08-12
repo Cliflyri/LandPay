@@ -150,15 +150,15 @@
                                                     Record payment
                                                 </a>
                                             </li>
-@if ($primaryClient)
+@if($primaryClient?->portalAccount?->enabled)
     <li>
-        <form method="post" action="{{ route('admin.portal-access.store', $primaryClient) }}">
+        <form method="post" action="{{route('admin.portal-access.store',$primaryClient)}}">
             @csrf
-            <button class="dropdown-item" type="submit">
-                Open client portal
-            </button>
+            <button class="dropdown-item" type="submit">Open client portal</button>
         </form>
     </li>
+@else
+    <li><span class="dropdown-item disabled" aria-disabled="true">Portal not active</span></li>
 @endif
                                         </ul>
                                     </div>
