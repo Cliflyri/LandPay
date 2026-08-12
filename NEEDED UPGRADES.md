@@ -93,3 +93,5 @@ DONE - Disabled secure-message admin email notifications when no valid reply-to 
 Dedicated administrator Notices page -- proposed; see NOTICES_PAGE_README.md. Move open notices off the dashboard, retain the live sidebar badge, reuse existing notice actions, and refresh details only on the Notices page; no application code implemented.
 
 DONE - Reused the latest-two secure-message collapse in both portals, moved its behavior to shared JavaScript, simplified the client subject heading, preserved failed replies, and made the history control full width.
+
+DONE - Changed generic administrator secure-message notification emails to link directly to the relevant authenticated conversation.

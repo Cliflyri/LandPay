@@ -11,13 +11,13 @@ use Throwable;
 
 class SecureMessageNotificationService
 {
-    public function sendToAdmin(): bool
+    public function sendToAdmin(SecureMessageThread $thread): bool
     {
         if (AppSetting::valueFor('secure_message_admin_email_enabled', '0') !== '1') return false;
         $email = AppSetting::valueFor('reply_to_email');
         if (blank($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
         try {
-            Mail::to(strtolower(trim($email)))->send(new AdminSecureMessageNotificationMail(route('admin.messages.index')));
+            Mail::to(strtolower(trim($email)))->send(new AdminSecureMessageNotificationMail(route('admin.messages.show', $thread)));
             return true;
         } catch (Throwable $exception) {
             report($exception);
