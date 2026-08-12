@@ -87,3 +87,5 @@ DONE - Added authenticated image thumbnails and modal previews plus shared admin
 DONE - Added low-impact admin polling to refresh sidebar notice/message badges and only the dashboard notices area without reloading pages or disturbing form input.
 
 DONE - Added client-initiated secure messages with processed JPG/PNG uploads and optional generic administrator email notifications sent to the configured reply-to address.
+
+DONE - Disabled secure-message admin email notifications when no valid reply-to address is configured and added clear guidance with a Settings link.

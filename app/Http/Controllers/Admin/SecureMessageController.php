@@ -39,7 +39,16 @@ class SecureMessageController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('admin.messages.index', ['threads'=>$threads,'filter'=>$filter,'adminEmailEnabled'=>\App\Models\AppSetting::valueFor('secure_message_admin_email_enabled','0')==='1','adminEmail'=>\App\Models\AppSetting::valueFor('reply_to_email','')]);
+        $adminEmail = \App\Models\AppSetting::valueFor('reply_to_email', '');
+        $adminEmailAvailable = filled($adminEmail) && filter_var($adminEmail, FILTER_VALIDATE_EMAIL);
+
+        return view('admin.messages.index', [
+            'threads' => $threads,
+            'filter' => $filter,
+            'adminEmail' => $adminEmail,
+            'adminEmailAvailable' => $adminEmailAvailable,
+            'adminEmailEnabled' => $adminEmailAvailable && \App\Models\AppSetting::valueFor('secure_message_admin_email_enabled', '0') === '1',
+        ]);
     }
 
     public function create(Request $request): View
@@ -118,6 +127,10 @@ class SecureMessageController extends Controller
 
     public function updateEmailNotifications(Request $request): RedirectResponse
     {
+        $email = \App\Models\AppSetting::valueFor('reply_to_email');
+        if ($request->boolean('enabled') && (blank($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL))) {
+            return back()->with('error', 'Set a valid reply-to email in Admin Settings before enabling secure-message email notifications.');
+        }
         \App\Models\AppSetting::putMany(['secure_message_admin_email_enabled' => $request->boolean('enabled') ? '1' : '0']);
         return back()->with('success', 'Administrator email notifications updated.');
     }
