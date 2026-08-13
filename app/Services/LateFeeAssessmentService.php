@@ -16,7 +16,7 @@ class LateFeeAssessmentService {
  public function assess(Invoice $invoice,int $stage,Carbon $date):bool{
   $itemType=$stage===1?InvoiceItemType::LateFeeStageOne:InvoiceItemType::LateFeeStageTwo;
   if($invoice->allItems->contains('item_type',$itemType))return false;
-  $terms=$invoice->billingTerms??$this->historicalTerms($invoice)??$invoice->paymentPlan->currentBillingTerms;$prefix='stage_'.$stage;if(!$terms||!$terms->{$prefix.'_enabled'})return false;
+  $terms=$invoice->billingTerms??$this->historicalTerms($invoice)??$invoice->paymentPlan->currentBillingTerms;$prefix=$stage===1?'stage_one':'stage_two';if(!$terms||!$terms->{$prefix.'_enabled'})return false;
   $assessmentDate=$invoice->due_date->copy()->addDays((int)$terms->{$prefix.'_days_late'});if($date->lt($assessmentDate))return false;
   $unpaid=$this->unpaidScheduledPayment($invoice);if($unpaid<=0)return false;
   $type=$terms->{$prefix.'_fee_type'};$amount=$type===LateFeeType::Fixed?(int)$terms->{$prefix.'_fixed_amount'}:max($this->percentage($unpaid,(string)$terms->{$prefix.'_percentage_rate'}),(int)$terms->{$prefix.'_minimum_amount'});if($amount<=0)return false;
