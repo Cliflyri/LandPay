@@ -35,7 +35,7 @@
         </div>
     @endif
 
-    @unless($portal)
+    @if(!$portal && $isAdminMessage)
         <small class="secure-message-tracking">Client viewed: {{$message->client_viewed_at?->format('M j, Y g:i A') ?? 'Not yet'}}@if($message->attachment_path) &middot; Downloaded: {{$message->attachment_downloaded_at?->format('M j, Y g:i A') ?? 'Not yet'}}@endif</small>
-    @endunless
+    @endif
 </article>

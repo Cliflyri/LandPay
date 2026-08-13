@@ -97,3 +97,5 @@ DONE - Reused the latest-two secure-message collapse in both portals, moved its 
 DONE - Changed generic administrator secure-message notification emails to link directly to the relevant authenticated conversation.
 
 DONE - Made the payment-plans list portal action match the dashboard and client list by disabling it when the primary client portal account is not active.
+
+DONE - Removed misleading client-viewed tracking from client-authored secure messages while retaining it for administrator-authored messages.
