@@ -6,6 +6,7 @@ use App\Enums\FinancialActorType;
 use App\Enums\FinancialEffectComponent;
 use App\Enums\FinancialEffectType;
 use App\Enums\FinancialTransactionType;
+use App\Enums\InvoiceItemType;
 use App\Financial\PostingEffect;
 use App\Models\FinancialTransaction;
 use App\Models\PaymentPlan;
@@ -17,6 +18,9 @@ use App\Services\FinancialPostingService;
 use App\Services\MonthlyInvoiceService;
 use App\Services\OpeningPrincipalCreditService;
 use App\Services\MonthlyServiceFeeHistoryService;
+use App\Services\LateFeeAssessmentService;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use LogicException;
@@ -204,6 +208,22 @@ class FinancialPostingServiceTest extends TestCase
 
         $this->expectException(LogicException::class);
         $invoice->items->first()->delete();
+    }
+
+    public function test_late_fee_is_added_after_grace_and_is_not_restored_after_admin_removal(): void
+    {
+        [$user, $plan, $terms] = $this->activeOpenedPlan();
+        $terms->update(['grace_days' => 3, 'stage_one_days_late' => 4]);
+        $invoice = app(MonthlyInvoiceService::class)->issue($plan, $terms, $user, 'INV-LATE', '2026-08-01', '2026-08-31', '2026-08-03');
+        $service = app(LateFeeAssessmentService::class);
+
+        $this->assertFalse($service->assess($invoice, 1, Carbon::parse('2026-08-11')));
+        $this->assertTrue($service->assess($invoice, 1, Carbon::parse('2026-08-12')));
+        $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'item_type' => 'late_fee_stage_1', 'description' => 'Late Fee added 8/12/26', 'amount' => 2_500]);
+
+        $fee = $invoice->fresh('allItems')->allItems->firstWhere('item_type', InvoiceItemType::LateFeeStageOne);
+        DB::table('invoice_items')->where('id', $fee->id)->update(['retired_at' => now(), 'late_fee_stage' => null]);
+        $this->assertFalse($service->assess($invoice->fresh('allItems'), 1, Carbon::parse('2026-08-13')));
     }
 
     private function activeOpenedPlan(): array

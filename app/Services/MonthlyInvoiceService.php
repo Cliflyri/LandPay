@@ -99,6 +99,7 @@ class MonthlyInvoiceService
 
             $invoice = Invoice::query()->create([
                 'payment_plan_id' => $lockedPlan->id,
+                'payment_plan_billing_term_id' => $lockedTerms->id,
                 'invoice_number' => $invoiceNumber,
                 'period_start' => $periodStart,
                 'period_end' => $periodEnd,

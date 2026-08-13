@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\InvoiceItemType;
 use App\Models\AppSetting;
 use App\Models\Client;
 use App\Models\EmailTemplate;
@@ -11,10 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class EmailTemplateService
 {
-    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'payment_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
+    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'late_fee_notice', 'payment_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
 
     public const TEMPLATE_VARIABLES = [
-        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
+        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'late_fee_notice', 'company_name', 'company_email', 'company_phone'],
         'invoice-email' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
         'payment-receipt' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
         'payment-reversal' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
@@ -58,6 +59,10 @@ class EmailTemplateService
     {
         foreach ($this->defaults() as $slug => $default) {
             EmailTemplate::query()->firstOrCreate(['slug' => $slug], $default + ['active' => true]);
+        }
+        $reminder = EmailTemplate::query()->where('slug', 'payment-reminder')->first();
+        if ($reminder && ! str_contains($reminder->body_html, '{{ late_fee_notice }}')) {
+            $reminder->update(['body_html' => $reminder->body_html.'<p>{{ late_fee_notice }}</p>']);
         }
 
         return EmailTemplate::query()->orderBy('name')->get();
@@ -110,6 +115,7 @@ class EmailTemplateService
             'plan_description' => $plan->title,
             'client_portal_url' => route('portal.dashboard'),
             'invoice_portal_url' => route('portal.invoices.show', $invoice),
+            'late_fee_notice' => $invoice->items()->whereIn('item_type', [InvoiceItemType::LateFeeStageOne->value, InvoiceItemType::LateFeeStageTwo->value])->exists() ? 'A late fee has been added to this invoice because the payment is delinquent. Please make payment as soon as possible.' : '',
             'company_name' => AppSetting::valueFor('company_name', config('app.name', 'LandPay')),
             'company_email' => AppSetting::valueFor('company_email', ''),
             'company_phone' => AppSetting::valueFor('company_phone', ''),

@@ -55,6 +55,7 @@ class ManualInvoiceService
 
             $invoice = Invoice::query()->create([
                 'payment_plan_id' => $lockedPlan->id,
+                'payment_plan_billing_term_id' => $terms->id,
                 'invoice_number' => $invoiceNumber,
                 'period_start' => null,
                 'period_end' => null,

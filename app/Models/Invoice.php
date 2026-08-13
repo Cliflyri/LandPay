@@ -32,6 +32,7 @@ class Invoice extends Model
     {
         return $this->belongsTo(PaymentPlan::class);
     }
+    public function billingTerms(): BelongsTo { return $this->belongsTo(PaymentPlanBillingTerm::class,'payment_plan_billing_term_id'); }
 
     public function items(): HasMany
     {

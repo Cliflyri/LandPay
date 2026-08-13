@@ -13,6 +13,7 @@ use App\Models\FinancialTransaction;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\PaymentPlan;
+use App\Models\PaymentPlanBillingTerm;
 use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
@@ -60,9 +61,11 @@ class FirstPaymentInvoiceService
             if ($due->lt($issue)) {
                 throw ValidationException::withMessages(['first_payment_due_date' => 'The first payment due date cannot be before the contract start date.']);
             }
+            $terms=PaymentPlanBillingTerm::query()->where('payment_plan_id',$lockedPlan->id)->whereDate('effective_from','<=',$issue)->where(fn($q)=>$q->whereNull('effective_to')->orWhereDate('effective_to','>=',$issue))->latest('effective_from')->first();
 
             $invoice = Invoice::query()->create([
                 'payment_plan_id' => $lockedPlan->id,
+                'payment_plan_billing_term_id' => $terms?->id,
                 'invoice_number' => $invoiceNumber,
                 'issue_date' => $issue,
                 'due_date' => $due,
