@@ -111,7 +111,7 @@ class FinancialPostingService
     /** @param array<int, PostingEffect> $effects */
     private function validateEffects(PaymentPlan $plan, FinancialTransactionType $type, int $grossAmount, ?Invoice $invoice, array $effects): void
     {
-        if ($effects === [] && ! ($type === FinancialTransactionType::RecurringFee && $grossAmount === 0)) {
+        if ($effects === [] && ! ($grossAmount === 0 && in_array($type, [FinancialTransactionType::RecurringFee, FinancialTransactionType::Adjustment], true))) {
             throw ValidationException::withMessages(['effects' => 'At least one financial effect is required.']);
         }
 

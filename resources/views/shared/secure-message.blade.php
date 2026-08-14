@@ -35,26 +35,29 @@
         </div>
     @endif
 
-    @if($message->shared_document_id)
-        @php($document=$message->sharedDocument)
-        @php($documentAvailable=$document && (!$portal || ($document->visible_to_client && !$document->archived_at)))
+    @foreach($message->attachments as $attachment)
+        @php($fileRoute=$portal ? route('portal.messages.files.download',[$thread,$message,$attachment]) : route('admin.messages.files.download',[$thread,$message,$attachment]))
+        @if(in_array($attachment->mime,['image/jpeg','image/png'],true))
+            <button class="secure-message-thumbnail" type="button" data-bs-toggle="modal" data-bs-target="#secureMessageImageModal" data-message-image="{{$fileRoute}}?inline=1" data-message-name="{{$attachment->name}}" aria-label="Preview {{$attachment->name}}"><img src="{{$fileRoute}}?inline=1" alt="{{$attachment->name}}" loading="lazy"></button>
+        @endif
+        <div class="secure-message-attachment">
+            <a class="btn btn-sm btn-outline-brand" href="{{$fileRoute}}">Download {{$attachment->name}}</a>
+            @unless($portal)<form method="post" action="{{route('admin.messages.files.destroy',[$thread,$message,$attachment])}}" onsubmit="return confirm('Permanently delete this attachment?')">@csrf @method('DELETE')<button class="btn btn-sm btn-light text-danger" type="submit">Delete</button></form>@endunless
+        </div>
+    @endforeach
+
+    @foreach($message->documents as $document)
+        @php($documentAvailable=!$portal || ($document->visible_to_client && !$document->archived_at))
         <div class="secure-message-attachment">
             @if($documentAvailable)
-                <div>
-                    <strong>{{$document->name}}</strong>
-                    <div class="small text-muted">
-                        {{str($document->category)->replace('_',' ')->title()}}
-                        @if($document->payment_plan_id)
-                            &middot; Shared document
-                        @endif
-                    </div>
-                </div>
-                <a class="btn btn-sm btn-outline-brand" href="{{$portal ? route('portal.documents.download',$document) : route('admin.documents.download',$document)}}">View document</a>
+                <div><strong>{{$document->name}}</strong><div class="small text-muted">{{str($document->category)->replace('_',' ')->title()}} &middot; Shared document</div></div>
+                @php($canPreview=in_array($document->mime,['application/pdf','image/jpeg','image/png'],true))
+                <a class="btn btn-sm btn-outline-brand" href="{{$portal ? ($canPreview ? route('portal.documents.preview',$document) : route('portal.documents.download',$document)) : ($canPreview ? route('admin.documents.preview',$document) : route('admin.documents.download',$document))}}">{{$canPreview?'View document':'Download'}}</a>
             @else
                 <span class="text-muted">This document is no longer available.</span>
             @endif
         </div>
-    @endif
+    @endforeach
 
     @if(!$portal && $isAdminMessage)
         <small class="secure-message-tracking">

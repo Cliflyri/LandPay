@@ -76,9 +76,11 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('messages/{thread}', [PortalSecureMessageController::class, 'show'])->name('messages.show');
     Route::post('messages/{thread}/reply', [PortalSecureMessageController::class, 'reply'])->middleware('throttle:10,1')->name('messages.reply');
     Route::get('messages/{thread}/attachments/{message}', [PortalSecureMessageController::class, 'download'])->name('messages.download');
+    Route::get('messages/{thread}/files/{message}/{attachment}', [PortalSecureMessageController::class, 'downloadFile'])->name('messages.files.download');
     Route::get('documents', [PortalSharedDocumentController::class, 'index'])->name('documents.index');
     Route::post('documents', [PortalSharedDocumentController::class, 'store'])->middleware('throttle:5,1')->name('documents.store');
     Route::get('documents/{document}', [PortalSharedDocumentController::class, 'download'])->name('documents.download');
+    Route::get('documents/{document}/preview', [PortalSharedDocumentController::class, 'preview'])->name('documents.preview');
 });
 
 
@@ -114,6 +116,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::post('messages/{thread}/star', [AdminSecureMessageController::class, 'star'])->name('messages.star');
     Route::post('messages/{thread}/remind', [AdminSecureMessageController::class, 'remind'])->name('messages.remind');
     Route::get('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'download'])->name('messages.download');
+    Route::get('messages/{thread}/files/{message}/{attachment}', [AdminSecureMessageController::class, 'downloadFile'])->name('messages.files.download');
+    Route::delete('messages/{thread}/files/{message}/{attachment}', [AdminSecureMessageController::class, 'destroyFile'])->name('messages.files.destroy');
     Route::delete('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'destroyAttachment'])->name('messages.attachments.destroy');
     Route::delete('messages/{thread}', [AdminSecureMessageController::class, 'destroy'])->name('messages.destroy');
     Route::get('documents', [AdminSharedDocumentController::class, 'index'])->name('documents.index');

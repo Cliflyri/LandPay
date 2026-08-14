@@ -193,13 +193,13 @@ $primaryClientName = $primaryClient?->organization_name
             'items.*.id' => ['nullable', 'integer'],
             'items.*.type' => ['required', 'in:scheduled_purchase_payment,documentation_fee,monthly_service_fee,late_fee_stage_1,late_fee_stage_2,administrative_fee,other'],
             'items.*.description' => ['required', 'string', 'max:500'],
-            'items.*.amount' => ['required', 'decimal:0,2', 'gt:0'],
+            'items.*.amount' => ['required', 'decimal:0,2'],
         ]);
         $items = collect($data['items'])->map(fn (array $item): array => [
             'id' => isset($item['id']) ? (int) $item['id'] : null,
             'type' => $item['type'],
             'description' => trim($item['description']),
-            'amount' => Money::toCents($item['amount']),
+            'amount' => Money::toSignedCents($item['amount']),
         ])->values()->all();
 
         $this->invoiceEdits->update(

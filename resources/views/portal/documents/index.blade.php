@@ -12,7 +12,7 @@
 <div class="list-group list-group-flush mt-3">
 @forelse($documents as $document)
 <div class="list-group-item px-0 py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-<div><strong>{{$document->name}}</strong><div class="small text-muted">{{str($document->category)->replace('_',' ')->title()}} @if($document->paymentPlan) &middot; Plan {{$document->paymentPlan->plan_number}} @endif &middot; {{$document->created_at->format('M j, Y')}} &middot; {{$document->uploaded_by_client_id ? 'Uploaded by you' : 'Shared by LandPay'}}</div></div>
+<div>@if(in_array($document->mime,['application/pdf','image/jpeg','image/png'],true))<button class="btn btn-link p-0 align-baseline fw-bold" type="button" data-document-preview="{{route('portal.documents.preview',$document)}}" data-document-download="{{route('portal.documents.download',$document)}}" data-document-name="{{$document->name}}">{{$document->name}}</button>@else<strong>{{$document->name}}</strong>@endif<div class="small text-muted">{{str($document->category)->replace('_',' ')->title()}} @if($document->paymentPlan) &middot; Plan {{$document->paymentPlan->plan_number}} @endif &middot; {{$document->created_at->format('M j, Y')}} &middot; {{$document->uploaded_by_client_id ? 'Uploaded by you' : 'Shared by LandPay'}}</div></div>
 <a class="btn btn-sm btn-outline-brand" href="{{route('portal.documents.download',$document)}}">Download</a>
 </div>
 @empty
@@ -20,4 +20,6 @@
 @endforelse
 </div></div>{{$documents->links()}}
 </div></section>
+<div class="modal fade" id="clientDocumentPreviewModal" tabindex="-1" aria-labelledby="clientDocumentPreviewTitle" aria-hidden="true"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5 text-start" id="clientDocumentPreviewTitle">Document preview</h2><button class="btn-close ms-auto" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body p-0"><iframe id="clientDocumentPreviewFrame" title="Document preview" style="width:100%;height:75vh;border:0"></iframe></div><div class="modal-footer justify-content-end"><a class="btn btn-outline-brand" id="clientDocumentPreviewDownload" href="#">Download</a></div></div></div></div>
 @endsection
+@push('scripts')<script>(()=>{const element=document.getElementById('clientDocumentPreviewModal'),frame=document.getElementById('clientDocumentPreviewFrame'),title=document.getElementById('clientDocumentPreviewTitle'),download=document.getElementById('clientDocumentPreviewDownload'),modal=new bootstrap.Modal(element);document.querySelectorAll('[data-document-preview]').forEach(button=>button.addEventListener('click',()=>{title.textContent=button.dataset.documentName;frame.src=button.dataset.documentPreview;download.href=button.dataset.documentDownload;modal.show()}));element.addEventListener('hidden.bs.modal',()=>frame.src='about:blank')})()</script>@endpush

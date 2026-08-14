@@ -101,7 +101,7 @@
                                         'late_fee_stage_1'=>'Stage-one late fee',
                                         'late_fee_stage_2'=>'Stage-two late fee',
                                         'administrative_fee'=>'Fee',
-                                        'other'=>'Other charge'
+                                        'other'=>'Other / adjustment'
                                     ] as $value=>$label)
                                         <option value="{{$value}}"
                                             @selected($item['type']===$value)>
@@ -180,7 +180,7 @@
                     <option value="late_fee_stage_1">Stage-one late fee</option>
                     <option value="late_fee_stage_2">Stage-two late fee</option>
                     <option value="administrative_fee">Fee</option>
-                    <option value="other">Other charge</option>
+                    <option value="other">Other / adjustment</option>
                 </select>
             </div>
 

@@ -7,9 +7,11 @@ use App\Models\AdminNotice;
 use App\Models\Client;
 use App\Models\PaymentPlan;
 use App\Models\SecureMessage;
+use App\Models\SecureMessageAttachment;
 use App\Models\SecureMessageThread;
 use App\Models\SharedDocument;
 use App\Services\SecureMessageAttachmentService;
+use App\Services\SecureMessageFileService;
 use App\Services\SecureMessageNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +24,7 @@ use Throwable;
 
 class SecureMessageController extends Controller
 {
-    public function __construct(private readonly SecureMessageNotificationService $notifications, private readonly SecureMessageAttachmentService $attachments) {}
+    public function __construct(private readonly SecureMessageNotificationService $notifications, private readonly SecureMessageAttachmentService $attachments, private readonly SecureMessageFileService $files) {}
 
     public function index(Request $request): View
     {
@@ -67,11 +69,10 @@ class SecureMessageController extends Controller
     {
         $data = $this->validateMessage($request, true);
         $this->validatePlanReference((int) $data['client_id'], $data['payment_plan_id'] ?? null);
-        $this->validateDocumentReference((int) $data['client_id'], $data['shared_document_id'] ?? null);
-        $attachment = $this->attachments->store($request->file('attachment'), true);
+        $this->validateDocumentReferences((int) $data['client_id'], $data['shared_document_ids'] ?? []);
 
         try {
-            $thread = DB::transaction(function () use ($request, $data, $attachment): SecureMessageThread {
+            $thread = DB::transaction(function () use ($request, $data): SecureMessageThread {
                 $thread = SecureMessageThread::query()->create([
                     'client_id' => $data['client_id'],
                     'payment_plan_id' => $data['payment_plan_id'] ?? null,
@@ -79,16 +80,15 @@ class SecureMessageController extends Controller
                     'category' => $data['category'],
                     'latest_message_at' => now(),
                 ]);
-                $thread->messages()->create($attachment + [
+                $message=$thread->messages()->create([
                     'sender_type' => 'admin',
                     'sender_user_id' => $request->user()->id,
                     'body' => $data['body'],
-                    'shared_document_id' => $data['shared_document_id'] ?? null,
                 ]);
+                $this->files->attach($message,$request->file('attachments',[]),$data['save_in_documents']??[],$data['shared_document_ids']??[],['client_id'=>$thread->client_id,'payment_plan_id'=>$thread->payment_plan_id,'user_id'=>$request->user()->id,'category'=>$this->documentCategory($data['category'])]);
                 return $thread;
             });
         } catch (Throwable $exception) {
-            $this->attachments->delete($attachment);
             throw $exception;
         }
 
@@ -104,7 +104,7 @@ class SecureMessageController extends Controller
             'dismissed_at' => now(),
             'dismissed_by_user_id' => auth()->id(),
         ]);
-        $thread->load(['client', 'paymentPlan', 'messages.senderUser', 'messages.senderClient', 'messages.sharedDocument']);
+        $thread->load(['client', 'paymentPlan', 'messages.senderUser', 'messages.senderClient', 'messages.documents', 'messages.attachments']);
         $documents=SharedDocument::query()->where('client_id',$thread->client_id)->where('visible_to_client',true)->whereNull('archived_at')->latest()->get();
         return view('admin.messages.show', compact('thread','documents'));
     }
@@ -112,20 +112,18 @@ class SecureMessageController extends Controller
     public function reply(Request $request, SecureMessageThread $thread): RedirectResponse
     {
         $data = $this->validateMessage($request, false);
-        $this->validateDocumentReference($thread->client_id, $data['shared_document_id'] ?? null);
-        $attachment = $this->attachments->store($request->file('attachment'), true);
+        $this->validateDocumentReferences($thread->client_id, $data['shared_document_ids'] ?? []);
         try {
-            DB::transaction(function () use ($request, $thread, $data, $attachment): void {
-                $thread->messages()->create($attachment + [
+            DB::transaction(function () use ($request, $thread, $data): void {
+                $message=$thread->messages()->create([
                     'sender_type' => 'admin',
                     'sender_user_id' => $request->user()->id,
                     'body' => $data['body'],
-                    'shared_document_id' => $data['shared_document_id'] ?? null,
                 ]);
+                $this->files->attach($message,$request->file('attachments',[]),$data['save_in_documents']??[],$data['shared_document_ids']??[],['client_id'=>$thread->client_id,'payment_plan_id'=>$thread->payment_plan_id,'user_id'=>$request->user()->id,'category'=>$this->documentCategory($thread->category)]);
                 $thread->update(['latest_message_at' => now()]);
             });
         } catch (Throwable $exception) {
-            $this->attachments->delete($attachment);
             throw $exception;
         }
         $sent = $this->notifications->send($thread->load('client'));
@@ -168,6 +166,21 @@ class SecureMessageController extends Controller
         return $disk->download($message->attachment_path, $message->attachment_name);
     }
 
+    public function downloadFile(Request $request,SecureMessageThread $thread,SecureMessage $message,SecureMessageAttachment $attachment)
+    {
+        abort_unless($message->secure_message_thread_id===$thread->id&&$attachment->secure_message_id===$message->id,404);
+        $disk=Storage::disk($attachment->disk);abort_unless($disk->exists($attachment->path),404);
+        if($request->boolean('inline')&&in_array($attachment->mime,['image/jpeg','image/png'],true))return response()->file($disk->path($attachment->path),['Content-Type'=>$attachment->mime]);
+        return $disk->download($attachment->path,$attachment->name,['X-Content-Type-Options'=>'nosniff']);
+    }
+
+    public function destroyFile(SecureMessageThread $thread,SecureMessage $message,SecureMessageAttachment $attachment):RedirectResponse
+    {
+        abort_unless($message->secure_message_thread_id===$thread->id&&$attachment->secure_message_id===$message->id,404);
+        abort_if(!$this->files->deleteAttachmentFile($attachment),500,'The attachment could not be deleted.');
+        $attachment->delete();return back()->with('success','Attachment deleted.');
+    }
+
     public function destroyAttachment(SecureMessageThread $thread, SecureMessage $message): RedirectResponse
     {
         abort_unless($message->secure_message_thread_id === $thread->id && filled($message->attachment_path), 404);
@@ -188,6 +201,8 @@ class SecureMessageController extends Controller
 
     public function destroy(SecureMessageThread $thread): RedirectResponse
     {
+        $newAttachments=SecureMessageAttachment::query()->whereHas('message',fn($query)=>$query->where('secure_message_thread_id',$thread->id))->get();
+        foreach($newAttachments as $attachment)abort_if(!$this->files->deleteAttachmentFile($attachment),500,'An attachment could not be deleted.');
         $attachments = $thread->messages()->whereNotNull('attachment_path')
             ->get(['attachment_disk', 'attachment_path']);
 
@@ -208,8 +223,12 @@ class SecureMessageController extends Controller
     {
         $rules = [
             'body' => ['required', 'string', 'max:10000'],
-            'attachment' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'mimetypes:application/pdf,image/jpeg,image/png', 'max:10240'],
-            'shared_document_id' => ['nullable', 'integer', 'exists:shared_documents,id'],
+            'attachments' => ['nullable','array','max:5'],
+            'attachments.*' => ['file','mimes:pdf,jpg,jpeg,png,docx','mimetypes:application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document','max:10240'],
+            'save_in_documents' => ['nullable','array','max:5'],
+            'save_in_documents.*' => ['integer','between:0,4'],
+            'shared_document_ids' => ['nullable','array','max:5'],
+            'shared_document_ids.*' => ['integer','distinct','exists:shared_documents,id'],
         ];
         if ($new) $rules += [
             'client_id' => ['required', 'integer', 'exists:clients,id'],
@@ -226,11 +245,14 @@ class SecureMessageController extends Controller
         abort_unless(DB::table('payment_plan_clients')->where('client_id', $clientId)->where('payment_plan_id', $planId)->exists(), 422, 'The selected plan is not associated with this client.');
     }
 
-    private function validateDocumentReference(int $clientId, mixed $documentId): void
+    private function validateDocumentReferences(int $clientId, array $documentIds): void
     {
-        if (! $documentId) return;
-        abort_unless(SharedDocument::query()->whereKey($documentId)->where('client_id',$clientId)->where('visible_to_client',true)->whereNull('archived_at')->exists(),422,'The selected document is not available to this client.');
+        if (! $documentIds) return;
+        $count=SharedDocument::query()->whereKey($documentIds)->where('client_id',$clientId)->where('visible_to_client',true)->whereNull('archived_at')->count();
+        abort_unless($count===count(array_unique($documentIds)),422,'A selected document is not available to this client.');
     }
+
+    private function documentCategory(string $category):string{return match($category){'contract'=>'contract','closing_documents'=>'closing_document',default=>'general'};}
 
 
 }

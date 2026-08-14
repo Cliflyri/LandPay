@@ -69,21 +69,7 @@
                     required
                 >{{ old('body') }}</textarea>
 
-                <label class="form-label mt-3" for="attachment">
-                    Image (optional)
-                </label>
-
-                <input
-                    class="form-control"
-                    id="attachment"
-                    name="attachment"
-                    type="file"
-                    accept="image/jpeg,image/png,.jpg,.jpeg,.png"
-                >
-
-                <div class="form-text">
-                    JPG or PNG, up to 10 MB.
-                </div>
+                @include('shared.message-file-picker',['pickerId'=>'portal-reply-files','fixedClientId'=>$thread->client_id])
 
                 <button class="btn btn-brand mt-3">
                     Send reply

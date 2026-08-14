@@ -20,7 +20,7 @@
 @php($filteredClientLabel=$filteredClient ? (($filteredClient->organization_name ?: trim($filteredClient->first_name.' '.$filteredClient->last_name)).($filteredClient->email?' - '.$filteredClient->email:'')) : '')
 <form class="d-flex flex-wrap gap-2 mt-4 mb-3" method="get" id="document_filters"><input class="form-control" style="max-width:28rem" id="filter_client_search" list="client_options" autocomplete="off" placeholder="All clients - start typing to filter" value="{{$filteredClientLabel}}"><input type="hidden" id="filter_client_id" name="client" value="{{request('client')}}"><label class="form-check align-self-center"><input class="form-check-input" type="checkbox" name="archived" value="1" @checked(request()->boolean('archived'))> Include archived</label><button class="btn btn-outline-brand">Filter</button></form>
 <script>(()=>{const search=document.getElementById('filter_client_search'),client=document.getElementById('filter_client_id'),options=[...document.querySelectorAll('#client_options option')],labels=new Map(options.map(option=>[option.value,option.dataset.id]));function sync(){client.value=labels.get(search.value)||''}search.addEventListener('input',sync);document.getElementById('document_filters').addEventListener('submit',sync)})()</script>
-<div class="dashboard-table-card"><div class="table-responsive"><table class="table dashboard-table align-middle mb-0"><thead><tr><th class="dashboard-actions-menu">Actions</th><th>Client</th><th>Document</th><th>Plan</th><th>Category</th><th>Shared</th><th>Uploaded</th></tr></thead><tbody>
+<div class="dashboard-table-card"><div class="table-responsive"><table class="table dashboard-table align-middle mb-0"><thead><tr><th class="dashboard-actions-menu">Actions</th><th>Client</th><th>Document</th><th>Plan</th><th>Category</th><th>Shared</th><th>Client activity</th><th>Uploaded</th></tr></thead><tbody>
 @forelse($documents as $document)
 <tr>
 <td class="dashboard-actions-menu"><div class="dropdown"><button class="btn btn-sm btn-light dashboard-menu-button" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false" aria-label="Actions for {{$document->name}}"><span aria-hidden="true">&#8942;</span></button><ul class="dropdown-menu dropdown-menu-end">@if(in_array($document->mime,['application/pdf','image/jpeg','image/png'],true))<li><button class="dropdown-item" type="button" data-document-preview="{{route('admin.documents.preview',$document)}}" data-document-name="{{$document->name}}">Preview</button></li>@endif<li><a class="dropdown-item" href="{{route('admin.documents.download',$document)}}">Download</a></li><li><form method="post" action="{{route('admin.documents.visibility',$document)}}">@csrf<button class="dropdown-item">{{$document->visible_to_client ? 'Hide from client' : 'Share with client'}}</button></form></li><li><form method="post" action="{{route('admin.documents.archive',$document)}}">@csrf<button class="dropdown-item">{{$document->archived_at ? 'Restore' : 'Archive'}}</button></form></li><li><form method="post" action="{{route('admin.documents.destroy',$document)}}" onsubmit="return confirm('Permanently delete this document? This cannot be undone.')">@csrf @method('DELETE')<button class="dropdown-item text-danger">Delete permanently</button></form></li></ul></div></td>
@@ -39,10 +39,11 @@
         </span>
     @endif
 </td>
+<td><div class="small"><strong>Viewed:</strong> {{$document->client_viewed_at?->format('M j, Y g:i A') ?? 'Not yet'}}</div><div class="small"><strong>Downloaded:</strong> {{$document->client_downloaded_at?->format('M j, Y g:i A') ?? 'Not yet'}}</div></td>
 <td>{{$document->created_at->format('M j, Y')}}<div class="small text-muted">{{$document->uploadedByClient ? 'Client' : 'Administrator'}}</div></td>
 </tr>
 @empty
-<tr><td colspan="7" class="dashboard-empty">No documents found.</td></tr>
+<tr><td colspan="8" class="dashboard-empty">No documents found.</td></tr>
 @endforelse
 </tbody></table></div></div><div class="dashboard-pagination">{{$documents->links()}}</div>
 </div></section>
