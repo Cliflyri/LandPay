@@ -25,6 +25,10 @@ class ClientPortalTest extends TestCase
         $this->actingAs($admin)->post(route('admin.clients.portal-invitations.store',$client))->assertSessionHas('success');
         $invitation=PortalInvitation::query()->sole();
         $this->assertTrue($invitation->expires_at->isAfter(now()->addHours(47)));
+        $this->assertNotNull($invitation->encrypted_token);
+        $this->actingAs($admin)->get(route('admin.clients.show',$client))
+            ->assertOk()
+            ->assertSee('Copy invitation link');
         $link=null;
         Mail::assertSent(PortalInvitationMail::class,function($mail)use(&$link){preg_match('/href="([^"]+)"/',$mail->renderedBody,$matches);$link=html_entity_decode($matches[1]??'');return $mail->hasTo('one@example.com')&&filled($link);});
         $token=basename(parse_url($link,PHP_URL_PATH));
