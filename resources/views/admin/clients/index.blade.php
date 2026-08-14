@@ -84,7 +84,7 @@
 <td class="money-cell">@if($plan){{\App\Support\Money::format($row['paid_in_value'])}}@else<span class="muted-value">&mdash;</span>@endif</td>
 <td>@if($client->email)<a class="dashboard-email" href="mailto:{{$client->email}}">{{$client->email}}</a>@else<span class="muted-value">Not provided</span>@endif</td>
 <td class="text-nowrap"><span class="muted-value">{{$client->portalAccount?->last_login_at?->format('M j, Y g:i A') ?? 'Never'}}</span></td>
-<td class="client-private-notes" @if($client->notes) title="{{$client->notes}}" @endif>{{$client->notes ? \Illuminate\Support\Str::limit($client->notes,80) : ''}}</td>
+<td class="client-private-notes" @if($client->notes) title="{{$client->notes}}" @endif>{{$client->notes ? \Illuminate\Support\Str::limit($client->notes,80) : '-'}}</td>
 </tr>
 @empty
 <tr><td colspan="8" class="dashboard-empty"><strong>No clients yet.</strong><span>Add a client to begin managing payment plans.</span></td></tr>

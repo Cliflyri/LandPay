@@ -67,4 +67,5 @@ class Client extends Model
     {
         return $this->hasMany(PortalInvitation::class);
     }
+    public function sharedDocuments(): HasMany { return $this->hasMany(SharedDocument::class); }
 }

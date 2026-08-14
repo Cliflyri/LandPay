@@ -35,6 +35,19 @@
         </div>
     @endif
 
+    @if($message->shared_document_id)
+        @php($document=$message->sharedDocument)
+        @php($documentAvailable=$document && (!$portal || ($document->visible_to_client && !$document->archived_at)))
+        <div class="secure-message-attachment">
+            @if($documentAvailable)
+                <div><strong>{{$document->name}}</strong><div class="small text-muted">{{str($document->category)->replace('_',' ')->title()}} @if($document->payment_plan_id)&middot; Shared document@endif</div></div>
+                <a class="btn btn-sm btn-outline-brand" href="{{$portal ? route('portal.documents.download',$document) : route('admin.documents.download',$document)}}">View document</a>
+            @else
+                <span class="text-muted">This document is no longer available.</span>
+            @endif
+        </div>
+    @endif
+
     @if(!$portal && $isAdminMessage)
         <small class="secure-message-tracking">Client viewed: {{$message->client_viewed_at?->format('M j, Y g:i A') ?? 'Not yet'}}@if($message->attachment_path) &middot; Downloaded: {{$message->attachment_downloaded_at?->format('M j, Y g:i A') ?? 'Not yet'}}@endif</small>
     @endif

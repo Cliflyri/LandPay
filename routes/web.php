@@ -27,6 +27,8 @@ use App\Http\Controllers\Admin\PaymentMethodSettingsController;
 use App\Http\Controllers\Admin\ClientPaymentIntentController;
 use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
 use App\Http\Controllers\Portal\SecureMessageController as PortalSecureMessageController;
+use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
+use App\Http\Controllers\Portal\SharedDocumentController as PortalSharedDocumentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProviderWebhookController;
 
@@ -74,6 +76,9 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('messages/{thread}', [PortalSecureMessageController::class, 'show'])->name('messages.show');
     Route::post('messages/{thread}/reply', [PortalSecureMessageController::class, 'reply'])->middleware('throttle:10,1')->name('messages.reply');
     Route::get('messages/{thread}/attachments/{message}', [PortalSecureMessageController::class, 'download'])->name('messages.download');
+    Route::get('documents', [PortalSharedDocumentController::class, 'index'])->name('documents.index');
+    Route::post('documents', [PortalSharedDocumentController::class, 'store'])->middleware('throttle:5,1')->name('documents.store');
+    Route::get('documents/{document}', [PortalSharedDocumentController::class, 'download'])->name('documents.download');
 });
 
 
@@ -111,6 +116,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::get('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'download'])->name('messages.download');
     Route::delete('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'destroyAttachment'])->name('messages.attachments.destroy');
     Route::delete('messages/{thread}', [AdminSecureMessageController::class, 'destroy'])->name('messages.destroy');
+    Route::get('documents', [AdminSharedDocumentController::class, 'index'])->name('documents.index');
+    Route::post('documents', [AdminSharedDocumentController::class, 'store'])->name('documents.store');
+    Route::get('documents/{document}', [AdminSharedDocumentController::class, 'download'])->name('documents.download');
+    Route::post('documents/{document}/visibility', [AdminSharedDocumentController::class, 'visibility'])->name('documents.visibility');
+    Route::post('documents/{document}/archive', [AdminSharedDocumentController::class, 'archive'])->name('documents.archive');
+    Route::delete('documents/{document}', [AdminSharedDocumentController::class, 'destroy'])->name('documents.destroy');
     Route::post('plans/{plan}/invoices/preview', [InvoiceController::class, 'preview'])->name('plans.invoices.preview');
     Route::post('plans/{plan}/invoices', [InvoiceController::class, 'store'])->name('plans.invoices.store');
     Route::post('plans/{plan}/invoices/manual/preview', [InvoiceController::class, 'manualPreview'])->name('plans.invoices.manual.preview');

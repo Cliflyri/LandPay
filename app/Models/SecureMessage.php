@@ -26,4 +26,5 @@ class SecureMessage extends Model
     public function thread(): BelongsTo { return $this->belongsTo(SecureMessageThread::class, 'secure_message_thread_id'); }
     public function senderUser(): BelongsTo { return $this->belongsTo(User::class, 'sender_user_id'); }
     public function senderClient(): BelongsTo { return $this->belongsTo(Client::class, 'sender_client_id'); }
+    public function sharedDocument(): BelongsTo { return $this->belongsTo(SharedDocument::class); }
 }

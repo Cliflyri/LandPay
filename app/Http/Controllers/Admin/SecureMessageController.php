@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\PaymentPlan;
 use App\Models\SecureMessage;
 use App\Models\SecureMessageThread;
+use App\Models\SharedDocument;
 use App\Services\SecureMessageAttachmentService;
 use App\Services\SecureMessageNotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -58,6 +59,7 @@ class SecureMessageController extends Controller
             'plans' => PaymentPlan::query()->with('memberships')->orderBy('plan_number')->get(),
             'selectedClientId' => $request->integer('client') ?: null,
             'selectedPlanId' => $request->integer('plan') ?: null,
+            'documents' => SharedDocument::query()->where('visible_to_client', true)->whereNull('archived_at')->orderByDesc('created_at')->get(),
         ]);
     }
 
@@ -65,6 +67,7 @@ class SecureMessageController extends Controller
     {
         $data = $this->validateMessage($request, true);
         $this->validatePlanReference((int) $data['client_id'], $data['payment_plan_id'] ?? null);
+        $this->validateDocumentReference((int) $data['client_id'], $data['shared_document_id'] ?? null);
         $attachment = $this->attachments->store($request->file('attachment'), true);
 
         try {
@@ -80,6 +83,7 @@ class SecureMessageController extends Controller
                     'sender_type' => 'admin',
                     'sender_user_id' => $request->user()->id,
                     'body' => $data['body'],
+                    'shared_document_id' => $data['shared_document_id'] ?? null,
                 ]);
                 return $thread;
             });
@@ -100,13 +104,15 @@ class SecureMessageController extends Controller
             'dismissed_at' => now(),
             'dismissed_by_user_id' => auth()->id(),
         ]);
-        $thread->load(['client', 'paymentPlan', 'messages.senderUser', 'messages.senderClient']);
-        return view('admin.messages.show', compact('thread'));
+        $thread->load(['client', 'paymentPlan', 'messages.senderUser', 'messages.senderClient', 'messages.sharedDocument']);
+        $documents=SharedDocument::query()->where('client_id',$thread->client_id)->where('visible_to_client',true)->whereNull('archived_at')->latest()->get();
+        return view('admin.messages.show', compact('thread','documents'));
     }
 
     public function reply(Request $request, SecureMessageThread $thread): RedirectResponse
     {
         $data = $this->validateMessage($request, false);
+        $this->validateDocumentReference($thread->client_id, $data['shared_document_id'] ?? null);
         $attachment = $this->attachments->store($request->file('attachment'), true);
         try {
             DB::transaction(function () use ($request, $thread, $data, $attachment): void {
@@ -114,6 +120,7 @@ class SecureMessageController extends Controller
                     'sender_type' => 'admin',
                     'sender_user_id' => $request->user()->id,
                     'body' => $data['body'],
+                    'shared_document_id' => $data['shared_document_id'] ?? null,
                 ]);
                 $thread->update(['latest_message_at' => now()]);
             });
@@ -202,6 +209,7 @@ class SecureMessageController extends Controller
         $rules = [
             'body' => ['required', 'string', 'max:10000'],
             'attachment' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'mimetypes:application/pdf,image/jpeg,image/png', 'max:10240'],
+            'shared_document_id' => ['nullable', 'integer', 'exists:shared_documents,id'],
         ];
         if ($new) $rules += [
             'client_id' => ['required', 'integer', 'exists:clients,id'],
@@ -216,6 +224,12 @@ class SecureMessageController extends Controller
     {
         if (! $planId) return;
         abort_unless(DB::table('payment_plan_clients')->where('client_id', $clientId)->where('payment_plan_id', $planId)->exists(), 422, 'The selected plan is not associated with this client.');
+    }
+
+    private function validateDocumentReference(int $clientId, mixed $documentId): void
+    {
+        if (! $documentId) return;
+        abort_unless(SharedDocument::query()->whereKey($documentId)->where('client_id',$clientId)->where('visible_to_client',true)->whereNull('archived_at')->exists(),422,'The selected document is not available to this client.');
     }
 
 

@@ -27,7 +27,7 @@
             <span class="admin-notice-badge" data-admin-notice-badge>{{ $openAdminNoticeCount }} open</span>
         </a>
 
-    
+
     <a
         class="admin-sidebar-link {{ request()->routeIs('admin.messages.*') ? 'active' : '' }}"
         href="{{ route('admin.messages.index') }}"
@@ -55,7 +55,7 @@
         class="admin-sidebar-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}"
         href="{{ route('admin.clients.index') }}"
     >
-        <span aria-hidden="true">●</span>
+        <span class="sidebar-icon" aria-hidden="true">&#9823;</span>
         Clients
     </a>
 
@@ -67,10 +67,11 @@
     Payment plans
 </a>
 
+{{--
     <a
         class="admin-sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}"
         href="{{ route('admin.settings.index') }}"
-    >
+    
 <span aria-hidden="true">
     <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="7" height="7"></rect>
@@ -81,8 +82,20 @@
 </span>
         Settings
     </a>
+--}}
 
+            <a
+            class="admin-sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}"
+            href="{{ route('admin.settings.index') }}"
+        >
+            <span aria-hidden="true">⚙</span>
+            Settings
+        </a>
 
+    <a class="admin-sidebar-link admin-sidebar-divider {{ request()->routeIs('admin.documents.*') ? 'active' : '' }}" href="{{ route('admin.documents.index') }}">
+        <span aria-hidden="true">&#128196;</span>
+        Documents
+    </a>
 
 
 </nav>
@@ -105,13 +118,7 @@
     </div>
 
     <div class="admin-sidebar-footer-links">
-        <a
-            class="admin-sidebar-footer-link"
-            href="{{ route('admin.settings.index') }}"
-        >
-            <span aria-hidden="true">⚙</span>
-            Settings
-        </a>
+
 
         <form method="POST" action="{{ route('admin.logout') }}">
             @csrf
