@@ -119,6 +119,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::get('documents', [AdminSharedDocumentController::class, 'index'])->name('documents.index');
     Route::post('documents', [AdminSharedDocumentController::class, 'store'])->name('documents.store');
     Route::get('documents/{document}', [AdminSharedDocumentController::class, 'download'])->name('documents.download');
+    Route::get('documents/{document}/preview', [AdminSharedDocumentController::class, 'preview'])->name('documents.preview');
     Route::post('documents/{document}/visibility', [AdminSharedDocumentController::class, 'visibility'])->name('documents.visibility');
     Route::post('documents/{document}/archive', [AdminSharedDocumentController::class, 'archive'])->name('documents.archive');
     Route::delete('documents/{document}', [AdminSharedDocumentController::class, 'destroy'])->name('documents.destroy');
