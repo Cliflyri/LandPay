@@ -42,6 +42,7 @@ This plan tracks the accounting review and reconciliation work for LandPay. Upda
 - The ledger includes every post-opening transaction affecting payments, paid fees, principal, or customer credit.
 - Credit creation and later credit applications appear chronologically in a dedicated Credit change column.
 - Invoice issuance and fee-assessment-only activity are excluded; zero row values display as dashes.
+- Plans with imported prior payments show the deduction and opening ledger balance beneath the original contract amount.
 - The ledger footer repeats payment, fee, principal, credit, and ending contract-balance totals for quick reconciliation.
 
 ## Step 7 result

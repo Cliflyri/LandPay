@@ -61,7 +61,14 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 <div class="admin-next-card mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
         <div><h2 class="mb-1">Account ledger</h2><p class="text-muted mb-0">Payment reconciliation for plan # {{ $plan->plan_number }}.</p></div>
-        <div class="text-end"><span class="text-muted d-block">Original contract amount</span><strong>{{ \App\Support\Money::format($plan->original_purchase_balance) }}</strong></div>
+        <div class="text-end">
+            <span class="text-muted d-block">Original contract amount</span>
+            <strong>{{ \App\Support\Money::format($plan->original_purchase_balance) }}</strong>
+            @if($previousPaid > 0)
+                <span class="text-muted d-block small mt-1">Less previously paid in: ({{ \App\Support\Money::format($previousPaid) }})</span>
+                <span class="d-block small">Opening ledger balance: <strong>{{ \App\Support\Money::format($plan->original_purchase_balance - $previousPaid) }}</strong></span>
+            @endif
+        </div>
     </div>
     <div class="row g-3 mt-2">
         <div class="col-6 col-lg-2"><span class="text-muted d-block small">Payments received</span><strong>{{ \App\Support\Money::format($ledgerPayments) }}</strong></div>

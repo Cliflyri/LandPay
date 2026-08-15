@@ -150,6 +150,10 @@ class FinancialPostingServiceTest extends TestCase
         $this->assertSame(65_000, app(FinancialBalanceService::class)->contractBalance($plan));
         $service->amend($plan, $user, 20_000, '2026-08-03', 'Correct clerical error');
         $this->assertSame(85_000, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->actingAs($user)->get(route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']))
+            ->assertOk()
+            ->assertSeeText('Less previously paid in: ($200.00)')
+            ->assertSeeText('Opening ledger balance: $850.00');
 
         $this->expectException(ValidationException::class);
         $service->amend($plan, $user, 110_000, '2026-08-04', 'Invalid excess adjustment');
