@@ -73,19 +73,20 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
     </div>
     <div class="table-responsive mt-4">
         <table class="table table-sm table-striped align-middle mb-0">
-            <thead><tr><th>Date</th><th>Invoice</th><th class="text-end">Payment</th><th class="text-end">Fee</th><th class="text-end">Applied to principal</th><th class="text-end">Contract balance</th></tr></thead>
+            <thead><tr><th>Date / activity</th><th>Invoice</th><th class="text-end">Payment</th><th class="text-end">Fee</th><th class="text-end">Applied to principal</th><th class="text-end">Credit change</th><th class="text-end">Contract balance</th></tr></thead>
             <tbody>
             @forelse($ledgerRows as $row)
                 <tr class="{{ $row['reversal'] ? 'text-muted' : '' }}">
-                    <td class="text-nowrap"><a class="dashboard-plan-link" href="{{ route('admin.payments.show', $row['payment']) }}">{{ $row['date']->format('M j, Y') }}</a>@if($row['reversal']) <span class="badge text-bg-light">Reversal</span>@endif</td>
+                    <td class="text-nowrap">@if($row['payment'])<a class="dashboard-plan-link" href="{{ route('admin.payments.show', $row['payment']) }}">{{ $row['date']->format('M j, Y') }}</a>@else{{ $row['date']->format('M j, Y') }}@endif<span class="d-block text-muted small">{{ $row['description'] }}</span>@if($row['reversal'])<span class="badge text-bg-light">Reversal</span>@endif</td>
                     <td>@foreach($row['invoices'] as $invoice)<a class="dashboard-plan-link" href="{{ route('admin.invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a>{{ !$loop->last ? ', ' : '' }}@endforeach</td>
-                    <td class="money-cell">{{ \App\Support\Money::format($row['amount']) }}</td>
+                    <td class="money-cell">{{ $row['amount'] !== 0 ? \App\Support\Money::format($row['amount']) : '—' }}</td>
                     <td class="money-cell">{{ \App\Support\Money::format($row['fee']) }}</td>
                     <td class="money-cell">{{ \App\Support\Money::format($row['principal']) }}</td>
+                    <td class="money-cell">{{ ($row['credit'] > 0 ? '+' : ($row['credit'] < 0 ? '-' : '')).\App\Support\Money::format(abs($row['credit'])) }}</td>
                     <td class="money-cell"><strong>{{ \App\Support\Money::format($row['balance']) }}</strong></td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="dashboard-empty"><strong>No payments yet</strong><span>Payments will appear here when posted.</span></td></tr>
+                <tr><td colspan="7" class="dashboard-empty"><strong>No account activity yet</strong><span>Payments and balance-changing activity will appear here when posted.</span></td></tr>
             @endforelse
             </tbody>
             <tfoot class="table-group-divider">
@@ -94,6 +95,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
                     <th class="money-cell">{{ \App\Support\Money::format($ledgerPayments) }}</th>
                     <th class="money-cell">{{ \App\Support\Money::format($ledgerFees) }}</th>
                     <th class="money-cell">{{ \App\Support\Money::format($ledgerPrincipal) }}</th>
+                    <th class="money-cell">{{ ($ledgerCredit > 0 ? '+' : ($ledgerCredit < 0 ? '-' : '')).\App\Support\Money::format(abs($ledgerCredit)) }}</th>
                     <th class="money-cell">{{ \App\Support\Money::format($ledgerRows->last()['balance'] ?? $contractBalance) }}</th>
                 </tr>
             </tfoot>

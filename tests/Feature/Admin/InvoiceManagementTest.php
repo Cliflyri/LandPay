@@ -226,6 +226,14 @@ class InvoiceManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Account credit')
             ->assertSee('$40.00');
+        $this->get(route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']))
+            ->assertOk()
+            ->assertSee('Credit change')
+            ->assertSee('Early payment held for next invoice')
+            ->assertSee('Account credit applied to invoice')
+            ->assertSeeText('+$75.00')
+            ->assertSeeText('-$35.00')
+            ->assertSeeText('+$40.00');
     }
     public function test_dashboard_breaks_current_balance_into_linked_invoice_due_dates(): void
     {

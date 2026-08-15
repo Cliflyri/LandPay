@@ -232,35 +232,55 @@ public function index(Request $request): View
         $runningContractBalance = 0;
         $ledgerRows = collect();
         FinancialTransaction::query()
-            ->with(['effects', 'payment.allocations.invoiceItem', 'payment.allocations.invoice', 'reversalOf.payment.allocations.invoiceItem', 'reversalOf.payment.allocations.invoice'])
+            ->with(['invoice', 'effects', 'payment.allocations.invoiceItem', 'payment.allocations.invoice', 'reversalOf.payment.allocations.invoiceItem', 'reversalOf.payment.allocations.invoice'])
             ->where('payment_plan_id', $plan->id)
             ->orderBy('effective_date')->orderBy('id')->get()
             ->each(function (FinancialTransaction $transaction) use (&$runningContractBalance, $ledgerRows): void {
                 $purchaseDelta = (int) $transaction->effects
                     ->filter(fn ($effect) => $effect->effect_type->value === 'purchase_balance')
                     ->sum('amount_delta');
+                $creditDelta = (int) $transaction->effects
+                    ->filter(fn ($effect) => $effect->effect_type->value === 'client_credit')
+                    ->sum('amount_delta');
                 $runningContractBalance += $purchaseDelta;
-                if (! in_array($transaction->type->value, ['payment', 'reversal'], true)) return;
+
+                if (in_array($transaction->type->value, ['opening_purchase_balance', 'opening_principal_credit'], true)) return;
 
                 $payment = $transaction->payment ?? $transaction->reversalOf?->payment;
-                if (! $payment) return;
-
+                $allocations = $payment?->allocations ?? collect();
                 $sign = $transaction->type->value === 'reversal' ? -1 : 1;
-                $allocations = $payment->allocations;
-                $fee = (int) $allocations->filter(fn ($allocation) =>
-                    $allocation->allocation_type->value === 'service_fee'
-                    || ($allocation->invoiceItem && $allocation->invoiceItem->item_type->value !== 'scheduled_purchase_payment')
-                )->sum('amount');
+                $effectFee = -(int) $transaction->effects
+                    ->filter(fn ($effect) => $effect->effect_type->value === 'invoice_due'
+                        && $effect->component->value !== 'scheduled_purchase_payment')
+                    ->sum('amount_delta');
+                $directFee = $sign * (int) $allocations
+                    ->filter(fn ($allocation) => $allocation->allocation_type->value === 'service_fee')
+                    ->sum('amount');
+                $fee = $effectFee + $directFee;
+
+                if ($purchaseDelta === 0 && $creditDelta === 0 && $fee === 0
+                    && ! in_array($transaction->type->value, ['payment', 'reversal', 'refund', 'write_off', 'adjustment'], true)) return;
+
+                $invoices = collect([$transaction->invoice])
+                    ->merge($allocations->whereNotNull('invoice_id')->pluck('invoice'))
+                    ->filter()->unique('id')->values();
+                $amount = match ($transaction->type->value) {
+                    'payment' => (int) $transaction->gross_amount,
+                    'reversal' => -(int) ($payment?->gross_amount ?? $transaction->gross_amount),
+                    default => 0,
+                };
 
                 $ledgerRows->push([
                     'date' => $transaction->effective_date,
+                    'description' => $transaction->description,
                     'payment' => $payment,
-                    'invoices' => $allocations->whereNotNull('invoice_id')->pluck('invoice')->filter()->unique('id')->values(),
-                    'amount' => $sign * (int) $payment->gross_amount,
-                    'fee' => $sign * $fee,
+                    'invoices' => $invoices,
+                    'amount' => $amount,
+                    'fee' => $fee,
                     'principal' => -$purchaseDelta,
+                    'credit' => $creditDelta,
                     'balance' => $runningContractBalance,
-                    'reversal' => $sign < 0,
+                    'reversal' => $transaction->type->value === 'reversal',
                 ]);
             });
 
@@ -278,6 +298,7 @@ public function index(Request $request): View
             'ledgerPayments' => (int) $ledgerRows->sum('amount'),
             'ledgerFees' => (int) $ledgerRows->sum('fee'),
             'ledgerPrincipal' => (int) $ledgerRows->sum('principal'),
+            'ledgerCredit' => (int) $ledgerRows->sum('credit'),
         ]);
     }
 
