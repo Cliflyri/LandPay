@@ -191,6 +191,42 @@ class InvoiceManagementTest extends TestCase
         ]);
     }
 
+    public function test_manual_invoice_automatically_uses_available_account_credit(): void
+    {
+        [$user, $plan] = $this->activePlan();
+        app(\App\Services\FinancialPostingService::class)->post(
+            $plan,
+            \App\Enums\FinancialTransactionType::Payment,
+            7_500,
+            '2026-08-14',
+            \App\Enums\FinancialActorType::Administrator,
+            [new \App\Financial\PostingEffect(\App\Enums\FinancialEffectType::ClientCredit, 7_500, \App\Enums\FinancialEffectComponent::UnappliedCredit)],
+            actor: $user,
+            description: 'Early payment held for next invoice',
+        );
+
+        $this->actingAs($user)->post(route('admin.plans.invoices.manual.store', $plan), [
+            'issue_date' => '2026-08-15',
+            'items' => [
+                ['type' => 'principal', 'description' => 'Next plan payment', 'amount' => '35.00'],
+            ],
+        ])->assertRedirect();
+
+        $invoice = Invoice::query()->sole();
+        $this->assertSame(0, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+        $this->assertSame(4_000, app(FinancialBalanceService::class)->clientCredit($plan));
+        $this->assertSame('paid', $invoice->fresh()->status->value);
+        $this->assertDatabaseHas('financial_transactions', [
+            'invoice_id' => $invoice->id,
+            'type' => \App\Enums\FinancialTransactionType::CreditApplication->value,
+            'gross_amount' => 3_500,
+        ]);
+
+        $this->get(route('admin.plans.show', $plan))
+            ->assertOk()
+            ->assertSee('Account credit')
+            ->assertSee('$40.00');
+    }
     public function test_dashboard_breaks_current_balance_into_linked_invoice_due_dates(): void
     {
         [$user, $plan] = $this->activePlan();

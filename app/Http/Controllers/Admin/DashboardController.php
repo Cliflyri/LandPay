@@ -148,6 +148,7 @@ class DashboardController extends Controller
             'contract_balance' => $contractBalance,
             'current_payoff' => $this->payoffs->amount($plan),
             'current_balance_due' => $currentBalanceDue,
+            'client_credit' => max(0, $this->balances->clientCredit($plan)),
             'ready_to_close' => in_array($plan->status, ['active', 'paused'], true)
                 && $contractBalance <= 0
                 && $currentBalanceDue <= 0,

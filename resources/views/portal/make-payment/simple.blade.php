@@ -175,7 +175,7 @@ document.querySelectorAll('[data-send-payment]').forEach(b=>b.addEventListener('
  if(method.value==='card'){form.submit();return}
  b.disabled=true;const response=await fetch(form.action,{method:'POST',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf},body:new FormData(form)});
  if(response.redirected){window.location.assign(response.url);return}
- const contentType=response.headers.get('content-type')||'';if(!contentType.includes('application/json')){b.disabled=false;alert('Unable to notify the administrator (HTTP '+response.status+'). Please refresh the page and try again.');return}
+ const contentType=response.headers.get('content-type')||'';if(!contentType.includes('application/json')){b.disabled=false;alert(response.status===403?'This portal is open in administrator read-only mode. Payment notifications can only be submitted when the client is signed in with their own account.':'Unable to notify the administrator (HTTP '+response.status+'). Please refresh the page and try again.');return}
  const data=await response.json();b.disabled=false;
  if(!response.ok){alert(data.message||'Unable to notify the administrator.');return}
  panel.querySelector('[data-payment-drawer]').hidden=true;appendNotification(data);panel.querySelector('[name="client_note"]').value='';

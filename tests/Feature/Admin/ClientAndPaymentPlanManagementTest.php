@@ -126,6 +126,8 @@ class ClientAndPaymentPlanManagementTest extends TestCase
 
         $data = $this->validPlanData($primary) + ['co_client_ids' => [$coClient->id]];
         $this->actingAs($user)->post(route('admin.plans.store'), $data)->assertSessionHasNoErrors();
+        $plan = PaymentPlan::query()->sole();
+        app(\App\Services\FinancialPostingService::class)->post($plan, \App\Enums\FinancialTransactionType::Payment, 1_234, '2026-08-15', \App\Enums\FinancialActorType::Administrator, [new \App\Financial\PostingEffect(\App\Enums\FinancialEffectType::ClientCredit, 1_234, \App\Enums\FinancialEffectComponent::UnappliedCredit)], actor: $user, description: 'Dashboard credit fixture');
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
@@ -133,10 +135,11 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             ->assertSee('+1')
             ->assertSee('APN / Plan #')
             ->assertSee('Monthly')
-            ->assertSee('$500.00 /')
             ->assertSee('$525.00')
             ->assertSee('Contract balance')
-            ->assertSee('Current balance')
+            ->assertSee('Current Due')
+            ->assertSee('Credit available')
+            ->assertSee('$12.34')
             ->assertSee('$10,200.00')
             ->assertSee('$0.00')
             ->assertSee('Current')
@@ -162,7 +165,9 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->assertDatabaseCount('invoices', 0);
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Current balance')
+            ->assertSee('Current Due')
+            ->assertSee('Credit available')
+            ->assertSee('$12.34')
             ->assertSee('$500.00')
             ->assertSee('Due');
     }

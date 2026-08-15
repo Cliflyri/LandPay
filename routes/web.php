@@ -97,6 +97,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('plans/{plan}/pause', [PaymentPlanPauseController::class, 'pause'])->name('plans.pause');
     Route::post('plans/{plan}/resume', [PaymentPlanPauseController::class, 'resume'])->name('plans.resume');
+    Route::post('plans/{plan}/account-credit/apply', [PaymentPlanController::class, 'applyAccountCredit'])->name('plans.account-credit.apply');
     Route::get('plans/{plan}/payments/create', [PaymentController::class, 'create'])->name('plans.payments.create');
     Route::get('plans/{plan}/invoices/create', [InvoiceController::class, 'create'])->name('plans.invoices.create');
     Route::get('plans/{plan}/invoices/manual/create', [InvoiceController::class, 'manualCreate'])->name('plans.invoices.manual.create');

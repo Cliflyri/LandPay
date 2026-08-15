@@ -138,6 +138,23 @@
                                                         </button>
                                                     </form>
                                                 </li>
+
+                                                <li><hr class="dropdown-divider"></li>
+
+                                                <li>
+                                                    <form
+                                                        method="post"
+                                                        action="{{ route('admin.messages.destroy', $thread) }}"
+                                                        onsubmit="return confirm('Permanently delete this conversation and all attachments?') && confirm('Final confirmation: this cannot be undone. Delete permanently?');"
+                                                    >
+                                                        @csrf
+                                                        @method('DELETE')
+
+                                                        <button class="dropdown-item text-danger" type="submit">
+                                                            Delete conversation
+                                                        </button>
+                                                    </form>
+                                                </li>
                                             </ul>
                                         </div>
 

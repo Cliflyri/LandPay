@@ -21,17 +21,17 @@
 <div class="row g-4 mt-2">
     <div class="col-12">
         <article class="admin-summary-card">
-            <span>Account balance</span>
-
-            <strong class="{{ $accountBalance > 0 ? 'balance-due' : '' }}">
-                {{ \App\Support\Money::format($accountBalance) }}
-            </strong>
-
-            @if ($accountCredit > 0)
-                <small>
-                    Includes {{ \App\Support\Money::format($accountCredit) }} customer credit.
-                </small>
-            @endif
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <span>Amount due</span>
+                    <strong class="{{ $amountDue > 0 ? 'balance-due' : '' }}">{{ \App\Support\Money::format($amountDue) }}</strong>
+                </div>
+                <div class="col-sm-6 border-sm-start">
+                    <span>Account credit</span>
+                    <strong>{{ \App\Support\Money::format($accountCredit) }}</strong>
+                    <small>{{ $accountCredit > 0 ? 'Available to apply to invoices.' : 'No available credit.' }}</small>
+                </div>
+            </div>
 
             <span class="dashboard-status {{ $status['class'] }}">
                 {{ $status['label'] }}

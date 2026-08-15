@@ -51,10 +51,12 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
     </div>
 </div>
 
+@if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
 <div class="row g-4 mt-3">
-    <div class="col-md-4"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
-    <div class="col-md-4"><article class="admin-summary-card"><span>Paid-in value</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong></article></div>
-    <div class="col-md-4"><article class="admin-summary-card"><span>Monthly payment</span><strong>{{\App\Support\Money::format($plan->customary_monthly_payment)}}</strong></article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong><span class="d-block text-muted fs-6">{{ $clientCredit > 0 ? 'Available for open invoices' : 'No unapplied credit' }}</span>@if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Paid-in value</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong></article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Monthly payment</span><strong>{{\App\Support\Money::format($plan->customary_monthly_payment)}}</strong></article></div>
 </div>
 
 <div class="admin-next-card mt-4" id="pause-plan-controls">
@@ -100,6 +102,31 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         <dt class="col-sm-4 col-lg-3">Monthly service fee</dt><dd class="col-sm-8 col-lg-9">+ {{\App\Support\Money::format($plan->monthly_service_fee)}}</dd>
         <dt class="col-sm-4 col-lg-3">Total monthly payment</dt><dd class="col-sm-8 col-lg-9"><strong>{{\App\Support\Money::format($plan->customary_monthly_payment + $plan->monthly_service_fee)}}</strong></dd>
         <dt class="col-sm-4 col-lg-3">Invoice day</dt><dd class="col-sm-8 col-lg-9">Day {{ $plan->monthly_due_day }} of each month</dd>
+        @if($terms = $plan->currentBillingTerms)
+        @php
+            $issueDate = \Illuminate\Support\Carbon::create(2000, 1, $terms->invoice_day);
+            $dueDate = $issueDate->copy()->addDays($terms->due_days_after_issue);
+            $stageOneDate = $dueDate->copy()->addDays($terms->stage_one_days_late);
+            $dateLabel = function ($date) use ($issueDate) {
+                $months = (($date->year - $issueDate->year) * 12) + ($date->month - $issueDate->month);
+                return $date->format('jS').($months === 0 ? '' : ($months === 1 ? ' of the following month' : ' of the month '.$months.' months later'));
+            };
+            $feeLabel = fn ($type, $fixed, $rate, $minimum) => $type->value === 'fixed'
+                ? \App\Support\Money::format($fixed)
+                : rtrim(rtrim(number_format((float) $rate, 4), '0'), '.').'%'.($minimum > 0 ? ' (minimum '.\App\Support\Money::format($minimum).')' : '');
+        @endphp
+        <dt class="col-sm-4 col-lg-3">Billing schedule</dt>
+        <dd class="col-sm-8 col-lg-9">
+            Invoiced on the <strong>{{$dateLabel($issueDate)}}</strong>, must be paid by the <strong>{{$dateLabel($dueDate)}}</strong>.
+            After a <strong>{{$terms->grace_days}}-day grace period</strong>, a <strong>{{$feeLabel($terms->stage_one_fee_type,$terms->stage_one_fixed_amount,$terms->stage_one_percentage_rate,$terms->stage_one_minimum_amount)}}</strong> late fee may be assessed on the <strong>{{$dateLabel($stageOneDate)}}</strong> if unpaid.
+            @if($terms->stage_two_enabled)
+                @php
+                    $stageTwoDate = $dueDate->copy()->addDays($terms->stage_two_days_late);
+                @endphp
+                A second <strong>{{$feeLabel($terms->stage_two_fee_type,$terms->stage_two_fixed_amount,$terms->stage_two_percentage_rate,$terms->stage_two_minimum_amount)}}</strong> late fee may be assessed on the <strong>{{$dateLabel($stageTwoDate)}}</strong> if unpaid.
+            @endif
+        </dd>
+        @endif
         <dt class="col-sm-4 col-lg-3">Contract start</dt><dd class="col-sm-8 col-lg-9">{{ $plan->plan_start_date?->format('M j, Y') }}</dd>
         <dt class="col-sm-4 col-lg-3">Notes</dt><dd class="col-sm-8 col-lg-9">{{ $plan->notes ?: 'None' }}</dd>
         <dt class="col-sm-4 col-lg-3">Estimated payoff</dt><dd class="col-sm-8 col-lg-9"><strong>{{ $estimatedPayoff }}</strong><span class="d-block text-muted small">Based on the current principal balance and payment schedule.</span></dd>
