@@ -39,6 +39,7 @@ This plan tracks the accounting review and reconciliation work for LandPay. Upda
 - The compact statement emphasizes payment, fee, principal applied, and contract balance after each entry; payments without invoices leave the invoice cell blank.
 - Current payoff and unused credit appear only in the summary.
 - Invoice and payment references link to their existing admin detail pages, and reversals remain visible.
+- The ledger footer repeats payment, fee, principal, and ending contract-balance totals for quick reconciliation.
 
 ## Safety boundaries
 

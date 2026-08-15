@@ -76,6 +76,7 @@ class PaymentManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Account ledger')
             ->assertSee('Applied to principal')
+            ->assertSee('Totals / ending balance')
             ->assertSeeText('INV-TEST')
             ->assertSeeText('$525.00')
             ->assertSeeText('$25.00')

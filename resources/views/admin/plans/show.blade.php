@@ -88,6 +88,15 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
                 <tr><td colspan="6" class="dashboard-empty"><strong>No payments yet</strong><span>Payments will appear here when posted.</span></td></tr>
             @endforelse
             </tbody>
+            <tfoot class="table-group-divider">
+                <tr class="fw-bold">
+                    <th colspan="2">Totals / ending balance</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerPayments) }}</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerFees) }}</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerPrincipal) }}</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerRows->last()['balance'] ?? $contractBalance) }}</th>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </div>
