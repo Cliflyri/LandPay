@@ -9,7 +9,7 @@ This plan tracks the accounting review and reconciliation work for LandPay. Upda
 3 DONE - Audit and consolidate duplicated accounting routines.
 4 DONE - Build invariant-focused accounting tests, including late fees and credits.
 5 DONE - Add Credit available to the admin dashboard.
-6 - Build the plan Account ledger tab from the reconciled transaction model.
+6 DONE - Build the plan Account ledger tab from the reconciled transaction model.
 7 - Use that ledger to investigate and correct any remaining historical test records.
 
 ## Step 3 result
@@ -32,6 +32,13 @@ This plan tracks the accounting review and reconciliation work for LandPay. Upda
 - The admin dashboard now shows a dedicated `Credit available` column immediately after `Current Due`.
 - Positive plan credit is shown as money; zero credit is shown as a dash.
 - Focused result: 1 dashboard test passed with 20 assertions.
+
+## Step 6 result
+
+- Added a read-only Account ledger tab to each admin plan.
+- The compact statement emphasizes payment, fee, principal applied, and contract balance after each entry; payments without invoices leave the invoice cell blank.
+- Current payoff and unused credit appear only in the summary.
+- Invoice and payment references link to their existing admin detail pages, and reversals remain visible.
 
 ## Safety boundaries
 

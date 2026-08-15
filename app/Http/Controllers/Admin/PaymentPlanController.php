@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BillingDefault;
 use App\Models\AuditLog;
 use App\Models\Client;
+use App\Models\FinancialTransaction;
 use App\Models\Payment;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
@@ -228,6 +229,41 @@ public function index(Request $request): View
             ->newestFirst()
             ->get();
 
+        $runningContractBalance = 0;
+        $ledgerRows = collect();
+        FinancialTransaction::query()
+            ->with(['effects', 'payment.allocations.invoiceItem', 'payment.allocations.invoice', 'reversalOf.payment.allocations.invoiceItem', 'reversalOf.payment.allocations.invoice'])
+            ->where('payment_plan_id', $plan->id)
+            ->orderBy('effective_date')->orderBy('id')->get()
+            ->each(function (FinancialTransaction $transaction) use (&$runningContractBalance, $ledgerRows): void {
+                $purchaseDelta = (int) $transaction->effects
+                    ->filter(fn ($effect) => $effect->effect_type->value === 'purchase_balance')
+                    ->sum('amount_delta');
+                $runningContractBalance += $purchaseDelta;
+                if (! in_array($transaction->type->value, ['payment', 'reversal'], true)) return;
+
+                $payment = $transaction->payment ?? $transaction->reversalOf?->payment;
+                if (! $payment) return;
+
+                $sign = $transaction->type->value === 'reversal' ? -1 : 1;
+                $allocations = $payment->allocations;
+                $fee = (int) $allocations->filter(fn ($allocation) =>
+                    $allocation->allocation_type->value === 'service_fee'
+                    || ($allocation->invoiceItem && $allocation->invoiceItem->item_type->value !== 'scheduled_purchase_payment')
+                )->sum('amount');
+
+                $ledgerRows->push([
+                    'date' => $transaction->effective_date,
+                    'payment' => $payment,
+                    'invoices' => $allocations->whereNotNull('invoice_id')->pluck('invoice')->filter()->unique('id')->values(),
+                    'amount' => $sign * (int) $payment->gross_amount,
+                    'fee' => $sign * $fee,
+                    'principal' => -$purchaseDelta,
+                    'balance' => $runningContractBalance,
+                    'reversal' => $sign < 0,
+                ]);
+            });
+
         return view('admin.plans.show', [
             'plan' => $plan,
             'contractBalance' => $contractBalance,
@@ -238,6 +274,10 @@ public function index(Request $request): View
             'openInvoiceBalance' => $openInvoiceBalance,
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),
             'payments' => $payments,
+            'ledgerRows' => $ledgerRows,
+            'ledgerPayments' => (int) $ledgerRows->sum('amount'),
+            'ledgerFees' => (int) $ledgerRows->sum('fee'),
+            'ledgerPrincipal' => (int) $ledgerRows->sum('principal'),
         ]);
     }
 

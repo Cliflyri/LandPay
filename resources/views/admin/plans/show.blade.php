@@ -52,7 +52,46 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 </div>
 
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
-<div class="row g-4 mt-3">
+<ul class="nav nav-tabs mt-4">
+    <li class="nav-item"><a class="nav-link {{ request('tab') !== 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', $plan) }}">Plan overview</a></li>
+    <li class="nav-item"><a class="nav-link {{ request('tab') === 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']) }}">Account ledger</a></li>
+</ul>
+
+@if(request('tab') === 'ledger')
+<div class="admin-next-card mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div><h2 class="mb-1">Account ledger</h2><p class="text-muted mb-0">Payment reconciliation for plan # {{ $plan->plan_number }}.</p></div>
+        <div class="text-end"><span class="text-muted d-block">Original contract amount</span><strong>{{ \App\Support\Money::format($plan->original_purchase_balance) }}</strong></div>
+    </div>
+    <div class="row g-3 mt-2">
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Payments received</span><strong>{{ \App\Support\Money::format($ledgerPayments) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Fees paid</span><strong>{{ \App\Support\Money::format($ledgerFees) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Principal applied</span><strong>{{ \App\Support\Money::format($ledgerPrincipal) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Contract balance</span><strong>{{ \App\Support\Money::format($contractBalance) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Current payoff</span><strong>{{ \App\Support\Money::format($currentPayoff) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Unused credit</span><strong>{{ \App\Support\Money::format($clientCredit) }}</strong></div>
+    </div>
+    <div class="table-responsive mt-4">
+        <table class="table table-sm table-striped align-middle mb-0">
+            <thead><tr><th>Date</th><th>Invoice</th><th class="text-end">Payment</th><th class="text-end">Fee</th><th class="text-end">Applied to principal</th><th class="text-end">Contract balance</th></tr></thead>
+            <tbody>
+            @forelse($ledgerRows as $row)
+                <tr class="{{ $row['reversal'] ? 'text-muted' : '' }}">
+                    <td class="text-nowrap"><a class="dashboard-plan-link" href="{{ route('admin.payments.show', $row['payment']) }}">{{ $row['date']->format('M j, Y') }}</a>@if($row['reversal']) <span class="badge text-bg-light">Reversal</span>@endif</td>
+                    <td>@foreach($row['invoices'] as $invoice)<a class="dashboard-plan-link" href="{{ route('admin.invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a>{{ !$loop->last ? ', ' : '' }}@endforeach</td>
+                    <td class="money-cell">{{ \App\Support\Money::format($row['amount']) }}</td>
+                    <td class="money-cell">{{ \App\Support\Money::format($row['fee']) }}</td>
+                    <td class="money-cell">{{ \App\Support\Money::format($row['principal']) }}</td>
+                    <td class="money-cell"><strong>{{ \App\Support\Money::format($row['balance']) }}</strong></td>
+                </tr>
+            @empty
+                <tr><td colspan="6" class="dashboard-empty"><strong>No payments yet</strong><span>Payments will appear here when posted.</span></td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+@else<div class="row g-4 mt-3">
     <div class="col-md-3"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong><span class="d-block text-muted fs-6">{{ $clientCredit > 0 ? 'Available for open invoices' : 'No unapplied credit' }}</span>@if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Paid-in value</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong></article></div>
@@ -232,5 +271,6 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
     </div>
 
 </div>
+@endif
 </div></section>
 @endsection

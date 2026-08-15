@@ -72,6 +72,15 @@ class PaymentManagementTest extends TestCase
             ->assertSee('Purpose')
             ->assertSeeText('Invoice INV-TEST payment')
             ->assertSee(route('admin.invoices.show', $invoice), false);
+        $this->get(route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']))
+            ->assertOk()
+            ->assertSee('Account ledger')
+            ->assertSee('Applied to principal')
+            ->assertSeeText('INV-TEST')
+            ->assertSeeText('$525.00')
+            ->assertSeeText('$25.00')
+            ->assertSeeText('$500.00')
+            ->assertSeeText('$20,000.00');
         $this->get(route('admin.payments.show', $payment))->assertOk()->assertSee('CHK-100');
         $this->get(route('admin.invoices.show', $invoice))->assertOk()
             ->assertSee('Invoice summary')
