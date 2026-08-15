@@ -10,7 +10,7 @@ This plan tracks the accounting review and reconciliation work for LandPay. Upda
 4 DONE - Build invariant-focused accounting tests, including late fees and credits.
 5 DONE - Add Credit available to the admin dashboard.
 6 DONE - Build the plan Account ledger tab from the reconciled transaction model.
-7 - Use that ledger to investigate and correct any remaining historical test records.
+7 DONE - Use that ledger to investigate and correct any remaining historical test records.
 
 ## Step 3 result
 
@@ -43,6 +43,12 @@ This plan tracks the accounting review and reconciliation work for LandPay. Upda
 - Credit creation and later credit applications appear chronologically in a dedicated Credit change column.
 - Invoice issuance and fee-assessment-only activity are excluded; zero row values display as dashes.
 - The ledger footer repeats payment, fee, principal, credit, and ending contract-balance totals for quick reconciliation.
+
+## Step 7 result
+
+- Audited all 8 NAS test plans, covering 26 invoices, 12 payments, and 1 credit application.
+- No negative balances, payment-allocation mismatches, credit-application mismatches, or invoice status/balance inconsistencies were found; no historical test data required correction.
+- Added the missing positive refund scenario: a refund reduces available customer credit only and leaves contract principal unchanged.
 
 ## Safety boundaries
 

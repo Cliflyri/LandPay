@@ -169,6 +169,41 @@ class FinancialPostingServiceTest extends TestCase
         }
     }
 
+    public function test_refund_reduces_only_available_client_credit(): void
+    {
+        [$user, $plan] = $this->draftPlan();
+        $service = app(FinancialPostingService::class);
+        $service->post(
+            $plan,
+            FinancialTransactionType::Payment,
+            7_500,
+            '2026-07-25',
+            FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, 7_500, FinancialEffectComponent::UnappliedCredit)],
+            actor: $user,
+            description: 'Payment held as credit',
+        );
+
+        $service->post(
+            $plan,
+            FinancialTransactionType::Refund,
+            2_500,
+            '2026-07-26',
+            FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, -2_500, FinancialEffectComponent::Refund)],
+            actor: $user,
+            reason: 'Partial credit refund',
+        );
+
+        $this->assertSame(5_000, app(FinancialBalanceService::class)->clientCredit($plan));
+        $this->assertSame(0, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertDatabaseHas('financial_transactions', [
+            'type' => FinancialTransactionType::Refund->value,
+            'gross_amount' => 2_500,
+            'reason' => 'Partial credit refund',
+        ]);
+    }
+
     public function test_balance_floor_failure_rolls_back_transaction_header(): void
     {
         [$user, $plan] = $this->draftPlan();
