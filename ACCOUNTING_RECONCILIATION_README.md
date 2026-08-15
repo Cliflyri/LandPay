@@ -41,6 +41,7 @@ This plan tracks the accounting review and reconciliation work for LandPay. Upda
 - Invoice and payment references link to their existing admin detail pages, and reversals remain visible.
 - The ledger includes every post-opening transaction affecting payments, paid fees, principal, or customer credit.
 - Credit creation and later credit applications appear chronologically in a dedicated Credit change column.
+- Invoice issuance and fee-assessment-only activity are excluded; zero row values display as dashes.
 - The ledger footer repeats payment, fee, principal, credit, and ending contract-balance totals for quick reconciliation.
 
 ## Safety boundaries

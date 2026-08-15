@@ -249,17 +249,19 @@ public function index(Request $request): View
                 $payment = $transaction->payment ?? $transaction->reversalOf?->payment;
                 $allocations = $payment?->allocations ?? collect();
                 $sign = $transaction->type->value === 'reversal' ? -1 : 1;
-                $effectFee = -(int) $transaction->effects
-                    ->filter(fn ($effect) => $effect->effect_type->value === 'invoice_due'
-                        && $effect->component->value !== 'scheduled_purchase_payment')
-                    ->sum('amount_delta');
+                $effectFee = in_array($transaction->type->value, ['payment', 'credit_application', 'reversal', 'refund'], true)
+                    ? -(int) $transaction->effects
+                        ->filter(fn ($effect) => $effect->effect_type->value === 'invoice_due'
+                            && $effect->component->value !== 'scheduled_purchase_payment')
+                        ->sum('amount_delta')
+                    : 0;
                 $directFee = $sign * (int) $allocations
                     ->filter(fn ($allocation) => $allocation->allocation_type->value === 'service_fee')
                     ->sum('amount');
                 $fee = $effectFee + $directFee;
 
                 if ($purchaseDelta === 0 && $creditDelta === 0 && $fee === 0
-                    && ! in_array($transaction->type->value, ['payment', 'reversal', 'refund', 'write_off', 'adjustment'], true)) return;
+                    && ! in_array($transaction->type->value, ['payment', 'reversal', 'refund'], true)) return;
 
                 $invoices = collect([$transaction->invoice])
                     ->merge($allocations->whereNotNull('invoice_id')->pluck('invoice'))

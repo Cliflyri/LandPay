@@ -80,9 +80,9 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
                     <td class="text-nowrap">@if($row['payment'])<a class="dashboard-plan-link" href="{{ route('admin.payments.show', $row['payment']) }}">{{ $row['date']->format('M j, Y') }}</a>@else{{ $row['date']->format('M j, Y') }}@endif<span class="d-block text-muted small">{{ $row['description'] }}</span>@if($row['reversal'])<span class="badge text-bg-light">Reversal</span>@endif</td>
                     <td>@foreach($row['invoices'] as $invoice)<a class="dashboard-plan-link" href="{{ route('admin.invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a>{{ !$loop->last ? ', ' : '' }}@endforeach</td>
                     <td class="money-cell">{{ $row['amount'] !== 0 ? \App\Support\Money::format($row['amount']) : '—' }}</td>
-                    <td class="money-cell">{{ \App\Support\Money::format($row['fee']) }}</td>
-                    <td class="money-cell">{{ \App\Support\Money::format($row['principal']) }}</td>
-                    <td class="money-cell">{{ ($row['credit'] > 0 ? '+' : ($row['credit'] < 0 ? '-' : '')).\App\Support\Money::format(abs($row['credit'])) }}</td>
+                    <td class="money-cell">{{ $row['fee'] !== 0 ? \App\Support\Money::format($row['fee']) : '—' }}</td>
+                    <td class="money-cell">{{ $row['principal'] !== 0 ? \App\Support\Money::format($row['principal']) : '—' }}</td>
+                    <td class="money-cell">{{ $row['credit'] !== 0 ? ($row['credit'] > 0 ? '+' : '-').\App\Support\Money::format(abs($row['credit'])) : '—' }}</td>
                     <td class="money-cell"><strong>{{ \App\Support\Money::format($row['balance']) }}</strong></td>
                 </tr>
             @empty

@@ -74,6 +74,7 @@ class PaymentManagementTest extends TestCase
             ->assertSee(route('admin.invoices.show', $invoice), false);
         $this->get(route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']))
             ->assertOk()
+            ->assertViewHas('ledgerRows', fn ($rows) => $rows->count() === 1)
             ->assertSee('Account ledger')
             ->assertSee('Applied to principal')
             ->assertSee('Totals / ending balance')
