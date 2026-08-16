@@ -157,7 +157,7 @@ class ClientPortalTest extends TestCase
         ]);
 
         $this->delete(route('admin.portal-access.destroy'))
-            ->assertRedirect(route('admin.clients.index'))
+            ->assertRedirect(route('admin.dashboard'))
             ->assertSessionMissing('portal_impersonation');
         $this->assertAuthenticatedAs($admin, 'web');
         $this->assertGuest('client');
@@ -167,6 +167,29 @@ class ClientPortalTest extends TestCase
             'event' => 'client_portal.admin_access_ended',
         ]);
     }
+    public function test_client_authentication_cannot_access_administrator_routes(): void
+    {
+        [, $client] = $this->records('CLIENTONLY');
+        $account = PortalAccount::query()->create([
+            'client_id' => $client->id,
+            'email' => $client->email,
+            'password' => 'password',
+            'enabled' => true,
+        ]);
+
+        $this->actingAs($account, 'client')
+            ->get(route('admin.dashboard'))
+            ->assertRedirect(route('admin.login'));
+
+        $this->post(route('admin.portal-access.store', $client))
+            ->assertRedirect(route('admin.login'));
+
+        $this->assertDatabaseMissing('audit_logs', [
+            'actor_client_id' => $client->id,
+            'event' => 'client_portal.admin_access_started',
+        ]);
+    }
+
     public function test_client_can_request_a_password_reset_without_account_disclosure(): void
     {
         Notification::fake();

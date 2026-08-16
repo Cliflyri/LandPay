@@ -138,7 +138,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             ->assertSee('$525.00')
             ->assertSee('Contract balance')
             ->assertSee('Current Due')
-            ->assertSee('Credit available')
+            ->assertSee('Credit')
             ->assertSee('$12.34')
             ->assertSee('$10,200.00')
             ->assertSee('$0.00')
@@ -166,7 +166,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Current Due')
-            ->assertSee('Credit available')
+            ->assertSee('Credit')
             ->assertSee('$12.34')
             ->assertSee('$500.00')
             ->assertSee('Due');

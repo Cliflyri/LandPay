@@ -84,7 +84,7 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
 });
 
 
-Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): void {
+Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
     Route::post('clients/{client}/portal-access', [ClientPortalAccessController::class, 'store'])->name('portal-access.store');
