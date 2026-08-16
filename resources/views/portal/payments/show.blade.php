@@ -16,5 +16,5 @@
         &mdash;
     @endif
 </td>
-        <td class="money-cell">{{\App\Support\Money::format($allocation->amount)}}</td></tr>@endforeach</tbody></table></div><p class="text-end mb-0"><strong>Remaining contract balance: {{\App\Support\Money::format($contractBalance)}}</strong></p></div></div></section>
+        <td class="money-cell">{{\App\Support\Money::format($allocation->amount)}}</td></tr>@endforeach</tbody></table></div></div></div></section>
 @endsection

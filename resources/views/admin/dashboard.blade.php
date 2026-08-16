@@ -53,6 +53,7 @@
                         <th scope="col" class="text-center dashboard-monthly-column">Monthly</th>
                         <th scope="col" class="text-end">Contract balance</th>
                         <th scope="col">Current Due</th>
+                        <th scope="col" class="text-end">Credit</th>
                         <th scope="col">Last reminder</th>
                         <th scope="col">Next reminder</th>
                         <th scope="col">Next invoice</th>
@@ -319,6 +320,10 @@
                                     + {{ $hiddenCount }} more {{ $hiddenCount===1?'invoice':'invoices' }}
                                 </button>
                             @endif
+                        </td>
+
+                        <td class="money-cell text-end">
+                            {{ $row['client_credit'] > 0 ? \App\Support\Money::format($row['client_credit']) : '—' }}
                         </td>
 
                         <td>

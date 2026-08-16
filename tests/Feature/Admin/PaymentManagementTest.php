@@ -72,6 +72,17 @@ class PaymentManagementTest extends TestCase
             ->assertSee('Purpose')
             ->assertSeeText('Invoice INV-TEST payment')
             ->assertSee(route('admin.invoices.show', $invoice), false);
+        $this->get(route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']))
+            ->assertOk()
+            ->assertViewHas('ledgerRows', fn ($rows) => $rows->count() === 1)
+            ->assertSee('Account ledger')
+            ->assertSee('Applied to principal')
+            ->assertSee('Totals / ending balance')
+            ->assertSeeText('INV-TEST')
+            ->assertSeeText('$525.00')
+            ->assertSeeText('$25.00')
+            ->assertSeeText('$500.00')
+            ->assertSeeText('$20,000.00');
         $this->get(route('admin.payments.show', $payment))->assertOk()->assertSee('CHK-100');
         $this->get(route('admin.invoices.show', $invoice))->assertOk()
             ->assertSee('Invoice summary')
@@ -180,6 +191,12 @@ class PaymentManagementTest extends TestCase
         );
         app(\App\Services\InvoiceVoidService::class)->void($voided, $user, 'Reissue required');
         $this->assertSame('voided', $voided->fresh()->status->value);
+
+        $this->actingAs($user)->get(route('admin.plans.payments.create', $plan))
+            ->assertOk()
+            ->assertSeeText('Total outstanding')
+            ->assertSeeText('$1,200.00')
+            ->assertSeeText('Open invoices: $0.00 · Outstanding first payment: $1,200.00');
 
         $data = [
             'received_date' => '2026-08-10', 'amount' => '1200.00', 'payment_type' => 'regular',

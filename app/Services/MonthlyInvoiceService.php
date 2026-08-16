@@ -26,6 +26,7 @@ class MonthlyInvoiceService
     public function __construct(
         private readonly FinancialPostingService $posting,
         private readonly FinancialBalanceService $balances,
+        private readonly AccountCreditApplicationService $credits,
     ) {}
 
     public function uninvoicedPrincipal(PaymentPlan|int $plan): int
@@ -115,7 +116,7 @@ class MonthlyInvoiceService
             if ($standardFee > 0) {
                 $this->postMonthlyFee($lockedPlan, $invoice, $actor, $standardFee, $actualFee, $monthlyFeeWaiver, $waiverReason, $automated);
             }
-            $this->applyAvailableCredit($lockedPlan, $invoice, $actor, $automated);
+            $this->credits->applyToInvoice($lockedPlan, $invoice, $actor, $automated, "monthly-invoice:{$invoice->uuid}:account-credit");
 
             return $invoice->load('items', 'transactions.effects');
         }, 3);
@@ -212,42 +213,4 @@ class MonthlyInvoiceService
         );
     }
 
-    private function applyAvailableCredit(PaymentPlan $plan, Invoice $invoice, User $actor, bool $automated): void
-    {
-        $available = min($this->balances->clientCredit($plan), $this->balances->invoiceBalance($invoice));
-        if ($available <= 0) {
-            return;
-        }
-
-        $effects = [new PostingEffect(FinancialEffectType::ClientCredit, -$available, FinancialEffectComponent::UnappliedCredit, description: 'Account credit applied to invoice '.$invoice->invoice_number)];
-        $remaining = $available;
-        $items = $invoice->items()->orderByRaw("item_type = ? asc", [InvoiceItemType::ScheduledPurchasePayment->value])->orderBy('display_order')->get();
-        foreach ($items as $item) {
-            if ($remaining <= 0 || $item->amount <= 0) {
-                continue;
-            }
-            $applied = min($remaining, (int) $item->amount);
-            $component = FinancialEffectComponent::tryFrom($item->item_type->value) ?? FinancialEffectComponent::Other;
-            $effects[] = new PostingEffect(FinancialEffectType::InvoiceDue, -$applied, $component, invoiceId: $invoice->id, invoiceItemId: $item->id, description: 'Account credit applied');
-            if ($item->item_type === InvoiceItemType::ScheduledPurchasePayment) {
-                $effects[] = new PostingEffect(FinancialEffectType::PurchaseBalance, -$applied, FinancialEffectComponent::PurchasePricePrincipal, description: 'Account credit applied to principal');
-            }
-            $remaining -= $applied;
-        }
-
-        $this->posting->post(
-            $plan,
-            FinancialTransactionType::CreditApplication,
-            $available,
-            $invoice->issue_date,
-            $automated ? FinancialActorType::System : FinancialActorType::Administrator,
-            $effects,
-            actor: $automated ? null : $actor,
-            invoice: $invoice,
-            idempotencyKey: "monthly-invoice:{$invoice->uuid}:account-credit",
-            description: 'Account credit applied to invoice',
-        );
-
-        $invoice->update(['status' => $this->balances->invoiceBalance($invoice) <= 0 ? InvoiceStatus::Paid : InvoiceStatus::PartiallyPaid]);
-    }
 }

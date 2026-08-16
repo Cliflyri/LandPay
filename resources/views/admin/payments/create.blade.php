@@ -9,6 +9,12 @@
 </div>
 
 @if($errors->any())<div class="alert alert-danger mt-4" role="alert"><strong>Payment not ready.</strong><ul class="mb-0 mt-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+@if($uninvoicedFirstPaymentDue > 0)
+<div class="alert alert-warning mt-4 mb-0" role="status">
+    <div class="d-flex flex-wrap justify-content-between gap-2"><strong>Total outstanding</strong><strong>{{ \App\Support\Money::format($currentlyPayable) }}</strong></div>
+    <div class="small mt-1">Open invoices: {{ \App\Support\Money::format($invoiceBalance) }} <span aria-hidden="true">&middot;</span> Outstanding first payment: {{ \App\Support\Money::format($uninvoicedFirstPaymentDue) }}</div>
+</div>
+@endif
 
 <div class="row g-4 mt-2">
 <div class="col-lg-7">
@@ -59,8 +65,6 @@
 @endif
 </div>
 <div class="col-lg-5">
-    @if($uninvoicedFirstPaymentDue > 0)<div><dt>Uninvoiced first payment due</dt><dd>{{\App\Support\Money::format($uninvoicedFirstPaymentDue)}}</dd></div>
-    <div><dt>Currently payable</dt><dd><strong>{{\App\Support\Money::format($currentlyPayable)}}</strong></dd></div>@endif
 <div class="admin-next-card payment-preview-card">
 <h2>Contract summary</h2>
 <dl class="payment-preview-summary mb-4">

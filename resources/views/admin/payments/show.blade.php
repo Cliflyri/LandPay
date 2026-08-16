@@ -62,7 +62,7 @@
                         @foreach($payment->allocations as $allocation)
                             <tr>
                                 <td>{{ $allocation->invoiceItem?->description ?? str($allocation->allocation_type->value)->replace('_',' ')->title() }}</td>
-                                <td>{{ $allocation->invoice?->invoice_number ?? '' }}</td>
+                                <td>{{ $allocation->invoice?->invoice_number ?? '-' }}</td>
                                 <td class="money-cell">{{ \App\Support\Money::format($allocation->amount) }}</td>
                             </tr>
                         @endforeach
@@ -83,7 +83,7 @@
                                     <td>{{ str($delivery->template_slug)->replace('-',' ')->title() }}</td>
                                     <td>{{ $delivery->recipient_email }}</td>
                                     <td>{{ str($delivery->status)->title() }}</td>
-                                    <td>{{ $delivery->sent_at?->format('M j, Y g:i A') ?? '' }}</td>
+                                    <td>{{ $delivery->sent_at?->format('M j, Y g:i A') ?? '-' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

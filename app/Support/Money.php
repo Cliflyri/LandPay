@@ -10,5 +10,14 @@ final class Money
         [$whole, $decimal] = array_pad(explode('.', $normalized, 2), 2, '');
         return ((int) $whole * 100) + (int) str_pad($decimal, 2, '0');
     }
+    public static function toSignedCents(int|string $amount): int
+    {
+        $normalized = str_replace([',', '$', ' '], '', (string) $amount);
+        if (! preg_match('/^-?\d+(?:\.\d{1,2})?$/', $normalized)) { throw new InvalidArgumentException('Money must have no more than two decimal places.'); }
+        $negative = str_starts_with($normalized, '-');
+        [$whole, $decimal] = array_pad(explode('.', ltrim($normalized, '-'), 2), 2, '');
+        $cents = ((int) $whole * 100) + (int) str_pad($decimal, 2, '0');
+        return $negative ? -$cents : $cents;
+    }
     public static function format(int $cents): string { return '$'.number_format($cents / 100, 2); }
 }

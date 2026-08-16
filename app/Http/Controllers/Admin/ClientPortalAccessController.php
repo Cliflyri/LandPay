@@ -35,7 +35,7 @@ class ClientPortalAccessController extends Controller
         $startedAt = now();
         $audit = AuditLog::query()->create([
             'actor_type' => 'administrator',
-            'actor_user_id' => $request->user()->id,
+            'actor_user_id' => Auth::guard('web')->id(),
             'actor_client_id' => $client->id,
             'event' => 'client_portal.admin_access_started',
             'auditable_type' => Client::class,
@@ -77,7 +77,7 @@ class ClientPortalAccessController extends Controller
         if (is_array($access)) {
             AuditLog::query()->create([
                 'actor_type' => 'administrator',
-                'actor_user_id' => $request->user()->id,
+                'actor_user_id' => Auth::guard('web')->id(),
                 'actor_client_id' => $access['client_id'],
                 'event' => 'client_portal.admin_access_ended',
                 'auditable_type' => Client::class,

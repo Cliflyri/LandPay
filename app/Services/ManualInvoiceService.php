@@ -26,6 +26,7 @@ class ManualInvoiceService
     public function __construct(
         private readonly FinancialPostingService $posting,
         private readonly FinancialBalanceService $balances,
+        private readonly AccountCreditApplicationService $credits,
     ) {}
 
     /** @param array<int, array{type: string, description: string, amount: int}> $items */
@@ -107,7 +108,10 @@ class ManualInvoiceService
                 );
             }
 
+            $this->credits->applyToInvoice($lockedPlan, $invoice, $actor, false, "manual-invoice:{$invoice->uuid}:account-credit");
+
             return $invoice->load('items', 'transactions.effects');
         }, 3);
     }
+
 }

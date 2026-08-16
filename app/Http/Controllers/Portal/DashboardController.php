@@ -39,10 +39,10 @@ $openInvoiceRows = $open->map(
 );
 
 $amountDue = (int) $openInvoiceRows->sum('balance');
-$accountBalance = max(0, $amountDue - $accountCredit);
+$accountBalance = $amountDue;
 $oldestDue = $open->first();
 
-  $status=$this->status($amountDue,$oldestDue?->due_date);
+  $status=$this->status($amountDue,$oldestDue?->due_date,$accountCredit);
   $planSummaries=$plans->map(function(PaymentPlan $plan){$terms=$plan->currentBillingTerms;$monthly=($terms?->scheduled_payment_amount??$plan->customary_monthly_payment)+($terms?->monthly_service_fee??$plan->monthly_service_fee);return ['plan'=>$plan,'monthly_payment'=>$monthly];});
   $paymentQuery=Payment::query()->whereHas('financialTransaction',fn($q)=>$q->whereIn('payment_plan_id',$planIds))->whereDoesntHave('financialTransaction.reversedBy');
   $payments=(clone $paymentQuery)->with('financialTransaction.paymentPlan')->newestFirst()->limit(3)->get();
@@ -74,13 +74,20 @@ $invoices = $allInvoices
  
  
   }
-private function status(int $amountDue, ?Carbon $dueDate): array
+private function status(int $amountDue, ?Carbon $dueDate, int $accountCredit): array
 {
     if ($amountDue <= 0 || $dueDate === null) {
         return [
             'label' => 'Current - nothing due',
             'class' => 'status-current',
         ];
+    }
+
+    if ($accountCredit >= $amountDue) {
+        return ['label' => 'Account credit available to cover open invoices', 'class' => 'status-current'];
+    }
+    if ($accountCredit > 0) {
+        return ['label' => 'Account credit available · Payment still due', 'class' => 'status-due-soon'];
     }
 
     return [

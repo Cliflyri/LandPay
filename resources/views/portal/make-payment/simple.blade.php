@@ -7,7 +7,7 @@
 @if($errors->any())<div class="alert alert-danger mt-4">{{ $errors->first() }}</div>@endif
 <form class="admin-next-card mt-4" id="payment-form" method="post" action="{{ route('portal.make-payment.store') }}">@csrf
 <div class="row g-3">
-<div class="col-md-6"><label class="form-label" for="payment-plan">Payment plan</label><select class="form-select" id="payment-plan" name="payment_plan_id">@foreach($plans as $plan)<option value="{{ $plan->id }}" data-open-cents="{{ $planBalances[$plan->id] }}" data-open-balance="{{ number_format($planBalances[$plan->id]/100,2,'.','') }}" @selected((int)$input['payment_plan_id']===$plan->id)>{{ $plan->plan_number }}  {{ $plan->title }} ({{ \App\Support\Money::format($planBalances[$plan->id]) }} open)</option>@endforeach</select></div>
+<div class="col-md-6"><label class="form-label" for="payment-plan">Payment plan</label><select class="form-select" id="payment-plan" name="payment_plan_id">@foreach($plans as $plan)<option value="{{ $plan->id }}" data-open-cents="{{ $planBalances[$plan->id] }}" data-open-balance="{{ number_format($planBalances[$plan->id]/100,2,'.','') }}" @selected((int)$input['payment_plan_id']===$plan->id)>{{ $plan->plan_number }} &mdash; {{ $plan->title }} ({{ \App\Support\Money::format($planBalances[$plan->id]) }} open)</option>@endforeach</select></div>
 <div class="col-md-6"><label class="form-label" for="payment-amount">Amount</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="payment-amount" name="amount" inputmode="decimal" value="{{ $input['amount'] }}" @readonly(!$general['allow_custom_amount']) required></div><div class="form-text">Total open invoices for this plan. @if($general['allow_custom_amount'])You may enter a different amount.@endif</div></div>
 </div>
 @if($pendingNotifications->isNotEmpty())
@@ -175,7 +175,7 @@ document.querySelectorAll('[data-send-payment]').forEach(b=>b.addEventListener('
  if(method.value==='card'){form.submit();return}
  b.disabled=true;const response=await fetch(form.action,{method:'POST',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf},body:new FormData(form)});
  if(response.redirected){window.location.assign(response.url);return}
- const contentType=response.headers.get('content-type')||'';if(!contentType.includes('application/json')){b.disabled=false;alert('Unable to notify the administrator (HTTP '+response.status+'). Please refresh the page and try again.');return}
+ const contentType=response.headers.get('content-type')||'';if(!contentType.includes('application/json')){b.disabled=false;alert(response.status===403?'This portal is open in administrator read-only mode. Payment notifications can only be submitted when the client is signed in with their own account.':'Unable to notify the administrator (HTTP '+response.status+'). Please refresh the page and try again.');return}
  const data=await response.json();b.disabled=false;
  if(!response.ok){alert(data.message||'Unable to notify the administrator.');return}
  panel.querySelector('[data-payment-drawer]').hidden=true;appendNotification(data);panel.querySelector('[name="client_note"]').value='';
@@ -186,4 +186,3 @@ activate(method.value||tabs[0]?.dataset.tab);showActive();syncNotificationGroups
 </script>
 @endpush
 @endsection
-

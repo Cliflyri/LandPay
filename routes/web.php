@@ -27,6 +27,8 @@ use App\Http\Controllers\Admin\PaymentMethodSettingsController;
 use App\Http\Controllers\Admin\ClientPaymentIntentController;
 use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
 use App\Http\Controllers\Portal\SecureMessageController as PortalSecureMessageController;
+use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
+use App\Http\Controllers\Portal\SharedDocumentController as PortalSharedDocumentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProviderWebhookController;
 
@@ -74,10 +76,15 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('messages/{thread}', [PortalSecureMessageController::class, 'show'])->name('messages.show');
     Route::post('messages/{thread}/reply', [PortalSecureMessageController::class, 'reply'])->middleware('throttle:10,1')->name('messages.reply');
     Route::get('messages/{thread}/attachments/{message}', [PortalSecureMessageController::class, 'download'])->name('messages.download');
+    Route::get('messages/{thread}/files/{message}/{attachment}', [PortalSecureMessageController::class, 'downloadFile'])->name('messages.files.download');
+    Route::get('documents', [PortalSharedDocumentController::class, 'index'])->name('documents.index');
+    Route::post('documents', [PortalSharedDocumentController::class, 'store'])->middleware('throttle:5,1')->name('documents.store');
+    Route::get('documents/{document}', [PortalSharedDocumentController::class, 'download'])->name('documents.download');
+    Route::get('documents/{document}/preview', [PortalSharedDocumentController::class, 'preview'])->name('documents.preview');
 });
 
 
-Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): void {
+Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
     Route::post('clients/{client}/portal-access', [ClientPortalAccessController::class, 'store'])->name('portal-access.store');
@@ -90,6 +97,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('plans/{plan}/pause', [PaymentPlanPauseController::class, 'pause'])->name('plans.pause');
     Route::post('plans/{plan}/resume', [PaymentPlanPauseController::class, 'resume'])->name('plans.resume');
+    Route::post('plans/{plan}/account-credit/apply', [PaymentPlanController::class, 'applyAccountCredit'])->name('plans.account-credit.apply');
     Route::get('plans/{plan}/payments/create', [PaymentController::class, 'create'])->name('plans.payments.create');
     Route::get('plans/{plan}/invoices/create', [InvoiceController::class, 'create'])->name('plans.invoices.create');
     Route::get('plans/{plan}/invoices/manual/create', [InvoiceController::class, 'manualCreate'])->name('plans.invoices.manual.create');
@@ -109,8 +117,17 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function (): v
     Route::post('messages/{thread}/star', [AdminSecureMessageController::class, 'star'])->name('messages.star');
     Route::post('messages/{thread}/remind', [AdminSecureMessageController::class, 'remind'])->name('messages.remind');
     Route::get('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'download'])->name('messages.download');
+    Route::get('messages/{thread}/files/{message}/{attachment}', [AdminSecureMessageController::class, 'downloadFile'])->name('messages.files.download');
+    Route::delete('messages/{thread}/files/{message}/{attachment}', [AdminSecureMessageController::class, 'destroyFile'])->name('messages.files.destroy');
     Route::delete('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'destroyAttachment'])->name('messages.attachments.destroy');
     Route::delete('messages/{thread}', [AdminSecureMessageController::class, 'destroy'])->name('messages.destroy');
+    Route::get('documents', [AdminSharedDocumentController::class, 'index'])->name('documents.index');
+    Route::post('documents', [AdminSharedDocumentController::class, 'store'])->name('documents.store');
+    Route::get('documents/{document}', [AdminSharedDocumentController::class, 'download'])->name('documents.download');
+    Route::get('documents/{document}/preview', [AdminSharedDocumentController::class, 'preview'])->name('documents.preview');
+    Route::post('documents/{document}/visibility', [AdminSharedDocumentController::class, 'visibility'])->name('documents.visibility');
+    Route::post('documents/{document}/archive', [AdminSharedDocumentController::class, 'archive'])->name('documents.archive');
+    Route::delete('documents/{document}', [AdminSharedDocumentController::class, 'destroy'])->name('documents.destroy');
     Route::post('plans/{plan}/invoices/preview', [InvoiceController::class, 'preview'])->name('plans.invoices.preview');
     Route::post('plans/{plan}/invoices', [InvoiceController::class, 'store'])->name('plans.invoices.store');
     Route::post('plans/{plan}/invoices/manual/preview', [InvoiceController::class, 'manualPreview'])->name('plans.invoices.manual.preview');

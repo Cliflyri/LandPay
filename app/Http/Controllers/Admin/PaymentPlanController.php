@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\BillingDefault;
 use App\Models\AuditLog;
 use App\Models\Client;
+use App\Models\FinancialTransaction;
 use App\Models\Payment;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
+use App\Services\AccountCreditApplicationService;
 use App\Services\AutomaticInvoiceService;
 use App\Services\ContractAmountAmendmentService;
 use App\Services\ContractOpeningService;
@@ -37,6 +39,7 @@ class PaymentPlanController extends Controller
         private readonly ContractAmountAmendmentService $contractAmounts,
         private readonly OpeningPrincipalCreditService $openingPrincipalCredit,
         private readonly AutomaticInvoiceService $automaticInvoices,
+        private readonly AccountCreditApplicationService $accountCredits,
     ) {}
 
 public function index(Request $request): View
@@ -209,6 +212,7 @@ public function index(Request $request): View
     {
         $plan->load(['memberships.client', 'currentBillingTerms', 'billingTerms.createdBy', 'invoices.items']);
         $contractBalance = $this->balances->contractBalance($plan);
+        $openInvoiceBalance = (int) $plan->invoices->sum(fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice)));
         $monthlyPrincipal = (int) ($plan->currentBillingTerms?->scheduled_payment_amount ?? $plan->customary_monthly_payment ?? 0);
         $nextInvoiceDate = $this->automaticInvoices->nextDate($plan);
         $estimatedPayoff = match (true) {
@@ -225,17 +229,86 @@ public function index(Request $request): View
             ->newestFirst()
             ->get();
 
+        $runningContractBalance = 0;
+        $ledgerRows = collect();
+        FinancialTransaction::query()
+            ->with(['invoice', 'effects', 'payment.allocations.invoiceItem', 'payment.allocations.invoice', 'reversalOf.payment.allocations.invoiceItem', 'reversalOf.payment.allocations.invoice'])
+            ->where('payment_plan_id', $plan->id)
+            ->orderBy('effective_date')->orderBy('id')->get()
+            ->each(function (FinancialTransaction $transaction) use (&$runningContractBalance, $ledgerRows): void {
+                $purchaseDelta = (int) $transaction->effects
+                    ->filter(fn ($effect) => $effect->effect_type->value === 'purchase_balance')
+                    ->sum('amount_delta');
+                $creditDelta = (int) $transaction->effects
+                    ->filter(fn ($effect) => $effect->effect_type->value === 'client_credit')
+                    ->sum('amount_delta');
+                $runningContractBalance += $purchaseDelta;
+
+                if (in_array($transaction->type->value, ['opening_purchase_balance', 'opening_principal_credit'], true)) return;
+
+                $payment = $transaction->payment ?? $transaction->reversalOf?->payment;
+                $allocations = $payment?->allocations ?? collect();
+                $sign = $transaction->type->value === 'reversal' ? -1 : 1;
+                $effectFee = in_array($transaction->type->value, ['payment', 'credit_application', 'reversal', 'refund'], true)
+                    ? -(int) $transaction->effects
+                        ->filter(fn ($effect) => $effect->effect_type->value === 'invoice_due'
+                            && $effect->component->value !== 'scheduled_purchase_payment')
+                        ->sum('amount_delta')
+                    : 0;
+                $directFee = $sign * (int) $allocations
+                    ->filter(fn ($allocation) => $allocation->allocation_type->value === 'service_fee')
+                    ->sum('amount');
+                $fee = $effectFee + $directFee;
+
+                if ($purchaseDelta === 0 && $creditDelta === 0 && $fee === 0
+                    && ! in_array($transaction->type->value, ['payment', 'reversal', 'refund'], true)) return;
+
+                $invoices = collect([$transaction->invoice])
+                    ->merge($allocations->whereNotNull('invoice_id')->pluck('invoice'))
+                    ->filter()->unique('id')->values();
+                $amount = match ($transaction->type->value) {
+                    'payment' => (int) $transaction->gross_amount,
+                    'reversal' => -(int) ($payment?->gross_amount ?? $transaction->gross_amount),
+                    default => 0,
+                };
+
+                $ledgerRows->push([
+                    'date' => $transaction->effective_date,
+                    'description' => $transaction->description,
+                    'payment' => $payment,
+                    'invoices' => $invoices,
+                    'amount' => $amount,
+                    'fee' => $fee,
+                    'principal' => -$purchaseDelta,
+                    'credit' => $creditDelta,
+                    'balance' => $runningContractBalance,
+                    'reversal' => $transaction->type->value === 'reversal',
+                ]);
+            });
+
         return view('admin.plans.show', [
             'plan' => $plan,
             'contractBalance' => $contractBalance,
             'estimatedPayoff' => $estimatedPayoff,
             'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
+            'clientCredit' => max(0, $this->balances->clientCredit($plan)),
+            'openInvoiceBalance' => $openInvoiceBalance,
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),
             'payments' => $payments,
+            'ledgerRows' => $ledgerRows,
+            'ledgerPayments' => (int) $ledgerRows->sum('amount'),
+            'ledgerFees' => (int) $ledgerRows->sum('fee'),
+            'ledgerPrincipal' => (int) $ledgerRows->sum('principal'),
+            'ledgerCredit' => (int) $ledgerRows->sum('credit'),
         ]);
     }
 
+    public function applyAccountCredit(Request $request, PaymentPlan $plan): RedirectResponse
+    {
+        $applied = $this->accountCredits->applyToOpenInvoices($plan, $request->user());
+        return back()->with('success', $applied > 0 ? Money::format($applied).' account credit applied to open invoices.' : 'No account credit could be applied.');
+    }
     public function edit(PaymentPlan $plan): View
     {
         $plan->load(['currentBillingTerms', 'memberships.client']);

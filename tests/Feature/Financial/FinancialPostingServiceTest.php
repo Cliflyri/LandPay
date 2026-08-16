@@ -150,6 +150,10 @@ class FinancialPostingServiceTest extends TestCase
         $this->assertSame(65_000, app(FinancialBalanceService::class)->contractBalance($plan));
         $service->amend($plan, $user, 20_000, '2026-08-03', 'Correct clerical error');
         $this->assertSame(85_000, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->actingAs($user)->get(route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']))
+            ->assertOk()
+            ->assertSeeText('Purchase price: $1,000.00 + Doc Fee: $50.00 - Previously paid in: $200.00')
+            ->assertSeeText('Opening ledger balance: $850.00');
 
         $this->expectException(ValidationException::class);
         $service->amend($plan, $user, 110_000, '2026-08-04', 'Invalid excess adjustment');
@@ -167,6 +171,41 @@ class FinancialPostingServiceTest extends TestCase
         } catch (ValidationException) {
             $this->assertDatabaseMissing('invoices', ['invoice_number' => 'INV-ROLLBACK']);
         }
+    }
+
+    public function test_refund_reduces_only_available_client_credit(): void
+    {
+        [$user, $plan] = $this->draftPlan();
+        $service = app(FinancialPostingService::class);
+        $service->post(
+            $plan,
+            FinancialTransactionType::Payment,
+            7_500,
+            '2026-07-25',
+            FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, 7_500, FinancialEffectComponent::UnappliedCredit)],
+            actor: $user,
+            description: 'Payment held as credit',
+        );
+
+        $service->post(
+            $plan,
+            FinancialTransactionType::Refund,
+            2_500,
+            '2026-07-26',
+            FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, -2_500, FinancialEffectComponent::Refund)],
+            actor: $user,
+            reason: 'Partial credit refund',
+        );
+
+        $this->assertSame(5_000, app(FinancialBalanceService::class)->clientCredit($plan));
+        $this->assertSame(0, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertDatabaseHas('financial_transactions', [
+            'type' => FinancialTransactionType::Refund->value,
+            'gross_amount' => 2_500,
+            'reason' => 'Partial credit refund',
+        ]);
     }
 
     public function test_balance_floor_failure_rolls_back_transaction_header(): void

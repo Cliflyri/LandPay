@@ -51,10 +51,71 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
     </div>
 </div>
 
-<div class="row g-4 mt-3">
-    <div class="col-md-4"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
-    <div class="col-md-4"><article class="admin-summary-card"><span>Paid-in value</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong></article></div>
-    <div class="col-md-4"><article class="admin-summary-card"><span>Monthly payment</span><strong>{{\App\Support\Money::format($plan->customary_monthly_payment)}}</strong></article></div>
+@if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
+<ul class="nav nav-tabs mt-4">
+    <li class="nav-item"><a class="nav-link {{ request('tab') !== 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', $plan) }}">Plan overview</a></li>
+    <li class="nav-item"><a class="nav-link {{ request('tab') === 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']) }}">Account ledger</a></li>
+</ul>
+
+@if(request('tab') === 'ledger')
+<div class="admin-next-card mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div><h2 class="mb-1">Account ledger</h2><p class="text-muted mb-0">Payment reconciliation for plan # {{ $plan->plan_number }}.</p></div>
+        <div class="text-end">
+            <span class="text-muted d-block">Original contract amount</span>
+            <strong class="fs-5 d-block">{{ \App\Support\Money::format($plan->original_purchase_balance) }}</strong>
+            <span class="d-block small mt-2 text-nowrap">
+                Purchase price: <strong>{{ \App\Support\Money::format($plan->purchase_price) }}</strong>
+                + Doc Fee: <strong>{{ \App\Support\Money::format($plan->documentation_fee_standard - $plan->documentation_fee_waived) }}</strong>
+                - Previously paid in: <strong>{{ \App\Support\Money::format($previousPaid) }}</strong>
+            </span>
+            <span class="d-block">Opening ledger balance: <strong>{{ \App\Support\Money::format($plan->original_purchase_balance - $previousPaid) }}</strong></span>
+        </div>
+    </div>
+    <div class="row g-3 mt-2">
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Payments received</span><strong>{{ \App\Support\Money::format($ledgerPayments) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Fees paid</span><strong>{{ \App\Support\Money::format($ledgerFees) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Principal applied</span><strong>{{ \App\Support\Money::format($ledgerPrincipal) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Contract balance</span><strong>{{ \App\Support\Money::format($contractBalance) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Current payoff</span><strong>{{ \App\Support\Money::format($currentPayoff) }}</strong></div>
+        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Unused credit</span><strong>{{ \App\Support\Money::format($clientCredit) }}</strong></div>
+    </div>
+    <div class="table-responsive mt-4">
+        <table class="table table-sm table-striped align-middle mb-0">
+            <thead><tr><th>Date / activity</th><th>Invoice</th><th class="text-end">Payment</th><th class="text-end">Fee</th><th class="text-end">Applied to principal</th><th class="text-end">Credit change</th><th class="text-end">Contract balance</th></tr></thead>
+            <tbody>
+            @forelse($ledgerRows as $row)
+                <tr class="{{ $row['reversal'] ? 'text-muted' : '' }}">
+                    <td class="text-nowrap">@if($row['payment'])<a class="dashboard-plan-link" href="{{ route('admin.payments.show', $row['payment']) }}">{{ $row['date']->format('M j, Y') }}</a>@else{{ $row['date']->format('M j, Y') }}@endif<span class="d-block text-muted small">{{ $row['description'] }}</span>@if($row['reversal'])<span class="badge text-bg-light">Reversal</span>@endif</td>
+                    <td>@foreach($row['invoices'] as $invoice)<a class="dashboard-plan-link" href="{{ route('admin.invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a>{{ !$loop->last ? ', ' : '' }}@endforeach</td>
+                    <td class="money-cell">{{ $row['amount'] !== 0 ? \App\Support\Money::format($row['amount']) : '—' }}</td>
+                    <td class="money-cell">{{ $row['fee'] !== 0 ? \App\Support\Money::format($row['fee']) : '—' }}</td>
+                    <td class="money-cell">{{ $row['principal'] !== 0 ? \App\Support\Money::format($row['principal']) : '—' }}</td>
+                    <td class="money-cell">{{ $row['credit'] !== 0 ? ($row['credit'] > 0 ? '+' : '-').\App\Support\Money::format(abs($row['credit'])) : '—' }}</td>
+                    <td class="money-cell"><strong>{{ \App\Support\Money::format($row['balance']) }}</strong></td>
+                </tr>
+            @empty
+                <tr><td colspan="7" class="dashboard-empty"><strong>No account activity yet</strong><span>Payments and balance-changing activity will appear here when posted.</span></td></tr>
+            @endforelse
+            </tbody>
+            <tfoot class="table-group-divider">
+                <tr class="fw-bold">
+                    <th colspan="2">Totals / ending balance</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerPayments) }}</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerFees) }}</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerPrincipal) }}</th>
+                    <th class="money-cell">{{ ($ledgerCredit > 0 ? '+' : ($ledgerCredit < 0 ? '-' : '')).\App\Support\Money::format(abs($ledgerCredit)) }}</th>
+                    <th class="money-cell">{{ \App\Support\Money::format($ledgerRows->last()['balance'] ?? $contractBalance) }}</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+@else<div class="row g-4 mt-3">
+    <div class="col-md-3"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong><span class="d-block text-muted fs-6">{{ $clientCredit > 0 ? 'Available for open invoices' : 'No unapplied credit' }}</span>@if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Paid-in value</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong></article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Monthly payment</span><strong>{{\App\Support\Money::format($plan->customary_monthly_payment)}}</strong></article></div>
 </div>
 
 <div class="admin-next-card mt-4" id="pause-plan-controls">
@@ -100,6 +161,31 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         <dt class="col-sm-4 col-lg-3">Monthly service fee</dt><dd class="col-sm-8 col-lg-9">+ {{\App\Support\Money::format($plan->monthly_service_fee)}}</dd>
         <dt class="col-sm-4 col-lg-3">Total monthly payment</dt><dd class="col-sm-8 col-lg-9"><strong>{{\App\Support\Money::format($plan->customary_monthly_payment + $plan->monthly_service_fee)}}</strong></dd>
         <dt class="col-sm-4 col-lg-3">Invoice day</dt><dd class="col-sm-8 col-lg-9">Day {{ $plan->monthly_due_day }} of each month</dd>
+        @if($terms = $plan->currentBillingTerms)
+        @php
+            $issueDate = \Illuminate\Support\Carbon::create(2000, 1, $terms->invoice_day);
+            $dueDate = $issueDate->copy()->addDays($terms->due_days_after_issue);
+            $stageOneDate = $dueDate->copy()->addDays($terms->stage_one_days_late);
+            $dateLabel = function ($date) use ($issueDate) {
+                $months = (($date->year - $issueDate->year) * 12) + ($date->month - $issueDate->month);
+                return $date->format('jS').($months === 0 ? '' : ($months === 1 ? ' of the following month' : ' of the month '.$months.' months later'));
+            };
+            $feeLabel = fn ($type, $fixed, $rate, $minimum) => $type->value === 'fixed'
+                ? \App\Support\Money::format($fixed)
+                : rtrim(rtrim(number_format((float) $rate, 4), '0'), '.').'%'.($minimum > 0 ? ' (minimum '.\App\Support\Money::format($minimum).')' : '');
+        @endphp
+        <dt class="col-sm-4 col-lg-3">Billing schedule</dt>
+        <dd class="col-sm-8 col-lg-9">
+            Invoiced on the <strong>{{$dateLabel($issueDate)}}</strong>, must be paid by the <strong>{{$dateLabel($dueDate)}}</strong>.
+            After a <strong>{{$terms->grace_days}}-day grace period</strong>, a <strong>{{$feeLabel($terms->stage_one_fee_type,$terms->stage_one_fixed_amount,$terms->stage_one_percentage_rate,$terms->stage_one_minimum_amount)}}</strong> late fee may be assessed on the <strong>{{$dateLabel($stageOneDate)}}</strong> if unpaid.
+            @if($terms->stage_two_enabled)
+                @php
+                    $stageTwoDate = $dueDate->copy()->addDays($terms->stage_two_days_late);
+                @endphp
+                A second <strong>{{$feeLabel($terms->stage_two_fee_type,$terms->stage_two_fixed_amount,$terms->stage_two_percentage_rate,$terms->stage_two_minimum_amount)}}</strong> late fee may be assessed on the <strong>{{$dateLabel($stageTwoDate)}}</strong> if unpaid.
+            @endif
+        </dd>
+        @endif
         <dt class="col-sm-4 col-lg-3">Contract start</dt><dd class="col-sm-8 col-lg-9">{{ $plan->plan_start_date?->format('M j, Y') }}</dd>
         <dt class="col-sm-4 col-lg-3">Notes</dt><dd class="col-sm-8 col-lg-9">{{ $plan->notes ?: 'None' }}</dd>
         <dt class="col-sm-4 col-lg-3">Estimated payoff</dt><dd class="col-sm-8 col-lg-9"><strong>{{ $estimatedPayoff }}</strong><span class="d-block text-muted small">Based on the current principal balance and payment schedule.</span></dd>
@@ -205,5 +291,6 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
     </div>
 
 </div>
+@endif
 </div></section>
 @endsection

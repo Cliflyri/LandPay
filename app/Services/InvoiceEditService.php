@@ -39,7 +39,16 @@ class InvoiceEditService
                 throw ValidationException::withMessages(['items' => 'One or more invoice items are invalid.']);
             }
 
+            if (collect($items)->contains(fn (array $item): bool =>
+                $item['amount'] <= 0 && $item['type'] !== InvoiceItemType::Other->value
+            )) {
+                throw ValidationException::withMessages(['items' => 'Zero and negative line items must use the Other / adjustment type.']);
+            }
+
             $finalTotal = (int) collect($items)->sum('amount');
+            if ($finalTotal <= 0) {
+                throw ValidationException::withMessages(['items' => 'The invoice total must remain greater than zero.']);
+            }
             $applied = max(0, (int) $active->sum('amount') - $this->balances->invoiceBalance($locked));
             if ($finalTotal < $applied) {
                 throw ValidationException::withMessages(['items' => 'The invoice total cannot be reduced below the amount already applied.']);
@@ -82,14 +91,16 @@ class InvoiceEditService
                                 'retired_at' => now(),
                                 'late_fee_stage' => null,
                             ]);
-                            $effects[] = new PostingEffect(
-                                FinancialEffectType::InvoiceDue,
-                                -(int) $item->amount,
-                                $this->componentFor($item->item_type),
-                                invoiceId: $locked->id,
-                                invoiceItemId: $item->id,
-                                description: 'Invoice item removed',
-                            );
+                            if ((int) $item->amount !== 0) {
+                                $effects[] = new PostingEffect(
+                                    FinancialEffectType::InvoiceDue,
+                                    -(int) $item->amount,
+                                    $this->componentFor($item->item_type),
+                                    invoiceId: $locked->id,
+                                    invoiceItemId: $item->id,
+                                    description: 'Invoice item removed',
+                                );
+                            }
                         }
                         foreach ($add as $index => $data) {
                             $type = $this->typeFor($data['type']);
@@ -103,14 +114,16 @@ class InvoiceEditService
                                 'waived_amount' => 0,
                                 'display_order' => $index + 1,
                             ]);
-                            $effects[] = new PostingEffect(
-                                FinancialEffectType::InvoiceDue,
-                                $data['amount'],
-                                $this->componentFor($type),
-                                invoiceId: $locked->id,
-                                invoiceItemId: $item->id,
-                                description: $item->description.' due',
-                            );
+                            if ($data['amount'] !== 0) {
+                                $effects[] = new PostingEffect(
+                                    FinancialEffectType::InvoiceDue,
+                                    $data['amount'],
+                                    $this->componentFor($type),
+                                    invoiceId: $locked->id,
+                                    invoiceItemId: $item->id,
+                                    description: $item->description.' due',
+                                );
+                            }
                         }
                         return $effects;
                     },
