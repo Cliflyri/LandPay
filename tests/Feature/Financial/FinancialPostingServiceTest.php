@@ -152,7 +152,7 @@ class FinancialPostingServiceTest extends TestCase
         $this->assertSame(85_000, app(FinancialBalanceService::class)->contractBalance($plan));
         $this->actingAs($user)->get(route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']))
             ->assertOk()
-            ->assertSeeText('Less previously paid in: ($200.00)')
+            ->assertSeeText('Purchase price: $1,000.00 + Doc Fee: $50.00 - Previously paid in: $200.00')
             ->assertSeeText('Opening ledger balance: $850.00');
 
         $this->expectException(ValidationException::class);

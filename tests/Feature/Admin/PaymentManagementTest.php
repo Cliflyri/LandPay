@@ -192,6 +192,12 @@ class PaymentManagementTest extends TestCase
         app(\App\Services\InvoiceVoidService::class)->void($voided, $user, 'Reissue required');
         $this->assertSame('voided', $voided->fresh()->status->value);
 
+        $this->actingAs($user)->get(route('admin.plans.payments.create', $plan))
+            ->assertOk()
+            ->assertSeeText('Total outstanding')
+            ->assertSeeText('$1,200.00')
+            ->assertSeeText('Open invoices: $0.00 · Outstanding first payment: $1,200.00');
+
         $data = [
             'received_date' => '2026-08-10', 'amount' => '1200.00', 'payment_type' => 'regular',
             'payment_method' => 'check', 'idempotency_token' => '44444444-4444-4444-8444-444444444444',

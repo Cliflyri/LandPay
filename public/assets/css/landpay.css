@@ -616,3 +616,8 @@ body.admin-layout .admin-section > .site-container {
     margin-top: .75rem;
     padding-top: 1rem;
 }
+
+.form-check-input:checked {
+    background-color: #173f40;
+    border-color: #173f40;
+}

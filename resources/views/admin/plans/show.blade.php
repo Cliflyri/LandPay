@@ -63,11 +63,13 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         <div><h2 class="mb-1">Account ledger</h2><p class="text-muted mb-0">Payment reconciliation for plan # {{ $plan->plan_number }}.</p></div>
         <div class="text-end">
             <span class="text-muted d-block">Original contract amount</span>
-            <strong>{{ \App\Support\Money::format($plan->original_purchase_balance) }}</strong>
-            @if($previousPaid > 0)
-                <span class="text-muted d-block small mt-1">Less previously paid in: ({{ \App\Support\Money::format($previousPaid) }})</span>
-                <span class="d-block small">Opening ledger balance: <strong>{{ \App\Support\Money::format($plan->original_purchase_balance - $previousPaid) }}</strong></span>
-            @endif
+            <strong class="fs-5 d-block">{{ \App\Support\Money::format($plan->original_purchase_balance) }}</strong>
+            <span class="d-block small mt-2 text-nowrap">
+                Purchase price: <strong>{{ \App\Support\Money::format($plan->purchase_price) }}</strong>
+                + Doc Fee: <strong>{{ \App\Support\Money::format($plan->documentation_fee_standard - $plan->documentation_fee_waived) }}</strong>
+                - Previously paid in: <strong>{{ \App\Support\Money::format($previousPaid) }}</strong>
+            </span>
+            <span class="d-block">Opening ledger balance: <strong>{{ \App\Support\Money::format($plan->original_purchase_balance - $previousPaid) }}</strong></span>
         </div>
     </div>
     <div class="row g-3 mt-2">
