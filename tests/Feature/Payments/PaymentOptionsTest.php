@@ -82,6 +82,7 @@ class PaymentOptionsTest extends TestCase {
   [$admin,$client,$plan,$account]=$this->records();
   AppSetting::putEncrypted('stripe_webhook_secret','whsec_test');
   $intent=ClientPaymentIntent::create(['payment_plan_id'=>$plan->id,'client_id'=>$client->id,'portal_account_id'=>$account->id,'method'=>'card','amount'=>10000,'payment_type'=>'regular','overpayment_disposition'=>'principal','status'=>'checkout_pending','provider'=>'stripe','provider_checkout_id'=>'cs_test_1']);
+  $this->actingAs($account,'client')->get(route('portal.dashboard'))->assertOk()->assertDontSee('Checkout Pending')->assertDontSee('Payment notices awaiting admin confirmation');
   $payload=json_encode(['type'=>'checkout.session.completed','data'=>['object'=>['id'=>'cs_test_1','payment_status'=>'paid','payment_intent'=>'pi_1','amount_total'=>10000,'currency'=>'usd']]],JSON_THROW_ON_ERROR);
   $timestamp=time();$signature=hash_hmac('sha256',$timestamp.'.'.$payload,'whsec_test');
   $this->call('POST',route('webhooks.provider','stripe'),[],[],[],['CONTENT_TYPE'=>'application/json','HTTP_STRIPE_SIGNATURE'=>"t={$timestamp},v1={$signature}"],$payload)->assertOk();
