@@ -173,7 +173,9 @@
                                 </td>
 
                                 <td style="font-size: 1.05rem;">
-                                    {{ $thread->client->organization_name ?: trim($thread->client->first_name.' '.$thread->client->last_name) }}
+                                    <a href="{{ route('admin.clients.show', $thread->client) }}">
+                                        {{ $thread->client->organization_name ?: trim($thread->client->first_name.' '.$thread->client->last_name) }}
+                                    </a>
                                 </td>
 
                                 <td>
