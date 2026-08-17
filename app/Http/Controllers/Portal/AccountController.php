@@ -4,15 +4,15 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminNotice;
 use App\Models\ClientChangeRequest;
 use App\Models\PaymentPlan;
-use App\Models\Payment;
 use App\Services\CurrentPayoffService;
+use App\Services\FinancialBalanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 class AccountController extends Controller {
- public function __construct(private readonly CurrentPayoffService $payoffs){}
- public function show(Request $request): View {$account=$request->user('client')->load('client');$plans=PaymentPlan::query()->whereIn('id',$account->activePlanIds())->get()->map(function($plan){$paid=(int)Payment::query()->whereHas('financialTransaction',fn($q)=>$q->where('payment_plan_id',$plan->id))->whereDoesntHave('financialTransaction.reversedBy')->sum('gross_amount');return ['plan'=>$plan,'current_payoff'=>$this->payoffs->amount($plan),'paid_to_date'=>$paid];});$pending=ClientChangeRequest::query()->where('client_id',$account->client_id)->where('status','pending')->latest()->first();return view('portal.account.show',compact('account','plans','pending'));}
+ public function __construct(private readonly CurrentPayoffService $payoffs, private readonly FinancialBalanceService $balances){}
+ public function show(Request $request): View {$account=$request->user('client')->load('client');$plans=PaymentPlan::query()->whereIn('id',$account->activePlanIds())->get()->map(fn($plan)=>['plan'=>$plan,'current_payoff'=>$this->payoffs->amount($plan),'principal_paid'=>$this->balances->administratorPaidInValue($plan)]);$pending=ClientChangeRequest::query()->where('client_id',$account->client_id)->where('status','pending')->latest()->first();return view('portal.account.show',compact('account','plans','pending'));}
  public function edit(Request $request): View {$account=$request->user('client')->load('client');return view('portal.account.edit',compact('account'));}
  public function update(Request $request): RedirectResponse {
   $account=$request->user('client')->load('client');$data=$request->validate(['email'=>['required','email','max:254'],'primary_phone'=>['nullable','string','max:32'],'secondary_phone'=>['nullable','string','max:32'],'address_line_1'=>['nullable','string','max:150'],'address_line_2'=>['nullable','string','max:150'],'city'=>['nullable','string','max:100'],'state_region'=>['nullable','string','max:100'],'postal_code'=>['nullable','string','max:24'],'country_code'=>['required','string','size:2']]);

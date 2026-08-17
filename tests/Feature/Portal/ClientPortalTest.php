@@ -111,12 +111,18 @@ class ClientPortalTest extends TestCase
     public function test_account_displays_current_payoff_without_changing_contract_balance(): void
     {
         [$admin, $client, $plan] = $this->records('PAYOFF');
-        $plan->update(['monthly_service_fee' => 2_500]);
+        $plan->update(['monthly_service_fee' => 2_500, 'status' => 'draft']);
+        app(\App\Services\ContractOpeningService::class)->open($plan, $admin, 100_000, 0, 0, '2026-08-01');
+        app(\App\Services\OpeningPrincipalCreditService::class)->post($plan, $admin, 12_345, '2026-08-01');
+        $plan->update(['status' => 'active']);
         $account = PortalAccount::query()->create(['client_id'=>$client->id,'email'=>$client->email,'password'=>'password','enabled'=>true]);
         $contractBalance = app(\App\Services\FinancialBalanceService::class)->contractBalance($plan);
 
         $this->actingAs($account, 'client')->get(route('portal.account.show'))
             ->assertOk()
+            ->assertSee('Principal Paid')
+            ->assertDontSee('Paid to date')
+            ->assertSee(\App\Support\Money::format(12_345))
             ->assertSee('Current Payoff')
             ->assertSee(\App\Support\Money::format($contractBalance + 2_500));
 
