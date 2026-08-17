@@ -4,7 +4,10 @@
 @section('content')
 <section class="admin-section"><div class="container site-container"><div class="admin-heading d-flex justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Client portal</span><h1>Hello, {{$account->displayName()}}</h1><p>Your current payment status and recent account activity.</p></div><div><a class="btn btn-outline-brand" href="{{route('portal.messages.index')}}">Messages &amp; documents</a> <a class="btn btn-outline-brand" href="{{route('portal.account.show')}}">Account</a> @if(session('portal_impersonation'))<form class="d-inline" method="post" action="{{route('admin.portal-access.destroy')}}">@csrf @method('DELETE')<button class="btn btn-outline-brand">Return to administration</button></form>@else<form class="d-inline" method="post" action="{{route('portal.logout')}}">@csrf<button class="btn btn-outline-brand">Sign out</button></form>@endif</div></div>
 
+@include('portal.account._contact-notice')
+
 @if($unreadMessageThreads->isNotEmpty())
+
 <div class="alert alert-warning  portal-message-alert mt-4" role="status">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
         <div>

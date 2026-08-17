@@ -6,14 +6,16 @@ use App\Models\Payment;
 use App\Models\PaymentPlan;
 use App\Models\ClientPaymentIntent;
 use App\Models\SecureMessageThread;
+use App\Services\ClientContactStatus;
 use App\Services\FinancialBalanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 class DashboardController extends Controller {
- public function __construct(private readonly FinancialBalanceService $balances){}
+ public function __construct(private readonly FinancialBalanceService $balances, private readonly ClientContactStatus $contactStatus){}
  public function __invoke(Request $request): View {
-  $account=$request->user('client');$planIds=$account->activePlanIds();
+  $account=$request->user('client')->load('client');$planIds=$account->activePlanIds();
+  $contactStatus=$this->contactStatus->forClient($account->client);
   $plans=PaymentPlan::query()->whereIn('id',$planIds)->with(['invoices','currentBillingTerms'])->orderBy('plan_number')->get();
   $allInvoices=Invoice::query()->whereIn('payment_plan_id',$planIds)->where('status','!=','voided')->with('paymentPlan')->latest('issue_date')->get();
   $invoiceBalances=$allInvoices->mapWithKeys(fn(Invoice $invoice)=>[$invoice->id=>$this->balances->invoiceBalance($invoice)]);
@@ -70,7 +72,7 @@ $invoices = $allInvoices
         ]
     );
   
-  return view('portal.dashboard',compact('account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents','unreadMessageThreads'));
+  return view('portal.dashboard',compact('account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents','unreadMessageThreads')+$contactStatus);
  
  
   }

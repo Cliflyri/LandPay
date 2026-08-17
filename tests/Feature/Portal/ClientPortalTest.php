@@ -108,6 +108,17 @@ class ClientPortalTest extends TestCase
         $this->assertNotNull($notice->fresh()->dismissed_at);
     }
 
+    public function test_account_prompts_for_missing_contact_information_until_update_is_pending(): void
+    {
+        [, $client] = $this->records('MISSINGCONTACT');
+        $account=PortalAccount::query()->create(['client_id'=>$client->id,'email'=>$client->email,'password'=>'password','enabled'=>true]);
+        $this->actingAs($account,'client')->get(route('portal.account.show'))->assertOk()->assertSee('Please complete your contact information.')->assertSee('your phone number and mailing address');
+        $this->get(route('portal.dashboard'))->assertOk()->assertSee('Please complete your contact information.')->assertSee(route('portal.account.edit'));
+        $this->put(route('portal.account.update'),['email'=>$client->email,'primary_phone'=>'555-0100','secondary_phone'=>'','address_line_1'=>'10 Main Street','address_line_2'=>'','city'=>'Phoenix','state_region'=>'AZ','postal_code'=>'85001','country_code'=>'US'])->assertRedirect(route('portal.account.show'));
+        $this->get(route('portal.account.show'))->assertOk()->assertSee('Contact update pending.')->assertDontSee('Please complete your contact information.');
+        $this->get(route('portal.dashboard'))->assertOk()->assertSee('Contact update pending.')->assertDontSee('Please complete your contact information.');
+    }
+
     public function test_account_displays_current_payoff_without_changing_contract_balance(): void
     {
         [$admin, $client, $plan] = $this->records('PAYOFF');
