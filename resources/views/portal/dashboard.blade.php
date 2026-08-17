@@ -25,6 +25,7 @@
     <div class="col-12">
         <article class="admin-summary-card">
             <div class="row g-3">
+                <h2>Your Monthly Payments</h2>
                 <div class="col-sm-6">
                     <span>Amount due</span>
                     <strong class="{{ $amountDue > 0 ? 'balance-due' : '' }}">{{ \App\Support\Money::format($amountDue) }}</strong>
