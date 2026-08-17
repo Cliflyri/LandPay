@@ -114,6 +114,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('messages', [AdminSecureMessageController::class, 'store'])->name('messages.store');
     Route::get('messages/{thread}', [AdminSecureMessageController::class, 'show'])->name('messages.show');
     Route::post('messages/{thread}/reply', [AdminSecureMessageController::class, 'reply'])->name('messages.reply');
+    Route::put('messages/{thread}/{message}', [AdminSecureMessageController::class, 'update'])->name('messages.update');
     Route::post('messages/{thread}/star', [AdminSecureMessageController::class, 'star'])->name('messages.star');
     Route::post('messages/{thread}/remind', [AdminSecureMessageController::class, 'remind'])->name('messages.remind');
     Route::get('messages/{thread}/attachments/{message}', [AdminSecureMessageController::class, 'download'])->name('messages.download');

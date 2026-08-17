@@ -15,6 +15,17 @@
     </div>
     <div class="secure-message-body">{{$message->body}}</div>
 
+    @if(!$portal && $isAdminMessage)
+        @php($latestRevision=$message->revisions->last())
+        <div class="collapse mt-2" id="edit-message-{{$message->uuid}}">
+            <form method="post" action="{{route('admin.messages.update',[$thread,$message])}}">@csrf @method('PUT')
+                <textarea class="form-control" name="body" rows="4" maxlength="10000">{{$message->body}}</textarea>
+                <div class="form-text">Previously sent email or text notifications cannot be changed. Card information must not be entered here.</div>
+                <div class="d-flex gap-2 mt-2"><button class="btn btn-sm btn-brand" type="submit">Save</button><button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#edit-message-{{$message->uuid}}">Cancel</button></div>
+            </form>
+        </div>
+    @endif
+
     @if($message->attachment_path)
         @if($isImage)
             <button class="secure-message-thumbnail" type="button" data-bs-toggle="modal" data-bs-target="#secureMessageImageModal" data-message-image="{{$attachmentRoute}}?inline=1" data-message-name="{{$message->attachment_name}}" aria-label="Preview {{$message->attachment_name}}">
@@ -61,7 +72,8 @@
 
     @if(!$portal && $isAdminMessage)
         <small class="secure-message-tracking">
-            Client viewed: {{$message->client_viewed_at?->format('M j, Y g:i A') ?? 'Not yet'}}
+            <button class="btn btn-link btn-sm p-0 align-baseline" type="button" data-bs-toggle="collapse" data-bs-target="#edit-message-{{$message->uuid}}" aria-expanded="false" title="{{$latestRevision ? 'Edited '.$latestRevision->created_at->format('M j, Y g:i A').' by '.($latestRevision->editor?->name ?? 'Administrator') : 'Edit message text'}}">Edit</button>
+            &middot; Client viewed: {{$message->client_viewed_at?->format('M j, Y g:i A') ?? 'Not yet'}}
             @if($message->attachment_path)
                 &middot; Downloaded: {{$message->attachment_downloaded_at?->format('M j, Y g:i A') ?? 'Not yet'}}
             @endif

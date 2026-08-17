@@ -21,6 +21,7 @@ class SecureMessage extends Model
             'admin_viewed_at' => 'datetime',
             'attachment_downloaded_at' => 'datetime',
             'attachment_size' => 'integer',
+            'updated_at' => 'datetime',
         ];
     }
 
@@ -30,4 +31,5 @@ class SecureMessage extends Model
     public function senderClient(): BelongsTo { return $this->belongsTo(Client::class, 'sender_client_id'); }
     public function documents(): BelongsToMany { return $this->belongsToMany(SharedDocument::class, 'secure_message_documents')->withTimestamps(); }
     public function attachments(): HasMany { return $this->hasMany(SecureMessageAttachment::class); }
+    public function revisions(): HasMany { return $this->hasMany(SecureMessageRevision::class)->oldest(); }
 }

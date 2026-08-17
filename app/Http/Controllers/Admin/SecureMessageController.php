@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\PaymentPlan;
 use App\Models\SecureMessage;
 use App\Models\SecureMessageAttachment;
+use App\Models\SecureMessageRevision;
 use App\Models\SecureMessageThread;
 use App\Models\SharedDocument;
 use App\Services\SecureMessageAttachmentService;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
@@ -104,7 +106,7 @@ class SecureMessageController extends Controller
             'dismissed_at' => now(),
             'dismissed_by_user_id' => auth()->id(),
         ]);
-        $thread->load(['client', 'paymentPlan', 'messages.senderUser', 'messages.senderClient', 'messages.documents', 'messages.attachments']);
+        $thread->load(['client', 'paymentPlan', 'messages.senderUser', 'messages.senderClient', 'messages.documents', 'messages.attachments', 'messages.revisions.editor']);
         $documents=SharedDocument::query()->where('client_id',$thread->client_id)->where('visible_to_client',true)->whereNull('archived_at')->latest()->get();
         return view('admin.messages.show', compact('thread','documents'));
     }
@@ -128,6 +130,28 @@ class SecureMessageController extends Controller
         }
         $sent = $this->notifications->send($thread->load('client'));
         return back()->with('success', 'Reply sent.'.($sent ? ' Email notification sent.' : ' Email notification was not sent.'));
+    }
+
+    public function update(Request $request, SecureMessageThread $thread, SecureMessage $message): RedirectResponse
+    {
+        abort_unless($message->secure_message_thread_id === $thread->id && $message->sender_type === 'admin', 404);
+        $data = $request->validate(['body' => ['nullable', 'string', 'max:10000']]);
+        $body = trim((string) ($data['body'] ?? ''));
+        if ($body === '' && blank($message->attachment_path) && ! $message->attachments()->exists() && ! $message->documents()->exists()) {
+            throw ValidationException::withMessages(['body' => 'Message text is required when there is no attachment.']);
+        }
+        if ($body === $message->body) return back()->with('success', 'No message changes were made.');
+
+        DB::transaction(function () use ($request, $message, $body): void {
+            SecureMessageRevision::query()->create([
+                'secure_message_id' => $message->id,
+                'body' => $message->body,
+                'edited_by_user_id' => $request->user()->id,
+            ]);
+            $message->update(['body' => $body]);
+        });
+
+        return back()->with('success', 'Message text updated. Previously sent notifications were not changed or resent.');
     }
 
     public function updateEmailNotifications(Request $request): RedirectResponse
