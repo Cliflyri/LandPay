@@ -29,6 +29,17 @@ class SecureMessageEditingTest extends TestCase
             ->assertOk()->assertSee('Corrected text')->assertDontSee('>Edit<', false)->assertDontSee('Edited')->assertDontSee('Original text');
     }
 
+    public function test_admin_can_toggle_follow_up_from_message_list(): void
+    {
+        [$admin, , $thread] = $this->records();
+        $this->actingAs($admin)->get(route('admin.messages.index'))->assertOk()->assertSee('Mark for follow-up');
+        $this->post(route('admin.messages.star', $thread))->assertRedirect();
+        $this->assertNotNull($thread->fresh()->starred_at);
+        $this->get(route('admin.messages.index'))->assertOk()->assertSee('Remove follow-up');
+        $this->post(route('admin.messages.star', $thread))->assertRedirect();
+        $this->assertNull($thread->fresh()->starred_at);
+    }
+
     public function test_admin_cannot_edit_client_message(): void
     {
         [$admin, , $thread] = $this->records();

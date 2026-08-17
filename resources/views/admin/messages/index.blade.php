@@ -158,18 +158,17 @@
                                             </ul>
                                         </div>
 
-                                        <span
-                                            class="secure-message-star {{ $thread->starred_at ? 'is-starred' : '' }}"
-                                            role="img"
-                                            aria-label="{{ $thread->starred_at ? 'Starred for follow-up' : 'Not starred for follow-up' }}"
-                                            title="{{ $thread->starred_at ? 'Starred for follow-up' : 'Not starred for follow-up' }}"
-                                        >
-                                            @if($thread->starred_at)
-                                                &#9733;
-                                            @else
-                                                &#9734;
-                                            @endif
-                                        </span>
+                                        <form class="d-inline" method="post" action="{{route('admin.messages.star',$thread)}}">
+                                            @csrf
+                                            <button
+                                                class="secure-message-star {{ $thread->starred_at ? 'is-starred' : '' }} border-0 bg-transparent p-0"
+                                                type="submit"
+                                                aria-label="{{ $thread->starred_at ? 'Remove follow-up' : 'Mark for follow-up' }}"
+                                                title="{{ $thread->starred_at ? 'Remove follow-up' : 'Mark for follow-up' }}"
+                                            >
+                                                @if($thread->starred_at)&#9733;@else&#9734;@endif
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
 
