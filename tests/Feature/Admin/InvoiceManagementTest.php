@@ -291,6 +291,48 @@ class InvoiceManagementTest extends TestCase
             ->assertSessionHas('success');
     }
 
+    public function test_scheduled_invoice_email_follows_the_automated_billing_toggle(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow('2026-09-01 06:00:00');
+        try {
+            [, $plan] = $this->activePlan();
+            $plan->update([
+                'automated_reminders_enabled' => true,
+                'automatic_invoice_email_enabled' => false,
+            ]);
+
+            $result = app(\App\Services\AutomaticInvoiceService::class)->run(Carbon::today());
+
+            $this->assertSame(1, $result['emailed']);
+            Mail::assertSent(TemplatedInvoiceMail::class, fn ($mail) => $mail->hasTo('client@example.com'));
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_manually_created_invoice_email_follows_the_manual_invoice_toggle(): void
+    {
+        Mail::fake();
+        [$user, $plan] = $this->activePlan();
+        $plan->update([
+            'automated_reminders_enabled' => false,
+            'automatic_invoice_email_enabled' => true,
+        ]);
+
+        $this->actingAs($user)->post(route('admin.plans.invoices.manual.store', $plan), [
+            'issue_date' => '2026-08-15',
+            'items' => [
+                ['type' => 'principal', 'description' => 'Manual plan payment', 'amount' => '100.00'],
+            ],
+        ])->assertSessionHas('success', 'Invoice issued successfully. Invoice emailed to client@example.com.');
+
+        Mail::assertSent(TemplatedInvoiceMail::class, function ($mail): bool {
+            return $mail->hasTo('client@example.com')
+                && $mail->deliveryFormat === 'inline';
+        });
+    }
+
     public function test_automated_reminders_follow_rules_and_do_not_duplicate(): void
     {
         Mail::fake();

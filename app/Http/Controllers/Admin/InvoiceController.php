@@ -11,6 +11,7 @@ use App\Models\PaymentPlanBillingTerm;
 use App\Services\FinancialBalanceService;
 use App\Services\FirstPaymentInvoiceService;
 use App\Services\InvoiceEditService;
+use App\Services\InvoiceEmailService;
 use App\Services\InvoiceReminderService;
 use App\Services\InvoiceVoidService;
 use App\Services\ManualInvoiceService;
@@ -34,6 +35,7 @@ class InvoiceController extends Controller
         private readonly ManualInvoiceService $manualInvoices,
         private readonly MonthlyServiceFeeHistoryService $monthlyServiceFeeHistory,
         private readonly InvoiceEditService $invoiceEdits,
+        private readonly InvoiceEmailService $invoiceEmails,
     ) {}
 
     public function create(PaymentPlan $plan): View
@@ -64,7 +66,13 @@ class InvoiceController extends Controller
             $data['waiver_reason'] ?? null,
         );
 
-        return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Monthly invoice issued successfully.');
+        $message = 'Monthly invoice issued successfully.';
+        if ($plan->automatic_invoice_email_enabled) {
+            $delivery = $this->invoiceEmails->send($invoice, $request->user(), 'inline');
+            $message .= ' Invoice emailed to '.$delivery->recipient_email.'.';
+        }
+
+        return redirect()->route('admin.invoices.show', $invoice)->with('success', $message);
     }
 
     public function manualCreate(PaymentPlan $plan): View
@@ -85,7 +93,13 @@ class InvoiceController extends Controller
         $preview = $this->manualPreviewValues($plan, $data);
         $invoice = $this->manualInvoices->issue($plan, $request->user(), $data['issue_date'], $preview['items']);
 
-        return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Invoice issued successfully.');
+        $message = 'Invoice issued successfully.';
+        if ($plan->automatic_invoice_email_enabled) {
+            $delivery = $this->invoiceEmails->send($invoice, $request->user(), 'inline');
+            $message .= ' Invoice emailed to '.$delivery->recipient_email.'.';
+        }
+
+        return redirect()->route('admin.invoices.show', $invoice)->with('success', $message);
     }
 
     private function manualForm(PaymentPlan $plan, ?array $preview = null, array $input = []): View
@@ -232,8 +246,14 @@ $primaryClientName = $primaryClient?->organization_name
             $invoice->due_date,
         );
 
+        $message = 'First-payment invoice created successfully.';
+        if ($invoice->paymentPlan->automatic_invoice_email_enabled) {
+            $delivery = $this->invoiceEmails->send($newInvoice, $request->user(), 'inline');
+            $message .= ' Invoice emailed to '.$delivery->recipient_email.'.';
+        }
+
         return redirect()->route('admin.invoices.show', $newInvoice)
-            ->with('success', 'First-payment invoice created successfully.');
+            ->with('success', $message);
     }
 
     public function destroy(Request $request, Invoice $invoice): RedirectResponse

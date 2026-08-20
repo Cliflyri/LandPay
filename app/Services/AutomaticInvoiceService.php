@@ -52,7 +52,7 @@ $invoice = $this->invoices->issue(
 );
 
                     $result['created']++;
-                    if ($plan->automatic_invoice_email_enabled) {
+                    if ($plan->automated_reminders_enabled) {
                         try { $this->email->send($invoice, $actor, 'inline'); $result['emailed']++; }
                         catch (Throwable $e) { $this->notice($plan, $invoice, 'Automatic invoice email failed', $e); $result['failed']++; }
                     }
