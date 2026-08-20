@@ -59,10 +59,9 @@ class SettingsController extends Controller
         $data = $request->validate([
             'subject' => ['required', 'string', 'max:255'],
             'body_html' => ['required', 'string', 'max:20000'],
-            'active' => ['nullable', 'boolean'],
         ]);
         $this->templates->validateVariables($data['subject'].' '.$data['body_html']);
-        $template->update($data + ['active' => false]);
+        $template->update($data);
         return redirect()->route('admin.settings.index', ['section' => 'templates', 'template' => $template->id])->with('success', $template->name.' template saved.');
     }
 

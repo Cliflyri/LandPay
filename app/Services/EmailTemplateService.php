@@ -78,9 +78,6 @@ class EmailTemplateService
     public function render(string $slug, Invoice $invoice, Client $client, int $balance): array
     {
         $template = $this->find($slug);
-        if (! $template->active) {
-            throw ValidationException::withMessages(['template' => 'This email template is disabled.']);
-        }
         $variables = $this->variables($invoice, $client, $balance);
 
         return [
@@ -95,9 +92,6 @@ class EmailTemplateService
     public function renderVariables(string $slug, array $variables): array
     {
         $template = $this->find($slug);
-        if (! $template->active) {
-            throw ValidationException::withMessages(['template' => 'This email template is disabled.']);
-        }
         return ['subject' => $this->replace($template->subject, $variables), 'body' => $this->replace($template->body_html, $variables), 'variables' => $variables];
     }
 

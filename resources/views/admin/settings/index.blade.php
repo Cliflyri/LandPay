@@ -73,7 +73,7 @@
 @foreach($templates as $template)
 <div class="tab-pane fade @if($loop->first) show active @endif" id="template-{{$template->id}}" role="tabpanel" tabindex="0">
 <form method="post" action="{{route('admin.settings.templates.update',$template)}}" class="mt-4">@csrf @method('put')
-<div class="d-flex justify-content-between gap-3 align-items-start"><div><h3 class="h4 mb-1">{{$template->name}}</h3><small class="text-muted">{{$template->slug}}</small></div><div class="form-check form-switch"><input type="hidden" name="active" value="0"><input class="form-check-input" type="checkbox" id="active-{{$template->id}}" name="active" value="1" @checked($template->active)><label class="form-check-label" for="active-{{$template->id}}">Enabled</label></div></div>
+<div><h3 class="h4 mb-1">{{$template->name}}</h3><small class="text-muted">{{$template->slug}}</small></div>
 <div class="mt-3"><span class="form-label d-block">Allowed variables</span><div class="template-variable-list">@foreach($templateVariables[$template->slug] ?? [] as $variable)<code>&#123;&#123; {{ $variable }} &#125;&#125;</code>@endforeach</div></div>
 <div class="mt-3"><label class="form-label" for="subject-{{$template->id}}">Subject</label><input class="form-control" id="subject-{{$template->id}}" name="subject" value="{{$template->subject}}" required></div>
 <div class="mt-3"><label class="form-label" for="body-{{$template->id}}">Message body (basic HTML supported)</label><textarea class="form-control font-monospace" id="body-{{$template->id}}" name="body_html" rows="8" required>{{$template->body_html}}</textarea></div>

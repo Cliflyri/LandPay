@@ -297,6 +297,7 @@ class InvoiceManagementTest extends TestCase
         Carbon::setTestNow('2026-09-01 06:00:00');
         try {
             [, $plan] = $this->activePlan();
+            EmailTemplate::query()->where('slug', 'invoice-email')->update(['active' => false]);
             $plan->update([
                 'scheduled_invoice_email_enabled' => true,
                 'automated_reminders_enabled' => false,
