@@ -45,20 +45,78 @@
 <hr class="my-4"><form method="post" action="{{route('admin.settings.smtp.test')}}" class="row g-2 align-items-end">@csrf<div class="col-md-8"><label class="form-label" for="test_email">Send test email to</label><input class="form-control" type="email" id="test_email" name="test_email" value="{{old('test_email',$settings['company_email'])}}" required></div><div class="col-md-4"><button class="btn btn-outline-brand w-100">Send test email</button></div></form></div>
 </div>
 <div class="tab-pane fade" id="reminder-settings" role="tabpanel" tabindex="0">
-<div class="admin-next-card mt-4"><div class="d-flex flex-wrap justify-content-between gap-3"><div><h2>Automated reminders</h2><p class="text-muted mb-0">The scheduler runs daily at 8:00 AM in the application timezone. Duplicate sends are blocked.</p></div>
 
-<span class="dashboard-status d-inline-flex align-items-center justify-content-center {{$reminderSettings['enabled'] ? 'status-current' : 'status-draft'}}">
-    {{ $reminderSettings['enabled'] ? 'Enabled' : 'Disabled' }}
-</span>
 
+<div class="admin-next-card mt-4">
+    <div class="d-flex flex-wrap justify-content-between gap-3">
+        <div>
+            <h2>Automated reminders</h2>
+            <p class="text-muted mb-0">The scheduler runs daily at 8:00 AM in the application timezone. Duplicate sends are blocked.</p>
+        </div>
+
+        <span class="dashboard-status d-inline-flex align-items-center justify-content-center {{ $reminderSettings['enabled'] ? 'status-current' : 'status-draft' }}">
+            {{ $reminderSettings['enabled'] ? 'Enabled' : 'Disabled' }}
+        </span>
+    </div>
+
+    <form method="post" action="{{ route('admin.settings.reminders.update') }}" class="row g-3 mt-1">
+        @csrf
+        @method('put')
+
+        <div class="col-12">
+            <div class="form-check form-switch">
+                <input type="hidden" name="enabled" value="0">
+                <input class="form-check-input" type="checkbox" id="reminders_enabled" name="enabled" value="1" @checked($reminderSettings['enabled'])>
+                <label class="form-check-label" for="reminders_enabled">Automatically send eligible reminders</label>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="d-flex flex-column flex-md-row flex-md-wrap align-items-md-start gap-3 gap-lg-4">
+
+                <div style="width: 190px; max-width: 100%;">
+                    <label class="form-label fw-semibold" for="before_days">Pre-due reminder</label>
+                    <div class="input-group">
+                        <input class="form-control" type="number" min="0" max="30" id="before_days" name="before_days" value="{{ $reminderSettings['before_days'] }}" required>
+                        <span class="input-group-text">days before</span>
+                    </div>
+                    <small class="text-muted">Use 0 to disable.</small>
+                </div>
+
+                <div style="width: 210px; max-width: 100%;">
+                    <label class="form-label fw-semibold">Due-date reminder</label>
+                    <div class="form-check form-switch pt-2">
+                        <input type="hidden" name="on_due" value="0">
+                        <input class="form-check-input" type="checkbox" id="on_due" name="on_due" value="1" @checked($reminderSettings['on_due'])>
+                        <label class="form-check-label" for="on_due">Send on the due date</label>
+                    </div>
+                </div>
+
+                <div style="width: 180px; max-width: 100%;">
+                    <label class="form-label fw-semibold" for="after_interval">Past-due interval</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Every</span>
+                        <input class="form-control" type="number" min="1" max="60" id="after_interval" name="after_interval" value="{{ $reminderSettings['after_interval'] }}" required>
+                        <span class="input-group-text">days</span>
+                    </div>
+                </div>
+
+                <div style="width: 210px; max-width: 100%;">
+                    <label class="form-label fw-semibold text-nowrap" for="after_max">Maximum past-due reminders</label>
+                    <input class="form-control" style="max-width: 85px;" type="number" min="0" max="12" id="after_max" name="after_max" value="{{ $reminderSettings['after_max'] }}" required>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-12">
+            <button class="btn btn-brand">Save reminder rules</button>
+        </div>
+    </form>
 </div>
-<form method="post" action="{{route('admin.settings.reminders.update')}}" class="row g-3 mt-1">@csrf @method('put')
-<div class="col-12"><div class="form-check form-switch"><input type="hidden" name="enabled" value="0"><input class="form-check-input" type="checkbox" id="reminders_enabled" name="enabled" value="1" @checked($reminderSettings['enabled'])><label class="form-check-label" for="reminders_enabled">Automatically send eligible reminders</label></div></div>
-<div class="col-md-4"><label class="form-label" for="before_days">Pre-due reminder</label><div class="input-group"><input class="form-control" type="number" min="0" max="30" id="before_days" name="before_days" value="{{$reminderSettings['before_days']}}" required><span class="input-group-text">days before</span></div><small class="text-muted">Use 0 to disable.</small></div>
-<div class="col-md-4"><label class="form-label" for="after_interval">Past-due interval</label><div class="input-group"><span class="input-group-text">Every</span><input class="form-control" type="number" min="1" max="60" id="after_interval" name="after_interval" value="{{$reminderSettings['after_interval']}}" required><span class="input-group-text">days</span></div></div>
-<div class="col-md-4"><label class="form-label" for="after_max">Maximum past-due reminders</label><input class="form-control" type="number" min="0" max="12" id="after_max" name="after_max" value="{{$reminderSettings['after_max']}}" required></div>
-<div class="col-12"><div class="form-check"><input type="hidden" name="on_due" value="0"><input class="form-check-input" type="checkbox" id="on_due" name="on_due" value="1" @checked($reminderSettings['on_due'])><label class="form-check-label" for="on_due">Send a reminder on the due date</label></div></div>
-<div class="col-12"><button class="btn btn-brand">Save reminder rules</button></div></form>
+
+
+
 @if($upcomingReminders->isNotEmpty())<hr class="my-4"><h3 class="h5">Upcoming reminder preview</h3><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Send date</th><th>Invoice</th><th>Rule</th><th>Recipient</th></tr></thead><tbody>@foreach($upcomingReminders as $candidate)<tr><td>{{$candidate['send_date']->format('M j, Y')}}</td><td><a href="{{route('admin.invoices.show',$candidate['invoice'])}}">{{$candidate['invoice']->invoice_number}}</a></td><td>{{str($candidate['trigger_type'])->replace('_',' ')->title()}}</td><td>{{$candidate['invoice']->paymentPlan->memberships->firstWhere('receives_invoices',true)?->client?->email ?? 'No recipient'}}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
 </div>
