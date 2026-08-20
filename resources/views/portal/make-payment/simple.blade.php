@@ -54,7 +54,7 @@
     LandPay posts the payment after the processor confirms it.
 </p>
 @else
-<div class="border rounded-3 border-start border-4 p-3 mt-3 mb-3 bg-light">
+<div class="border rounded-3 border-start border-1 p-3 mt-3 mb-3 bg-light">
     <div class="d-flex flex-wrap gap-2 mb-2"><span class="badge text-bg-secondary">STEP 1</span><span class="badge text-bg-light border">OPTIONAL</span></div>
     <strong class="fs-5">Notify us about your payment</strong>
     <p class="text-muted mb-0 mt-1">Let us know to watch for your payment and how you would like any overpayment applied. You may skip this step.</p>
@@ -113,7 +113,7 @@
 <button class="btn btn-brand mt-3" type="button" data-send-payment>{{ $method['key']==='card' ? 'Pay Now (Credit Card)' : 'Send notification' }}</button>
 </div>
 @if($method['key']!=='card')
-<div class="border border-warning rounded-3 border-start border-4 p-3 mt-4 mb-3 bg-warning-subtle">
+<div class="border border-warning rounded-3 border-start border-1 p-3 mt-4 mb-3 bg-warning-subtle">
     <span class="badge text-bg-warning mb-2">STEP 2</span>
     <strong class="d-block fs-5 text-warning-emphasis">Make your payment</strong>
     <p class="mb-0 mt-1 text-warning-emphasis">Use the payment information below to complete your payment.</p>
