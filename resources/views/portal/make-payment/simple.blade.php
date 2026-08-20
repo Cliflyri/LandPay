@@ -54,10 +54,11 @@
     LandPay posts the payment after the processor confirms it.
 </p>
 @else
-<p class="form-text fs-6 mt-2">
-    <b>Notify First?</b> Notification is optional. You may simply send your payment.
-    <br>(This only notifies us to watch for your payment.)
-</p>
+<div class="border rounded-3 border-start border-4 p-3 mt-3 mb-3 bg-light">
+    <div class="d-flex flex-wrap gap-2 mb-2"><span class="badge text-bg-secondary">STEP 1</span><span class="badge text-bg-light border">OPTIONAL</span></div>
+    <strong class="fs-5">Notify us about your payment</strong>
+    <p class="text-muted mb-0 mt-1">Let us know to watch for your payment and how you would like any overpayment applied. You may skip this step.</p>
+</div>
 
 <button  class="btn btn-outline-brand py-2" style="--bs-btn-bg: #f2f4ed;" type="button" data-start-payment>
     Notify Admin I plan to pay $<span data-amount>{{ $input['amount'] }}</span> by {{ $method['name'] }}</button>
@@ -112,8 +113,12 @@
 <button class="btn btn-brand mt-3" type="button" data-send-payment>{{ $method['key']==='card' ? 'Pay Now (Credit Card)' : 'Send notification' }}</button>
 </div>
 @if($method['key']!=='card')
-<div class="d-flex align-items-center gap-3 my-4"><hr class="flex-grow-1"><span class="fw-bold text-muted">THEN MAKE YOUR PAYMENT</span><hr class="flex-grow-1"></div>
-<div class="portal-payment-instructions text-left">
+<div class="border border-warning rounded-3 border-start border-4 p-3 mt-4 mb-3 bg-warning-subtle">
+    <span class="badge text-bg-warning mb-2">STEP 2</span>
+    <strong class="d-block fs-5 text-warning-emphasis">Make your payment</strong>
+    <p class="mb-0 mt-1 text-warning-emphasis">Use the payment information below to complete your payment.</p>
+</div>
+<div class="portal-payment-instructions text-left border-0 pt-0">
 <div class="alert alert-success fw-semibold mt-3 py-2 d-none" data-copy-payment-status role="status" aria-live="polite"></div>
 @if($method['key']==='zelle' && $method['recipient'])
 <p class="small text-muted">Click the Zelle logo or payment address to copy it.</p>
