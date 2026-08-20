@@ -23,6 +23,11 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
         $request->session()->regenerate();
 
+        $intendedPath = parse_url((string) $request->session()->get('url.intended', ''), PHP_URL_PATH);
+        if ($intendedPath === route('admin.portal-access.destroy', absolute: false)) {
+            $request->session()->put('url.intended', route('portal.dashboard', absolute: false));
+        }
+
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
 

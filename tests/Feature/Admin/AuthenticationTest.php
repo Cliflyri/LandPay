@@ -45,6 +45,20 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('admin.dashboard', absolute: false));
     }
 
+    public function test_login_does_not_replay_the_portal_return_delete_route_as_get(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('Strong!Password123'),
+        ]);
+
+        $this->withSession(['url.intended' => url('/admin/portal-access')])
+            ->post(route('admin.login.store'), [
+                'email' => $user->email,
+                'password' => 'Strong!Password123',
+            ])
+            ->assertRedirect(route('portal.dashboard', absolute: false));
+    }
+
     public function test_invalid_credentials_do_not_authenticate(): void
     {
         $user = User::factory()->create();
