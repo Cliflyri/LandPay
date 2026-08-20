@@ -298,7 +298,8 @@ class InvoiceManagementTest extends TestCase
         try {
             [, $plan] = $this->activePlan();
             $plan->update([
-                'automated_reminders_enabled' => true,
+                'scheduled_invoice_email_enabled' => true,
+                'automated_reminders_enabled' => false,
                 'automatic_invoice_email_enabled' => false,
             ]);
 

@@ -22,6 +22,7 @@ class PaymentPlan extends Model
             'plan_start_date' => 'date',
             'maturity_date' => 'date',
             'activated_at' => 'datetime',
+            'scheduled_invoice_email_enabled' => 'boolean',
             'automated_reminders_enabled' => 'boolean',
             'automatic_invoice_email_enabled' => 'boolean',
             'accelerated_testing_mode' => 'boolean',

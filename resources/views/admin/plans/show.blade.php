@@ -51,6 +51,27 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
     </div>
 </div>
 
+@php
+    $remindersGloballyEnabled = \App\Models\AppSetting::valueFor('reminders_automated_enabled', '0') === '1';
+@endphp
+<div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+    <strong class="me-1">Email automation:</strong>
+    @if($plan->status === 'paused')
+        <span class="badge text-bg-warning">Scheduled invoices: Paused</span>
+    @else
+        <span class="badge {{ $plan->scheduled_invoice_email_enabled ? 'text-bg-success' : 'text-bg-secondary' }}">Scheduled invoices: {{ $plan->scheduled_invoice_email_enabled ? 'On' : 'Off' }}</span>
+    @endif
+    @if($plan->status === 'paused')
+        <span class="badge text-bg-warning">Payment reminders: Paused</span>
+    @elseif($plan->automated_reminders_enabled && ! $remindersGloballyEnabled)
+        <span class="badge text-bg-warning">Payment reminders: Disabled globally</span>
+    @else
+        <span class="badge {{ $plan->automated_reminders_enabled ? 'text-bg-success' : 'text-bg-secondary' }}">Payment reminders: {{ $plan->automated_reminders_enabled ? 'On' : 'Off' }}</span>
+    @endif
+    <span class="badge {{ $plan->automatic_invoice_email_enabled ? 'text-bg-success' : 'text-bg-secondary' }}">Manual invoices: {{ $plan->automatic_invoice_email_enabled ? 'On' : 'Off' }}</span>
+    <a class="small" href="{{ route('admin.plans.edit',$plan) }}#email-automation">Edit settings</a>
+</div>
+
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
 <ul class="nav nav-tabs mt-4">
     <li class="nav-item"><a class="nav-link {{ request('tab') !== 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', $plan) }}">Plan overview</a></li>
