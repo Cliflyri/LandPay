@@ -94,16 +94,17 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         </div>
     </div>
     <div class="row g-3 mt-2">
-        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Payments received</span><strong>{{ \App\Support\Money::format($ledgerPayments) }}</strong></div>
-        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Fees paid</span><strong>{{ \App\Support\Money::format($ledgerFees) }}</strong></div>
-        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Principal applied</span><strong>{{ \App\Support\Money::format($ledgerPrincipal) }}</strong></div>
-        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Contract balance</span><strong>{{ \App\Support\Money::format($contractBalance) }}</strong></div>
-        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Current payoff</span><strong>{{ \App\Support\Money::format($currentPayoff) }}</strong></div>
-        <div class="col-6 col-lg-2"><span class="text-muted d-block small">Unused credit</span><strong>{{ \App\Support\Money::format($clientCredit) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Payments received</span><strong>{{ \App\Support\Money::format($ledgerPayments) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Fees paid</span><strong>{{ \App\Support\Money::format($ledgerFees) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Applied to contract</span><strong>{{ \App\Support\Money::format($ledgerPrincipal) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Principal paid</span><strong>{{ \App\Support\Money::format($principalPaid) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Contract balance</span><strong>{{ \App\Support\Money::format($contractBalance) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Current payoff</span><strong>{{ \App\Support\Money::format($currentPayoff) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Unused credit</span><strong>{{ \App\Support\Money::format($clientCredit) }}</strong></div>
     </div>
     <div class="table-responsive mt-4">
         <table class="table table-sm table-striped align-middle mb-0">
-            <thead><tr><th>Date / activity</th><th>Invoice</th><th class="text-end">Payment</th><th class="text-end">Fee</th><th class="text-end">Applied to principal</th><th class="text-end">Credit change</th><th class="text-end">Contract balance</th></tr></thead>
+            <thead><tr><th>Date / activity</th><th>Invoice</th><th class="text-end">Payment</th><th class="text-end">Fee</th><th class="text-end">Applied to contract</th><th class="text-end">Credit change</th><th class="text-end">Contract balance</th></tr></thead>
             <tbody>
             @forelse($ledgerRows as $row)
                 <tr class="{{ $row['reversal'] ? 'text-muted' : '' }}">
@@ -135,7 +136,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 @else<div class="row g-4 mt-3">
     <div class="col-md-3"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong><span class="d-block text-muted fs-6">{{ $clientCredit > 0 ? 'Available for open invoices' : 'No unapplied credit' }}</span>@if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
-    <div class="col-md-3"><article class="admin-summary-card"><span>Paid-in value</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong></article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Total applied to contract</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong><span class="d-block text-muted fs-6">Principal paid: <strong>{{\App\Support\Money::format($principalPaid)}}</strong></span></article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Monthly payment</span><strong>{{\App\Support\Money::format($plan->customary_monthly_payment)}}</strong></article></div>
 </div>
 

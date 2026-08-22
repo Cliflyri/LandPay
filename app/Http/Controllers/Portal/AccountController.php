@@ -15,7 +15,7 @@ class AccountController extends Controller {
  public function __construct(private readonly CurrentPayoffService $payoffs, private readonly FinancialBalanceService $balances, private readonly ClientContactStatus $contactStatus){}
  public function show(Request $request): View {
   $account=$request->user('client')->load('client');
-  $plans=PaymentPlan::query()->whereIn('id',$account->activePlanIds())->get()->map(fn($plan)=>['plan'=>$plan,'current_payoff'=>$this->payoffs->amount($plan),'principal_paid'=>$this->balances->administratorPaidInValue($plan)]);
+  $plans=PaymentPlan::query()->whereIn('id',$account->activePlanIds())->get()->map(fn($plan)=>['plan'=>$plan,'current_payoff'=>$this->payoffs->amount($plan),'principal_paid'=>$this->balances->purchasePrincipalPaid($plan)]);
   return view('portal.account.show',compact('account','plans')+$this->contactStatus->forClient($account->client));
  }
  public function edit(Request $request): View {$account=$request->user('client')->load('client');return view('portal.account.edit',compact('account'));}

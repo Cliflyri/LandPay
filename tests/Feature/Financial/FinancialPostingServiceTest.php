@@ -144,6 +144,7 @@ class FinancialPostingServiceTest extends TestCase
         $this->assertSame(30_000, $service->amount($plan));
         $this->assertSame(75_000, app(FinancialBalanceService::class)->contractBalance($plan));
         $this->assertSame(30_000, app(FinancialBalanceService::class)->administratorPaidInValue($plan));
+        $this->assertSame(25_000, app(FinancialBalanceService::class)->purchasePrincipalPaid($plan->fresh()));
         $this->assertSame(0, app(FinancialBalanceService::class)->clientCredit($plan));
 
         $service->amend($plan, $user, 40_000, '2026-08-02', 'Correct clerical error');

@@ -67,6 +67,13 @@ class FinancialBalanceService
         return max(0, -($paymentDelta + $previousPaidDelta));
     }
 
+    public function purchasePrincipalPaid(PaymentPlan $plan): int
+    {
+        $documentationFeeCharged = max(0, (int) $plan->documentation_fee_standard - (int) $plan->documentation_fee_waived);
+
+        return max(0, min((int) $plan->purchase_price, $this->administratorPaidInValue($plan) - $documentationFeeCharged));
+    }
+
     private function planEffectSum(PaymentPlan|int $plan, FinancialEffectType $type): int
     {
         $planId = $plan instanceof PaymentPlan ? $plan->id : $plan;

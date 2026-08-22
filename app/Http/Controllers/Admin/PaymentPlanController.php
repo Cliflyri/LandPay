@@ -292,6 +292,7 @@ public function index(Request $request): View
             'estimatedPayoff' => $estimatedPayoff,
             'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
+            'principalPaid' => $this->balances->purchasePrincipalPaid($plan),
             'clientCredit' => max(0, $this->balances->clientCredit($plan)),
             'openInvoiceBalance' => $openInvoiceBalance,
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),
