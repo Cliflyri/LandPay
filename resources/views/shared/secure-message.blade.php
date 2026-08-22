@@ -31,6 +31,7 @@
             <button class="secure-message-thumbnail" type="button" data-bs-toggle="modal" data-bs-target="#secureMessageImageModal" data-message-image="{{$attachmentRoute}}?inline=1" data-message-name="{{$message->attachment_name}}" aria-label="Preview {{$message->attachment_name}}">
                 <img src="{{$attachmentRoute}}?inline=1" alt="{{$message->attachment_name}}" loading="lazy">
             </button>
+            <small class="d-block text-muted mt-1">Click image to preview</small>
         @endif
         <div class="secure-message-attachment">
             <a class="btn btn-sm btn-outline-brand" href="{{$attachmentRoute}}">Download {{$message->attachment_name}}</a>
@@ -50,6 +51,7 @@
         @php($fileRoute=$portal ? route('portal.messages.files.download',[$thread,$message,$attachment]) : route('admin.messages.files.download',[$thread,$message,$attachment]))
         @if(in_array($attachment->mime,['image/jpeg','image/png'],true))
             <button class="secure-message-thumbnail" type="button" data-bs-toggle="modal" data-bs-target="#secureMessageImageModal" data-message-image="{{$fileRoute}}?inline=1" data-message-name="{{$attachment->name}}" aria-label="Preview {{$attachment->name}}"><img src="{{$fileRoute}}?inline=1" alt="{{$attachment->name}}" loading="lazy"></button>
+            <small class="d-block text-muted mt-1">Click image to preview</small>
         @endif
         <div class="secure-message-attachment">
             <a class="btn btn-sm btn-outline-brand" href="{{$fileRoute}}">Download {{$attachment->name}}</a>
