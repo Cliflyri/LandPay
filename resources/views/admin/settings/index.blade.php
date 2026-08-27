@@ -12,6 +12,7 @@
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reminder-settings" type="button" role="tab">Reminders</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#template-settings" type="button" role="tab">Email templates</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cron-settings" type="button" role="tab">Cron Instructions</button></li>
+<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#security-settings" type="button" role="tab">Security</button></li>
 </ul>
 <div class="tab-content settings-tab-content" id="settingsTabContent">
 <div class="tab-pane fade show active" id="company-settings" role="tabpanel" tabindex="0">
@@ -119,7 +120,6 @@
 
 @if($upcomingReminders->isNotEmpty())<hr class="my-4"><h3 class="h5">Upcoming reminder preview</h3><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Send date</th><th>Invoice</th><th>Rule</th><th>Recipient</th></tr></thead><tbody>@foreach($upcomingReminders as $candidate)<tr><td>{{$candidate['send_date']->format('M j, Y')}}</td><td><a href="{{route('admin.invoices.show',$candidate['invoice'])}}">{{$candidate['invoice']->invoice_number}}</a></td><td>{{str($candidate['trigger_type'])->replace('_',' ')->title()}}</td><td>{{$candidate['invoice']->paymentPlan->memberships->firstWhere('receives_invoices',true)?->client?->email ?? 'No recipient'}}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
-</div>
 <div class="tab-pane fade" id="template-settings" role="tabpanel" tabindex="0">
 <div class="admin-next-card mt-4"><h2>Email templates</h2><p class="text-muted mb-3">Choose a template to edit. Each template lists only the variables available to it.</p>
 <ul class="nav nav-tabs settings-tabs" role="tablist">
@@ -140,21 +140,91 @@
 </div>
 @endforeach
 </div></div>
-</div><div class="tab-pane fade" id="cron-settings" role="tabpanel" tabindex="0">
-<div class="admin-next-card mt-4"><h2>Cron Instructions</h2><p class="text-muted">The Laravel schedule is ready. Add one cron entry on the NAS so it is checked every minute. The reminder task itself runs once daily at 8:00 AM.</p>
-<ul class="nav nav-pills cron-tabs mb-3" role="tablist">
-<li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#cron-regular" type="button">Regular user</button></li>
-<li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#cron-root" type="button">Root / sudo</button></li>
-<li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#cron-status" type="button">Status</button></li>
-</ul>
-<div class="tab-content cron-tab-content">
-<div class="tab-pane fade show active" id="cron-regular"><p>Signed in as <code>landpaydev</code>, open your user crontab:</p>@include('admin.settings.partials.copy-command',['command'=>'crontab -e'])<p class="mt-3">Paste this line, save, and exit:</p>@include('admin.settings.partials.copy-command',['command'=>"* * * * * cd '/media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay' && /usr/bin/php artisan schedule:run >> /dev/null 2>&1"])</div>
-<div class="tab-pane fade" id="cron-root"><p>From a sudo-capable account, edit the existing <code>landpaydev</code> crontab:</p>@include('admin.settings.partials.copy-command',['command'=>'sudo crontab -u landpaydev -e'])<p class="mt-3">Paste this same scheduler line:</p>@include('admin.settings.partials.copy-command',['command'=>"* * * * * cd '/media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay' && /usr/bin/php artisan schedule:run >> /dev/null 2>&1"])</div>
-<div class="tab-pane fade" id="cron-status"><p>Confirm the cron entry exists:</p>@include('admin.settings.partials.copy-command',['command'=>'crontab -l'])<p class="mt-3">From root/sudo, inspect the LandPay user crontab:</p>@include('admin.settings.partials.copy-command',['command'=>'sudo crontab -u landpaydev -l'])<p class="mt-3">Confirm Laravel sees the reminder schedule:</p>@include('admin.settings.partials.copy-command',['command'=>"cd '/media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay' && /usr/bin/php artisan schedule:list"])</div>
-</div></div>
 </div>
+
+            <div class="tab-pane fade" id="cron-settings" role="tabpanel" tabindex="0">
+                <div class="admin-next-card mt-4">
+                    <h2>Cron Instructions</h2>
+                    <p class="text-muted">
+                        The Laravel schedule is ready. Add one cron entry on the NAS so it is checked every minute.
+                        The reminder task itself runs once daily at 8:00 AM.
+                    </p>
+
+                    <ul class="nav nav-pills cron-tabs mb-3" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#cron-regular" type="button">Regular user</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#cron-root" type="button">Root / sudo</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#cron-status" type="button">Status</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content cron-tab-content">
+                        <div class="tab-pane fade show active" id="cron-regular">
+                            <p>Signed in as <code>landpaydev</code>, open your user crontab:</p>
+                            @include('admin.settings.partials.copy-command', ['command' => 'crontab -e'])
+                            <p class="mt-3">Paste this line, save, and exit:</p>
+                            @include('admin.settings.partials.copy-command', ['command' => "* * * * * cd '/media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay' && /usr/bin/php artisan schedule:run >> /dev/null 2>&1"])
+                        </div>
+
+                        <div class="tab-pane fade" id="cron-root">
+                            <p>From a sudo-capable account, edit the existing <code>landpaydev</code> crontab:</p>
+                            @include('admin.settings.partials.copy-command', ['command' => 'sudo crontab -u landpaydev -e'])
+                            <p class="mt-3">Paste this same scheduler line:</p>
+                            @include('admin.settings.partials.copy-command', ['command' => "* * * * * cd '/media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay' && /usr/bin/php artisan schedule:run >> /dev/null 2>&1"])
+                        </div>
+
+                        <div class="tab-pane fade" id="cron-status">
+                            <p>Confirm the cron entry exists:</p>
+                            @include('admin.settings.partials.copy-command', ['command' => 'crontab -l'])
+                            <p class="mt-3">From root/sudo, inspect the LandPay user crontab:</p>
+                            @include('admin.settings.partials.copy-command', ['command' => 'sudo crontab -u landpaydev -l'])
+                            <p class="mt-3">Confirm Laravel sees the reminder schedule:</p>
+                            @include('admin.settings.partials.copy-command', ['command' => "cd '/media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay' && /usr/bin/php artisan schedule:list"])
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="security-settings" role="tabpanel" tabindex="0">
+                <div class="admin-next-card mt-4">
+                    <h2>Security</h2>
+                    <p>
+                        Immediately sign this administrator account out on every device and invalidate all saved
+                        "Keep me signed in" logins.
+                    </p>
+                    <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#logoutAllDevicesModal">
+                        Log out of all devices
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="logoutAllDevicesModal" tabindex="-1" aria-labelledby="logoutAllDevicesTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="logoutAllDevicesTitle">Log out everywhere?</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        This will sign you out on this device and every other device. You will need to sign in again.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form method="post" action="{{ route('admin.settings.security.logout-all') }}">
+                            @csrf
+                            <button class="btn btn-danger" type="submit">Log out everywhere</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 </div>
-</div></section>
+</section>
 @push('scripts')
 <script>
 const settingsParams = new URLSearchParams(window.location.search);

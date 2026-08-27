@@ -6,6 +6,8 @@ namespace Tests\Feature\Admin;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -45,6 +47,61 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('admin.dashboard', absolute: false));
     }
 
+    public function test_an_administrator_can_choose_to_be_remembered(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('Strong!Password123'),
+        ]);
+
+        $response = $this->post(route('admin.login.store'), [
+            'email' => $user->email,
+            'password' => 'Strong!Password123',
+            'remember' => '1',
+        ]);
+
+        $response->assertCookie(Auth::guard('web')->getRecallerName());
+        $this->assertNotNull($user->fresh()->remember_token);
+    }
+
+    public function test_an_administrator_can_log_out_all_admin_devices_without_affecting_client_sessions(): void
+    {
+        $user = User::factory()->create(['remember_token' => 'existing-token']);
+        $adminKey = Auth::guard('web')->getName();
+        $clientKey = Auth::guard('client')->getName();
+
+        DB::table('sessions')->insert([
+            [
+                'id' => 'admin-session',
+                'user_id' => $user->id,
+                'ip_address' => '127.0.0.1',
+                'user_agent' => 'Admin browser',
+                'payload' => base64_encode(json_encode([$adminKey => $user->id])),
+                'last_activity' => now()->timestamp,
+            ],
+            [
+                'id' => 'client-session',
+                'user_id' => $user->id,
+                'ip_address' => '127.0.0.1',
+                'user_agent' => 'Client browser',
+                'payload' => base64_encode(json_encode([$clientKey => $user->id])),
+                'last_activity' => now()->timestamp,
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('admin.settings.security.logout-all'))
+            ->assertRedirect(route('admin.login'));
+
+        $this->assertGuest('web');
+        $this->assertDatabaseMissing('sessions', ['id' => 'admin-session']);
+        $this->assertDatabaseHas('sessions', ['id' => 'client-session']);
+        $this->assertNotSame('existing-token', $user->fresh()->remember_token);
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $user->id,
+
+            'event' => 'administrator.logged_out_all_devices',
+        ]);
+    }
     public function test_login_does_not_replay_the_portal_return_delete_route_as_get(): void
     {
         $user = User::factory()->create([

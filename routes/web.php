@@ -149,6 +149,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::put('settings/company', [SettingsController::class, 'updateCompany'])->name('settings.company.update');
     Route::put('settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
     Route::post('settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+    Route::post('settings/security/logout-all', [SettingsController::class, 'logoutAllDevices'])->name('settings.security.logout-all');
     Route::put('settings/templates/{template}', [SettingsController::class, 'updateTemplate'])->name('settings.templates.update');
     Route::put('settings/reminders', [SettingsController::class, 'updateReminders'])->name('settings.reminders.update');
     Route::post('settings/templates/{template}/restore', [SettingsController::class, 'restoreTemplate'])->name('settings.templates.restore');

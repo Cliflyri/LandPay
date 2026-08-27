@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
+use App\Models\AuditLog;
 use App\Models\EmailTemplate;
+use App\Models\User;
 use App\Services\EmailTemplateService;
 use App\Services\SmtpConfigurationService;
 use App\Services\ReminderAutomationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -105,6 +109,45 @@ class SettingsController extends Controller
         }
         return back()->with('success', 'Test email sent to '.$data['test_email'].'.');
     }
+
+    public function logoutAllDevices(Request $request): RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $loginKey = Auth::guard('web')->getName();
+
+        $sessionIds = DB::table(config('session.table', 'sessions'))
+            ->where('user_id', $user->id)
+            ->get(['id', 'payload'])
+            ->filter(function (object $session) use ($loginKey, $user): bool {
+                $payload = json_decode((string) base64_decode($session->payload, true), true);
+
+                return is_array($payload)
+                    && (string) ($payload[$loginKey] ?? '') === (string) $user->getAuthIdentifier();
+            })
+            ->pluck('id');
+
+        DB::table(config('session.table', 'sessions'))->whereIn('id', $sessionIds)->delete();
+
+        AuditLog::query()->create([
+            'actor_type' => 'administrator',
+            'actor_user_id' => $user->id,
+            'event' => 'administrator.logged_out_all_devices',
+            'auditable_type' => User::class,
+            'auditable_id' => $user->id,
+            'before_values' => null,
+            'after_values' => null,
+            'ip_address' => $request->ip(),
+            'user_agent' => str($request->userAgent())->limit(500),
+        ]);
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('admin.login');
+    }
+
     public function updateReminders(Request $request): RedirectResponse
     {
         $data = $request->validate([
