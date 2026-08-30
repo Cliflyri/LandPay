@@ -35,7 +35,7 @@
  <div class='row g-3 mt-0' data-square-fee-fields>
   <div class='col-md-4'><label class='form-label'>Percentage</label><div class='input-group'><input class='form-control' type='number' min='0' max='99.99' step='0.01' name='processing_fee_percent' value='{{$square['processing_fee_percent']}}' required><span class='input-group-text'>%</span></div></div>
   <div class='col-md-4'><label class='form-label'>Fixed amount</label><div class='input-group'><span class='input-group-text'>$</span><input class='form-control' type='number' min='0' step='0.01' name='processing_fee_amount' value='{{$square['processing_fee_amount']}}' required></div></div>
-  <div class='col-md-4'><label class='form-label'>Fee cap (optional)</label><div class='input-group'><span class='input-group-text'>$</span><input class='form-control' type='number' min='0.01' step='0.01' name='processing_fee_cap' value='{{$square['processing_fee_cap']}}'></div></div>
+  <div class='col-md-4'><label class='form-label'>Fee cap (optional)</label><div class='input-group'><span class='input-group-text'>$</span><input class='form-control' type='number' min='0' step='0.01' name='processing_fee_cap' value='{{$square['processing_fee_cap']}}'></div></div>
   <div class='col-12 form-check form-switch ms-2'><input type='hidden' name='processing_fee_adjust' value='0'><input class='form-check-input' type='checkbox' name='processing_fee_adjust' value='1' id='square-fee-adjust' @checked($square['processing_fee_adjust'])><label class='form-check-label' for='square-fee-adjust'>Adjust fee to cover processing costs</label><div class='form-text'>Slightly increases the Processing Fee so the configured percentage and fixed amount are covered after Square applies them to the total charge.</div></div>
  </div>
 </div>
