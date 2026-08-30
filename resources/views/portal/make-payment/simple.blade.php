@@ -152,7 +152,7 @@
 </form>
 </div></section>
 @if($general['card_provider']==='square' && $square['experience']==='landpay')
-@push('scripts')<script nonce='{{$cspNonce}}' src='{{$square['environment']==='live'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js'}}'></script>@endpush
+@push('scripts')<script @isset($cspNonce) nonce='{{$cspNonce}}' @endisset src='{{$square['environment']==='live'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js'}}'></script>@endpush
 @endif
 @push('scripts')
 <script @isset($cspNonce) nonce='{{$cspNonce}}' @endisset>
