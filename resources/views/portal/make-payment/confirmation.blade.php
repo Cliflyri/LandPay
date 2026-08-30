@@ -8,6 +8,7 @@
 <div class="admin-next-card mt-4">
 <span class="dashboard-status {{$intent->status==='received'?'status-current':'status-due'}}">{{$intent->status==='received'?'Payment received':($intent->status==='checkout_pending'?'Payment processing':'Admin notified')}}</span>
 <h2 class="mt-3">{{\App\Support\Money::format($intent->amount)}} by {{$method['name']}}</h2>
+@if($intent->processing_fee_amount>0)<p>Payment amount: <strong>{{\App\Support\Money::format($intent->base_amount)}}</strong><br>Processing Fee: <strong>{{\App\Support\Money::format($intent->processing_fee_amount)}}</strong></p>@endif
 @if($intent->status==='received')
 <p>Your payment has been received and posted to your account.</p>
 @elseif($intent->status==='checkout_pending')

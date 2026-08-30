@@ -8,6 +8,8 @@ use App\Services\FinancialBalanceService;
 use App\Services\PaymentMethodConfigurationService;
 use App\Services\PaymentService;
 use App\Services\HostedPaymentService;
+use App\Services\SquareCardPaymentService;
+use App\Services\SquareProcessingFee;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,14 +18,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 class MakePaymentController extends Controller {
- public function __construct(private readonly PaymentMethodConfigurationService $methods,private readonly PaymentService $payments,private readonly FinancialBalanceService $balances,private readonly HostedPaymentService $hosted){}
+ public function __construct(private readonly PaymentMethodConfigurationService $methods,private readonly PaymentService $payments,private readonly FinancialBalanceService $balances,private readonly HostedPaymentService $hosted,private readonly SquareProcessingFee $squareFees,private readonly SquareCardPaymentService $squareCards){}
  public function create(Request $request): View{return $this->form($request);}
  public function preview(Request $request): View{$data=$this->validateInput($request);$plan=$this->plan($request,(int)$data['payment_plan_id']);$preview=$this->payments->preview($plan,Money::toCents($data['amount']),'regular',$data['overpayment_disposition']??null);return $this->form($request,$preview,$data);}
  public function store(Request $request) {
   $data=$this->validateInput($request);$account=$request->user('client');$plan=$this->plan($request,(int)$data['payment_plan_id']);$method=$this->methods->method($data['method']);abort_unless($method['enabled'],422);
   $this->payments->preview($plan,Money::toCents($data['amount']),'regular',$data['overpayment_disposition']??null);
   if($data['method']==='card'){
-   $intent=ClientPaymentIntent::query()->create(['payment_plan_id'=>$plan->id,'client_id'=>$account->client_id,'portal_account_id'=>$account->id,'method'=>'card','amount'=>Money::toCents($data['amount']),'payment_type'=>'regular','overpayment_disposition'=>$data['overpayment_disposition']??null,'client_note'=>$data['client_note']??null,'status'=>'announced','expires_at'=>now()->addDays($this->methods->general()['intent_expiry_days'])]);
+   $baseAmount=Money::toCents($data['amount']);$square=$this->squareFees->clientConfiguration();$landpay=$this->methods->general()['card_provider']==='square'&&$square['experience']==='landpay';
+   if($landpay){$request->validate(['square_source_id'=>['required','string','max:255'],'square_card_type'=>['required',Rule::in(['CREDIT','DEBIT','PREPAID','UNKNOWN'])]]);$fee=$this->squareFees->calculate($baseAmount,$data['square_card_type']);}else{$fee=0;}
+   $intent=ClientPaymentIntent::query()->create(['payment_plan_id'=>$plan->id,'client_id'=>$account->client_id,'portal_account_id'=>$account->id,'method'=>'card','amount'=>$baseAmount+$fee,'base_amount'=>$baseAmount,'processing_fee_amount'=>$fee,'card_type'=>$data['square_card_type']??null,'payment_type'=>'regular','overpayment_disposition'=>$data['overpayment_disposition']??null,'client_note'=>$data['client_note']??null,'status'=>'announced','provider'=>$landpay?'square':null,'expires_at'=>now()->addDays($this->methods->general()['intent_expiry_days'])]);
+   if($landpay){$intent=$this->squareCards->pay($intent,$data['square_source_id']);return redirect()->route('portal.make-payment.show',$intent);}
    $intent=$this->hosted->create($intent);return redirect()->away($intent->checkout_url);
   }
   $intent=DB::transaction(function()use($account,$plan,$data,$method){
@@ -67,8 +72,8 @@ class MakePaymentController extends Controller {
   $methodKeys=collect($methods)->pluck('key');
   $input+=['payment_plan_id'=>$selected->id,'amount'=>$amount,'method'=>$methodKeys->contains($requestedMethod)?$requestedMethod:($methods[0]['key']??null)];
   $activeStates=[];
-  return view('portal.make-payment.simple',['plans'=>$plans,'planBalances'=>$balances,'selectedPlan'=>$selected,'methods'=>$methods,'general'=>$this->methods->general(),'activeStates'=>$activeStates,'pendingNotifications'=>$pendingNotifications,'input'=>$input]);
+  return view('portal.make-payment.simple',['plans'=>$plans,'planBalances'=>$balances,'selectedPlan'=>$selected,'methods'=>$methods,'general'=>$this->methods->general(),'square'=>$this->squareFees->clientConfiguration(),'activeStates'=>$activeStates,'pendingNotifications'=>$pendingNotifications,'input'=>$input]);
  }
  private function plan(Request $request,int $id): PaymentPlan{abort_unless(in_array($id,$request->user('client')->activePlanIds(),true),404);return PaymentPlan::findOrFail($id);}
- private function validateInput(Request $request): array{return $request->validate(['payment_plan_id'=>['required','integer'],'amount'=>['required','decimal:0,2','gt:0'],'method'=>['required',Rule::in(PaymentMethodConfigurationService::METHODS)],'overpayment_disposition'=>['nullable',Rule::in(['principal','next_invoice_credit'])],'client_note'=>['nullable','string','max:1000']]);}
+ private function validateInput(Request $request): array{return $request->validate(['payment_plan_id'=>['required','integer'],'amount'=>['required','decimal:0,2','gt:0'],'method'=>['required',Rule::in(PaymentMethodConfigurationService::METHODS)],'overpayment_disposition'=>['nullable',Rule::in(['principal','next_invoice_credit'])],'client_note'=>['nullable','string','max:1000'],'square_source_id'=>['nullable','string','max:255'],'square_card_type'=>['nullable','string','max:20']]);}
 }

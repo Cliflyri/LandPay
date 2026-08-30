@@ -44,6 +44,17 @@
 </div>
 
 @if($method['key']==='card')
+@if($general['card_provider']==='square' && $square['experience']==='landpay')
+<div id='square-card-container' class='mt-3'></div>
+<input type='hidden' name='square_source_id' id='square-source-id'>
+<input type='hidden' name='square_card_type' id='square-card-type'>
+<div class='border rounded-3 p-3 mt-3' id='square-payment-summary' hidden>
+ <div class='d-flex justify-content-between'><span>Payment amount</span><strong>$<span data-square-base>0.00</span></strong></div>
+ <div class='d-flex justify-content-between mt-2'><span>Processing Fee:</span><strong>$<span data-square-fee>0.00</span></strong></div>
+ <hr><div class='d-flex justify-content-between fs-5'><span>Total card payment</span><strong>$<span data-square-total>0.00</span></strong></div>
+</div>
+<p class='form-text mt-2'>Any applicable Processing Fee is shown before you confirm. Debit cards are not charged a Processing Fee.</p>
+@endif
 <p class="form-text fs-6 mt-2 mb-3">
     If convenient, please consider one of the different direct payment methods above.
     Direct payments help avoid fees.
@@ -140,12 +151,17 @@
 @endforeach
 </form>
 </div></section>
+@if($general['card_provider']==='square' && $square['experience']==='landpay')
+@push('scripts')<script src='{{$square['environment']==='live'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js'}}'></script>@endpush
+@endif
 @push('scripts')
 <script>
 (()=>{
 const form=document.getElementById('payment-form'),plan=document.getElementById('payment-plan'),amount=document.getElementById('payment-amount'),method=document.getElementById('selected-method');
 const tabs=[...document.querySelectorAll('[data-tab]')],panels=[...document.querySelectorAll('[data-panel]')];
 const csrf=form.querySelector('[name="_token"]').value;
+const squareConfig=@json($square),squareLandPay={{$general['card_provider']==='square'&&$square['experience']==='landpay'?'true':'false'}};let squareCard=null,pendingSquareToken=null;
+if(squareLandPay){Square.payments(squareConfig.application_id,squareConfig.location_id).then(async payments=>{squareCard=await payments.card();await squareCard.attach('#square-card-container')}).catch(()=>alert('Secure card entry could not be loaded. Please refresh the page.'))}
 const notificationArea=document.querySelector('[data-pending-notifications]');
 function syncNotificationGroups(){document.querySelectorAll('[data-notification-plan]').forEach(group=>group.hidden=group.dataset.notificationPlan!==plan.value)}
 function notificationGroup(){let area=document.querySelector('[data-pending-notifications]');if(!area){area=document.createElement('div');area.dataset.pendingNotifications='';document.querySelector('h2.mt-4').before(area)}let group=area.querySelector('[data-notification-plan="'+plan.value+'"]');if(!group){group=document.createElement('div');group.dataset.notificationPlan=plan.value;area.appendChild(group)}return group}
@@ -166,18 +182,20 @@ document.querySelectorAll('[data-copy-payment-handle]').forEach(button=>button.a
 const states=@json($activeStates);let active=null;
 const cents=v=>Math.round((parseFloat(v)||0)*100),money=v=>(v/100).toFixed(2);
 function sync(){document.querySelectorAll('[data-amount]').forEach(el=>el.textContent=money(cents(amount.value)));updateExtra();}
+function resetSquare(){pendingSquareToken=null;const summary=document.getElementById('square-payment-summary');if(summary)summary.hidden=true;const button=document.querySelector('[data-panel=card] [data-send-payment]');if(button)button.textContent='Pay Now (Credit Card)'}
+function squareFee(base,type){if(!squareConfig.enabled||type!=='CREDIT')return 0;const rate=Number(squareConfig.basis_points),fixed=Number(squareConfig.fixed_amount);let fee=squareConfig.adjust?Math.ceil(((base+fixed)*10000)/(10000-rate))-base:Math.round((base*rate)/10000)+fixed;if(squareConfig.cap!==null)fee=Math.min(fee,Number(squareConfig.cap));return Math.max(0,fee)}
 function updateExtra(){const panel=document.querySelector('[data-panel="'+method.value+'"]'),choice=panel?.querySelector('[data-overpayment-choice]');if(!choice)return;const extra=Math.max(0,cents(amount.value)-Number(plan.selectedOptions[0].dataset.openCents));choice.hidden=extra===0;choice.querySelector('[data-extra-amount]').textContent=money(extra);}
 function lock(value){amount.readOnly=value||{{ $general['allow_custom_amount']?'false':'true' }};tabs.forEach(t=>t.disabled=value);}
 function showActive(){panels.forEach(p=>{p.querySelector('[data-notice-state]').hidden=true;const start=p.querySelector('[data-start-payment]');if(start)start.hidden=false});active=states[plan.value]||null;if(!active){lock(false);return}amount.value=active.amount;activate(active.method);lock(true);const panel=document.querySelector('[data-panel="'+active.method+'"]');panel.querySelector('[data-start-payment]').hidden=true;const state=panel.querySelector('[data-notice-state]');state.hidden=false;state.querySelector('[data-notice-message]').textContent=active.message;sync();}
 function activate(key){method.value=key;tabs.forEach(t=>{const on=t.dataset.tab===key;t.classList.toggle('active',on);t.setAttribute('aria-selected',on?'true':'false')});panels.forEach(p=>{const card=p.dataset.panel==='card',start=p.querySelector('[data-start-payment]');p.hidden=p.dataset.panel!==key;if(start)start.hidden=false;p.querySelector('[data-payment-drawer]').hidden=!card;p.querySelectorAll('[name="client_note"]').forEach(i=>i.disabled=!card)});sync();}
 tabs.forEach(t=>t.addEventListener('click',()=>activate(t.dataset.tab)));
-plan.addEventListener('change',()=>{amount.value=money(Number(plan.selectedOptions[0].dataset.openCents));activate(method.value);showActive();syncNotificationGroups();sync()});amount.addEventListener('input',sync);
+plan.addEventListener('change',()=>{amount.value=money(Number(plan.selectedOptions[0].dataset.openCents));resetSquare();activate(method.value);showActive();syncNotificationGroups();sync()});amount.addEventListener('input',()=>{resetSquare();sync()});
 document.querySelectorAll('[data-start-payment]').forEach(b=>b.addEventListener('click',()=>{const p=b.closest('[data-panel]'),d=p.querySelector('[data-payment-drawer]');b.hidden=true;d.hidden=false;d.querySelector('[name="client_note"]').disabled=false;updateExtra()}));
 document.querySelectorAll('[data-send-payment]').forEach(b=>b.addEventListener('click',async()=>{
  const panel=b.closest('[data-panel]'),extra=cents(amount.value)>Number(plan.selectedOptions[0].dataset.openCents),choice=panel.querySelector('[name="overpayment_disposition"]:checked');
  if(extra&&!choice){alert('Choose how the extra amount should be used.');return}
  panel.querySelectorAll('[data-payment-drawer] input').forEach(i=>i.disabled=i.name==='overpayment_disposition'?!extra:false);
- if(method.value==='card'){form.submit();return}
+ if(method.value==='card'){if(!squareLandPay){form.submit();return}if(pendingSquareToken){form.submit();return}if(!squareCard){alert('Secure card entry is still loading.');return}b.disabled=true;const result=await squareCard.tokenize();b.disabled=false;if(result.status!=='OK'){alert(result.errors?.[0]?.message||'Check the card information and try again.');return}const type=result.details?.card?.cardType||'UNKNOWN',base=cents(amount.value),fee=squareFee(base,type),total=base+fee;pendingSquareToken=result.token;document.getElementById('square-source-id').value=result.token;document.getElementById('square-card-type').value=type;document.querySelector('[data-square-base]').textContent=money(base);document.querySelector('[data-square-fee]').textContent=money(fee);document.querySelector('[data-square-total]').textContent=money(total);document.getElementById('square-payment-summary').hidden=false;b.textContent='Pay $'+money(total);return}
  b.disabled=true;const response=await fetch(form.action,{method:'POST',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf},body:new FormData(form)});
  if(response.redirected){window.location.assign(response.url);return}
  const contentType=response.headers.get('content-type')||'';if(!contentType.includes('application/json')){b.disabled=false;alert(response.status===403?'This portal is open in administrator read-only mode. Payment notifications can only be submitted when the client is signed in with their own account.':'Unable to notify the administrator (HTTP '+response.status+'). Please refresh the page and try again.');return}
