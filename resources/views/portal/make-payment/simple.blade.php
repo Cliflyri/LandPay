@@ -312,7 +312,7 @@
                         >
 
                         <button class="btn btn-brand mt-3" type="button" data-send-payment>
-                            {{ $method['key']==='card' ? 'Pay Now (Credit Card)' : 'Send notification' }}
+                            {{ $method['key']==='card' ? 'Review Payment' : 'Send notification' }}
                         </button>
 
                     </div>
