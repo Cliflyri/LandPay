@@ -218,6 +218,38 @@ class PaymentManagementTest extends TestCase
         $this->assertSame(1_880_000, app(FinancialBalanceService::class)->contractBalance($plan));
     }
 
+    public function test_preview_identifies_direct_fee_allocation_and_invoice_shortfall(): void
+    {
+        [$user, $plan] = $this->activePlanWithInvoice();
+
+        $this->actingAs($user)->post(route('admin.plans.payments.preview', $plan), [
+            'received_date' => '2026-08-08',
+            'amount' => '525.00',
+            'service_fee_amount' => '15.00',
+            'payment_type' => 'regular',
+            'payment_method' => 'check',
+            'idempotency_token' => '66666666-6666-4666-8666-666666666666',
+        ])->assertOk()
+            ->assertSeeText('Not Invoiced, allocated by this payment screen')
+            ->assertSeeText('Scheduled purchase payment ($500.00 due)')
+            ->assertSee('payment-allocation-shortfall', false)
+            ->assertSeeText('Outstanding due after payment')
+            ->assertSeeText('$15.00');
+    }
+
+    public function test_manual_invoice_service_fee_defaults_direct_allocation_to_zero(): void
+    {
+        [$user, $plan, $invoice] = $this->activePlanWithInvoice();
+        $invoice->update(['period_start' => null, 'period_end' => null]);
+
+        $this->actingAs($user)->get(route('admin.plans.payments.create', [
+            $plan, 'received_date' => '2026-08-08',
+        ]))->assertOk()
+            ->assertViewHas('defaultServiceFee', '0.00')
+            ->assertSeeText('Allocate service fee from this payment')
+            ->assertSeeText('Deducted before the remainder is applied to invoices.');
+    }
+
     private function activePlanWithInvoice(): array
     {
         $user = User::factory()->create();

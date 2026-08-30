@@ -129,8 +129,9 @@ class PaymentService
                 $allocations[] = [
                     'type' => PaymentAllocationType::InvoiceItem,
                     'amount' => $allocated,
+                    'due_amount' => $available,
                     'component' => $this->componentForItem($item),
-                    'label' => $item->description,
+                    'label' => strcasecmp($item->description, 'plan payment') === 0 ? 'Plan Payment' : $item->description,
                     'invoice_id' => $invoice->id,
                     'invoice_number' => $invoice->invoice_number,
                     'invoice_item_id' => $item->id,

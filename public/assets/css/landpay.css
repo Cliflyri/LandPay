@@ -255,6 +255,7 @@ a { text-underline-offset: .2em; }
 .payment-allocation-list li, .payment-preview-summary > div { display: flex; justify-content: space-between; gap: 1rem; padding: .9rem 0; border-bottom: 1px solid var(--lp-border); }
 .payment-allocation-list small { display: block; color: var(--lp-muted); }
 .payment-allocation-pending { color: #8a5415; }
+.payment-allocation-shortfall, .payment-preview-summary .payment-outstanding-due dt, .payment-preview-summary .payment-outstanding-due dd { color: #8b1e2d; }
 .payment-preview-summary { margin: 1rem 0 0; }.payment-preview-summary dt { color: var(--lp-muted); font-weight: 600; }.payment-preview-summary dd { margin: 0; font-weight: 800; }
 .payment-preview-summary .open-invoices-total { margin: 0 -.75rem; padding: .9rem .75rem; border-radius: .65rem; background: #fff3df; border-bottom-color: #f0c47d; }
 .payment-preview-summary .open-invoices-total dt, .payment-preview-summary .open-invoices-total dd { color: #9a461b; }.payment-preview-summary .open-invoices-total dd { font-size: 1.15rem; }

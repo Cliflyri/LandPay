@@ -16,10 +16,17 @@ class MonthlyServiceFeeHistoryService
         $feeItems = DB::table('invoice_items')
             ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
             ->where('invoices.payment_plan_id', $plan->id)
-            ->whereNotNull('invoices.period_start')
-            ->whereNotNull('invoices.period_end')
-            ->whereDate('invoices.period_start', '<=', $monthEnd)
-            ->whereDate('invoices.period_end', '>=', $monthStart)
+            ->where(function ($query) use ($monthStart, $monthEnd): void {
+                $query->where(function ($period) use ($monthStart, $monthEnd): void {
+                    $period->whereDate('invoices.period_start', '<=', $monthEnd)
+                        ->whereDate('invoices.period_end', '>=', $monthStart);
+                })->orWhere(function ($manual) use ($monthStart, $monthEnd): void {
+                    $manual->whereNull('invoices.period_start')
+                        ->whereNull('invoices.period_end')
+                        ->whereDate('invoices.issue_date', '>=', $monthStart)
+                        ->whereDate('invoices.issue_date', '<=', $monthEnd);
+                });
+            })
             ->where('invoices.status', '!=', 'voided')
             ->whereIn('invoice_items.item_type', ['monthly_service_fee', 'administrative_fee']);
 
