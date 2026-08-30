@@ -57,8 +57,8 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('invoices', [PortalInvoiceController::class, 'index'])->name('invoices.index');
     Route::get('invoices/{invoice}', [PortalInvoiceController::class, 'show'])->name('invoices.show');
     Route::get('invoices/{invoice}/download', [PortalInvoiceController::class, 'download'])->name('invoices.download');
-    Route::get('make-payment', [MakePaymentController::class, 'create'])->name('make-payment.create');
-    Route::post('make-payment/preview', [MakePaymentController::class, 'preview'])->name('make-payment.preview');
+    Route::get('make-payment', [MakePaymentController::class, 'create'])->middleware('square.payment-csp')->name('make-payment.create');
+    Route::post('make-payment/preview', [MakePaymentController::class, 'preview'])->middleware('square.payment-csp')->name('make-payment.preview');
     Route::post('make-payment', [MakePaymentController::class, 'store'])->name('make-payment.store');
     Route::get('make-payment/{intent}', [MakePaymentController::class, 'show'])->name('make-payment.show');
     Route::delete('make-payment/{intent}', [MakePaymentController::class, 'cancel'])->name('make-payment.cancel');

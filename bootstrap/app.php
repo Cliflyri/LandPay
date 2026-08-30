@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'portal.enabled' => \App\Http\Middleware\EnsurePortalAccountIsEnabled::class,
             'portal.read-only' => \App\Http\Middleware\EnsurePortalImpersonationIsReadOnly::class,
+            'square.payment-csp' => \App\Http\Middleware\SquarePaymentContentSecurityPolicy::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

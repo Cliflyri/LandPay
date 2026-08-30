@@ -152,10 +152,10 @@
 </form>
 </div></section>
 @if($general['card_provider']==='square' && $square['experience']==='landpay')
-@push('scripts')<script src='{{$square['environment']==='live'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js'}}'></script>@endpush
+@push('scripts')<script nonce='{{$cspNonce}}' src='{{$square['environment']==='live'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js'}}'></script>@endpush
 @endif
 @push('scripts')
-<script>
+<script @isset($cspNonce) nonce='{{$cspNonce}}' @endisset>
 (()=>{
 const form=document.getElementById('payment-form'),plan=document.getElementById('payment-plan'),amount=document.getElementById('payment-amount'),method=document.getElementById('selected-method');
 const tabs=[...document.querySelectorAll('[data-tab]')],panels=[...document.querySelectorAll('[data-panel]')];
