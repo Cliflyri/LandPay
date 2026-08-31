@@ -182,7 +182,20 @@
 
     @if($general['card_provider']==='square' && $square['experience']==='landpay')
 
-        <div id='square-card-container' class='mt-3'></div>
+        <div data-square-card-entry>
+            <button
+                type='button'
+                data-change-square-card
+                hidden
+                class='w-100 py-1 px-3 text-start fw-semibold rounded-3 border border-warning-subtle bg-warning-subtle text-warning-emphasis'
+            >
+                <span data-square-card-label>Selected card</span>
+                <span class='ms-2'>Change Card</span>
+            </button>
+            <div data-square-card-fields>
+                <div id='square-card-container' class='mt-3'></div>
+            </div>
+        </div>
 
         <input type='hidden' name='square_source_id' id='square-source-id'>
         <input type='hidden' name='square_card_type' id='square-card-type'>
@@ -508,6 +521,17 @@
                     .then(async card => {
                         squareCard = card;
                         await squareCard.attach('#square-card-container');
+                        [
+                            'cardBrandChanged',
+                            'postalCodeChanged',
+                            'errorClassAdded',
+                            'errorClassRemoved',
+                            'focusClassAdded'
+                        ].forEach(eventName =>
+                            squareCard.addEventListener(eventName, () => {
+                                if (pendingSquareToken) resetSquare();
+                            })
+                        );
                     })
                     .catch(squareLoadError);
 
@@ -703,9 +727,19 @@
 
         pendingSquareToken = null;
 
-        const summary = document.getElementById('square-payment-summary');
+        const summary = document.getElementById('square-payment-summary'),
+            fields = document.querySelector('[data-square-card-fields]'),
+            change = document.querySelector('[data-change-square-card]');
 
         if (summary) summary.hidden = true;
+        if (fields) fields.hidden = false;
+        if (change) change.hidden = true;
+
+        const source = document.getElementById('square-source-id'),
+            cardType = document.getElementById('square-card-type');
+
+        if (source) source.value = '';
+        if (cardType) cardType.value = '';
 
         const button = document.querySelector(
             '[data-panel=card] [data-send-payment]'
@@ -713,7 +747,15 @@
 
         if (button) button.textContent = 'Review Payment (Credit Card)';
 
+        squareCard?.recalculateSize();
+
     }
+
+    document.querySelector('[data-change-square-card]')
+        ?.addEventListener('click', async () => {
+            resetSquare();
+            await squareCard?.focus('cardNumber');
+        });
 
     function squareFee(base, type) {
 
@@ -932,6 +974,8 @@
 
                 const type =
                         result.details?.card?.cardType || 'UNKNOWN',
+                    brand = result.details?.card?.brand,
+                    last4 = result.details?.card?.last4,
                     base = cents(amount.value),
                     fee = squareFee(base, type),
                     total = base + fee;
@@ -953,7 +997,20 @@
                 document.querySelector('[data-square-total]').textContent =
                     money(total);
 
+                document.querySelector('[data-square-card-label]').textContent =
+                    brand && last4
+                        ? brand.charAt(0).toUpperCase() +
+                            brand.slice(1).toLowerCase() +
+                            ' ending in ' + last4
+                        : 'Selected card';
+
                 document.getElementById('square-payment-summary').hidden =
+                    false;
+
+                document.querySelector('[data-square-card-fields]').hidden =
+                    true;
+
+                document.querySelector('[data-change-square-card]').hidden =
                     false;
 
                 b.textContent = 'Pay $' + money(total);
