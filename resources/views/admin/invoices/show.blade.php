@@ -2,9 +2,12 @@
 @section('title',$invoice->invoice_number.' | LandPay')
 @section('body_class','admin-page')
 @section('content')
-@php($primary=$invoice->paymentPlan->memberships->firstWhere('role','primary')?->client)
-@php($clientName=$primary?->organization_name ?: trim(($primary?->first_name ?? '').' '.($primary?->last_name ?? '')) ?: 'Not assigned')
-@php($statusLabel=str($invoice->status->value)->replace('_',' ')->title())
+@php
+    $primary = $invoice->paymentPlan->memberships->firstWhere('role', 'primary')?->client;
+    $clientName = $primary?->organization_name ?: trim(($primary?->first_name ?? '').' '.($primary?->last_name ?? '')) ?: 'Not assigned';
+    $statusLabel = str($invoice->status->value)->replace('_', ' ')->title();
+    $invoiceSentAt = $invoice->emailDeliveries->where('template_slug', 'invoice-email')->where('status', 'sent')->sortByDesc('sent_at')->first()?->sent_at;
+@endphp
 <section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div><span class="eyebrow eyebrow-dark">Invoice</span><div class="d-flex flex-wrap align-items-center gap-2"><h1 class="mb-0">{{$invoice->invoice_number}}</h1><span class="dashboard-status status-{{str($invoice->status->value)->slug()}}">{{$statusLabel}}</span></div><p class="mb-0 mt-2">{{$invoice->paymentPlan->title}} <span aria-hidden="true">&middot;</span> APN / Plan # {{$invoice->paymentPlan->apn ?: $invoice->paymentPlan->plan_number}}</p></div>
@@ -29,6 +32,8 @@
         <div class="col-sm-6 col-lg-3"><dt>Client</dt><dd class="mb-0">{{$clientName}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>Invoice date</dt><dd class="mb-0">{{$invoice->issue_date->format('M j, Y')}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>Due date</dt><dd class="mb-0 {{$balance>0 && $invoice->due_date->isPast() ? 'invoice-date-overdue' : ''}}">{{$invoice->due_date->format('M j, Y')}}</dd></div>
+        <div class="col-sm-6 col-lg-3"><dt>Sent</dt><dd class="mb-0">{{$invoiceSentAt?->format('M j, Y g:i A') ?? 'Not sent'}}</dd></div>
+        <div class="col-sm-6 col-lg-3"><dt>First viewed</dt><dd class="mb-0">{{$invoice->first_viewed_at?->format('M j, Y g:i A') ?? 'Not yet viewed'}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>Billing period</dt><dd class="mb-0">
             @if($invoice->period_start && $invoice->period_end)
     {{ $invoice->period_start->format('M j') }}

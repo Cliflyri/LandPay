@@ -23,6 +23,7 @@ class Invoice extends Model
             'issue_date' => 'date',
             'due_date' => 'date',
             'issued_at' => 'datetime',
+            'first_viewed_at' => 'datetime',
             'operationally_closed_at' => 'datetime',
             'reopened_at' => 'datetime',
         ];
@@ -53,4 +54,5 @@ class Invoice extends Model
     {
         return $this->hasMany(InvoiceReminder::class);
     }
+    public function emailDeliveries(): HasMany { return $this->hasMany(EmailDelivery::class); }
 }

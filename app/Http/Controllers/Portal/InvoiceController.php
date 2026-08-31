@@ -5,12 +5,13 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\FinancialBalanceService;
+use App\Services\InvoiceFirstViewService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 class InvoiceController extends Controller {
- public function __construct(private readonly FinancialBalanceService $balances) {}
+ public function __construct(private readonly FinancialBalanceService $balances,private readonly InvoiceFirstViewService $firstViews) {}
  
  
 public function index(Request $request): View
@@ -67,6 +68,7 @@ public function index(Request $request): View
 public function show(Request $request, Invoice $invoice): View
 {
     $this->authorizeInvoice($request, $invoice);
+    $this->firstViews->record($invoice,$request->user('client'));
 
     $invoice->load([
         'paymentPlan',

@@ -156,7 +156,7 @@ $primaryClientName = $primaryClient?->organization_name
 
     public function show(Invoice $invoice): View
     {
-        $invoice->load(['paymentPlan.memberships.client', 'items']);
+        $invoice->load(['paymentPlan.memberships.client', 'items', 'emailDeliveries']);
         $balance = $this->balances->invoiceBalance($invoice);
         $subtotal = (int) $invoice->items->sum('standard_amount');
         $waivers = (int) $invoice->items->sum('waived_amount');

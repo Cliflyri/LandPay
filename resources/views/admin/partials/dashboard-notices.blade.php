@@ -14,6 +14,7 @@
             @elseif($notice->type === 'square_payment_anomaly' && $notice->paymentIntent?->payment)<a class="btn btn-sm btn-brand" href="{{route('admin.payments.show',$notice->paymentIntent->payment)}}">Review payment</a>
             @elseif($notice->paymentIntent?->status === 'announced')<a class="btn btn-sm btn-brand" href="{{route('admin.payment-intents.receive',$notice->paymentIntent)}}">Receive payment</a>
             @elseif($notice->secureMessageThread)<a class="btn btn-sm btn-outline-brand" href="{{route('admin.messages.show',$notice->secureMessageThread)}}">Open message</a>
+            @elseif($notice->invoice)<a class="btn btn-sm btn-outline-brand" href="{{route('admin.invoices.show',$notice->invoice)}}">Open invoice</a>
             @elseif($notice->client)<a class="btn btn-sm btn-outline-brand" href="{{route('admin.clients.show',$notice->client)}}">Open client</a>@endif
             <form method="post" action="{{route('admin.notices.dismiss',$notice)}}">@csrf<button class="btn btn-sm btn-outline-brand">Dismiss</button></form>
         </div></div></div>

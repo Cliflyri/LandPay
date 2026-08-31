@@ -233,16 +233,22 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         $currentInvoices = $sortedInvoices->reject(fn ($invoice) => $invoice->status->value === 'voided');
         $voidedInvoices = $sortedInvoices->filter(fn ($invoice) => $invoice->status->value === 'voided');
     @endphp
-    <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Status</th><th class="text-end">Original amount</th></tr></thead><tbody>
+    <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Status</th><th>Delivery</th><th class="text-end">Original amount</th></tr></thead><tbody>
     @forelse($currentInvoices as $invoice)
-    <tr><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-{{str($invoice->status->value)->replace('_','-')}}">{{str($invoice->status->value)->replace('_',' ')->title()}}</span></td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
+    @php
+        $invoiceSentAt = $invoice->emailDeliveries->where('template_slug', 'invoice-email')->where('status', 'sent')->sortByDesc('sent_at')->first()?->sent_at;
+    @endphp
+    <tr><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-{{str($invoice->status->value)->replace('_','-')}}">{{str($invoice->status->value)->replace('_',' ')->title()}}</span></td><td>@if($invoice->first_viewed_at)<span class="invoice-delivery-marker is-viewed" title="First viewed {{$invoice->first_viewed_at->format('M j, Y \a\t g:i A')}}">Viewed</span>@elseif($invoiceSentAt)<span class="invoice-delivery-marker is-sent" title="Sent {{$invoiceSentAt->format('M j, Y \a\t g:i A')}}">Sent</span>@else<span class="invoice-delivery-marker is-unsent" title="No invoice email or client view recorded">Not sent</span>@endif</td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
     @empty
-    <tr><td colspan="5" class="dashboard-empty"><strong>No current invoices</strong><span>Review and issue the next invoice when ready.</span></td></tr>
+    <tr><td colspan="6" class="dashboard-empty"><strong>No current invoices</strong><span>Review and issue the next invoice when ready.</span></td></tr>
     @endforelse
     @if($voidedInvoices->isNotEmpty())
-    <tr><td colspan="5" class="pt-4 pb-2 border-bottom"><strong>Voided / Inactive invoices</strong><span class="d-block text-muted small">Retained for account history; these amounts are not currently due.</span></td></tr>
+    <tr><td colspan="6" class="pt-4 pb-2 border-bottom"><strong>Voided / Inactive invoices</strong><span class="d-block text-muted small">Retained for account history; these amounts are not currently due.</span></td></tr>
     @foreach($voidedInvoices as $invoice)
-    <tr class="text-muted"><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-voided">Voided</span></td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
+    @php
+        $invoiceSentAt = $invoice->emailDeliveries->where('template_slug', 'invoice-email')->where('status', 'sent')->sortByDesc('sent_at')->first()?->sent_at;
+    @endphp
+    <tr class="text-muted"><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-voided">Voided</span></td><td>@if($invoice->first_viewed_at)<span class="invoice-delivery-marker is-viewed" title="First viewed {{$invoice->first_viewed_at->format('M j, Y \a\t g:i A')}}">Viewed</span>@elseif($invoiceSentAt)<span class="invoice-delivery-marker is-sent" title="Sent {{$invoiceSentAt->format('M j, Y \a\t g:i A')}}">Sent</span>@else<span class="invoice-delivery-marker is-unsent" title="No invoice email or client view recorded">Not sent</span>@endif</td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
     @endforeach
     @endif
     </tbody></table></div>
@@ -251,7 +257,10 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 <div class="admin-next-card mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h2 class="mb-1">Payments</h2><p class="text-muted mb-0">Posted payments and reversals remain visible.</p></div><a class="btn btn-outline-brand" href="{{route('admin.plans.payments.create',$plan)}}">Record payment</a></div>
     <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Payer</th><th>Purpose</th><th>Method</th><th>Status</th><th class="text-end">Amount</th></tr></thead><tbody>
-    @forelse($payments as $payment)
+    @if($payments->isEmpty())
+    <tr><td colspan="6" class="dashboard-empty"><strong>No payments yet</strong><span>Record the first payment when funds are received.</span></td></tr>
+    @else
+    @foreach($payments as $payment)
     @php
         $invoiceAllocations = $payment->invoiceAllocations();
         $hasAdditional = $payment->hasAdditionalAllocation();
@@ -280,9 +289,8 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         <td>@if($payment->financialTransaction->reversedBy)<span class="dashboard-status status-closed">Reversed</span>@else<span class="dashboard-status status-current">Posted</span>@endif</td>
         <td class="money-cell">{{\App\Support\Money::format($payment->gross_amount)}}</td>
     </tr>
-    @empty
-    <tr><td colspan="6" class="dashboard-empty"><strong>No payments yet</strong><span>Record the first payment when funds are received.</span></td></tr>
-    @endforelse
+    @endforeach
+    @endif
 
     </tbody></table></div>
 </div>

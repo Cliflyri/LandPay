@@ -147,6 +147,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::put('settings/payment-providers/{provider}', [PaymentMethodSettingsController::class, 'updateProvider'])->name('payment-methods.provider.update');
     Route::get('payment-intents/{intent}/receive', [PaymentController::class, 'intentPreview'])->name('payment-intents.receive');
     Route::put('settings/company', [SettingsController::class, 'updateCompany'])->name('settings.company.update');
+    Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
     Route::put('settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
     Route::post('settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
     Route::post('settings/security/logout-all', [SettingsController::class, 'logoutAllDevices'])->name('settings.security.logout-all');

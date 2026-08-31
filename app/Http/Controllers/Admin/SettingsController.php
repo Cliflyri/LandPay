@@ -42,6 +42,7 @@ class SettingsController extends Controller
             'smtp' => $this->smtp->values(),
             'reminderSettings' => $this->automation->settings(),
             'upcomingReminders' => $this->automation->eligible(now()->startOfDay(), true)->take(10),
+            'notificationSettings'=>['notice'=>AppSetting::valueFor('invoice_view_admin_notice_enabled','0')==='1','email'=>AppSetting::valueFor('invoice_view_admin_email_enabled','0')==='1','address'=>AppSetting::valueFor('invoice_view_admin_email','')],
         ]);
     }
 
@@ -56,6 +57,15 @@ class SettingsController extends Controller
         ]);
         AppSetting::putMany($data);
         return back()->with('success', 'Company and email settings saved.');
+    }
+
+    public function updateNotifications(Request $request):RedirectResponse
+    {
+        $data=$request->validate(['invoice_view_admin_notice_enabled'=>['nullable','boolean'],'invoice_view_admin_email_enabled'=>['nullable','boolean'],'invoice_view_admin_email'=>['nullable','email','max:254']]);
+        $email=trim($data['invoice_view_admin_email']??'');$fallback=AppSetting::valueFor('reply_to_email')?:AppSetting::valueFor('company_email');
+        if($request->boolean('invoice_view_admin_email_enabled')&&blank($email?:$fallback))throw ValidationException::withMessages(['invoice_view_admin_email'=>'Enter a notification email or configure a reply-to or company email.']);
+        AppSetting::putMany(['invoice_view_admin_notice_enabled'=>$request->boolean('invoice_view_admin_notice_enabled')?'1':'0','invoice_view_admin_email_enabled'=>$request->boolean('invoice_view_admin_email_enabled')?'1':'0','invoice_view_admin_email'=>$email]);
+        return redirect()->route('admin.settings.index',['section'=>'notifications'])->with('success','Notification settings saved.');
     }
 
     public function updateTemplate(Request $request, EmailTemplate $template): RedirectResponse

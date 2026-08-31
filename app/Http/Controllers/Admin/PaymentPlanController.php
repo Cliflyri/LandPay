@@ -53,6 +53,7 @@ public function index(Request $request): View
             'memberships.client.portalAccount',
             'currentBillingTerms',
             'invoices.items',
+            'invoices.emailDeliveries',
         ])
         ->latest()
         ->paginate(25)
@@ -210,7 +211,7 @@ public function index(Request $request): View
 
     public function show(PaymentPlan $plan): View
     {
-        $plan->load(['memberships.client', 'currentBillingTerms', 'billingTerms.createdBy', 'invoices.items']);
+        $plan->load(['memberships.client', 'currentBillingTerms', 'billingTerms.createdBy', 'invoices.items', 'invoices.emailDeliveries']);
         $contractBalance = $this->balances->contractBalance($plan);
         $openInvoiceBalance = (int) $plan->invoices->sum(fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice)));
         $monthlyPrincipal = (int) ($plan->currentBillingTerms?->scheduled_payment_amount ?? $plan->customary_monthly_payment ?? 0);
