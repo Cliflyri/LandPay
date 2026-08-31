@@ -167,13 +167,18 @@
 
 @if($method['key']==='card')
 
-    <div class="border rounded-3 bg-light p-3 mt-3 mb-3">
-        <strong class="d-block mb-1">Credit card payments may include a processing fee.</strong>
+<div class="rounded-3 p-3 mt-3 mb-3"
+     style="background:#fffaf0; border:1px solid #ead9a4; border-left:4px solid #d6a84b;">
 
-        <p class="mb-0 text-muted">
-            To avoid processing fees, please consider one of the direct payment methods above.
-        </p>
-    </div>
+    <p class="mb-1">
+        <strong>Credit card payments may include a processing fee.</strong>
+        Any fee and your final total will be shown before you confirm payment.
+    </p>
+
+    <p class="mb-0 text-muted small">
+        To avoid processing fees, please consider one of the direct payment methods above.
+    </p>
+</div>
 
     @if($general['card_provider']==='square' && $square['experience']==='landpay')
 
@@ -202,16 +207,10 @@
             </div>
 
         </div>
-
-        <p class="form-text mt-2">
-            Any applicable processing fee and your final total will be shown before you confirm payment.
-        </p>
-
     @endif
 
     <p class="form-text mt-3 mb-0">
-        Card payments are processed securely by {{ ucfirst($general['card_provider']) }}.
-        LandPay records your payment after the processor confirms it.
+        Card payments are processed securely by {{ ucfirst($general['card_provider']) }}.        
     </p>
 
 
