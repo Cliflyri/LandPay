@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceEmailController;
 use App\Http\Controllers\Admin\InvoiceReminderController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\PaymentReceiptController;
 use App\Http\Controllers\Admin\PaymentPlanController;
 use App\Http\Controllers\Admin\PaymentPlanPauseController;
@@ -109,6 +110,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('notices', [AdminNoticeController::class, 'index'])->name('notices.index');
     Route::post('notices/{notice}/dismiss', [AdminNoticeController::class, 'dismiss'])->name('notices.dismiss');
     Route::get('dashboard/status', [DashboardController::class, 'status'])->name('dashboard.status');
+    Route::get('reports/{report?}', [ReportController::class, 'show'])->name('reports.show');
+    Route::get('reports/{report}/export', [ReportController::class, 'export'])->name('reports.export');
     Route::get('messages', [AdminSecureMessageController::class, 'index'])->name('messages.index');
     Route::post('messages/email-notifications', [AdminSecureMessageController::class, 'updateEmailNotifications'])->name('messages.email-notifications');
     Route::get('messages/create', [AdminSecureMessageController::class, 'create'])->name('messages.create');

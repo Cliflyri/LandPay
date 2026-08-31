@@ -51,6 +51,8 @@
         Dashboard
     </a>
 
+    <a class="admin-sidebar-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" href="{{route('admin.reports.show')}}"><span aria-hidden="true">&#9636;</span>Reports</a>
+
     <a
         class="admin-sidebar-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}"
         href="{{ route('admin.clients.index') }}"
