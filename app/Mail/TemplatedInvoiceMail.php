@@ -23,6 +23,8 @@ class TemplatedInvoiceMail extends Mailable
         public readonly string $renderedBody,
         public readonly string $deliveryFormat = 'inline',
         public readonly ?int $balance = null,
+        public readonly ?string $secureUrl = null,
+        public readonly bool $magicLinkEmbedded = false,
     ) {}
 
     public function envelope(): Envelope
@@ -33,7 +35,7 @@ class TemplatedInvoiceMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(view: 'emails.templated-invoice', text: 'emails.templated-text');
+        return new Content(view: 'emails.templated-invoice', text: 'emails.invoice-text');
     }
 
     public function attachments(): array

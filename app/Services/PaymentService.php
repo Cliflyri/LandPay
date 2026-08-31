@@ -32,7 +32,7 @@ class PaymentService
     ) {}
 
     /** @return array<string, mixed> */
-    public function preview(PaymentPlan $plan, int $amount, string $paymentType, ?string $overpaymentDisposition = null, int $serviceFeeAmount = 0, ?string $serviceFeeMonth = null): array
+    public function preview(PaymentPlan $plan, int $amount, string $paymentType, ?string $overpaymentDisposition = null, int $serviceFeeAmount = 0, ?string $serviceFeeMonth = null, ?int $invoiceId = null): array
     {
         if (! in_array($plan->status, ['active', 'paused'], true)) {
             throw ValidationException::withMessages(['payment_plan' => 'Payments can only be posted to an active or paused payment plan.']);
@@ -86,7 +86,7 @@ class PaymentService
             ];
             $remaining -= $serviceFeeAmount;
         }
-        if ($this->hasUninvoicedDueFirstPayment($plan)) {
+        if ($invoiceId === null && $this->hasUninvoicedDueFirstPayment($plan)) {
             $allocated = min($remaining, $plan->first_payment_amount);
             $allocations[] = [
                 'type' => PaymentAllocationType::InvoiceItem,
@@ -103,6 +103,7 @@ class PaymentService
         $invoices = Invoice::query()
             ->where('payment_plan_id', $plan->id)
             ->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])
+            ->when($invoiceId, fn ($query) => $query->whereKey($invoiceId))
             ->with('items')
             ->orderBy('due_date')
             ->orderBy('id')
@@ -205,8 +206,9 @@ class PaymentService
         int $serviceFeeAmount = 0,
         ?string $serviceFeeMonth = null,
         int $processingFeeAmount = 0,
+        ?int $invoiceId = null,
     ): Payment {
-        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey, $serviceFeeAmount, $serviceFeeMonth, $processingFeeAmount): Payment {
+        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey, $serviceFeeAmount, $serviceFeeMonth, $processingFeeAmount, $invoiceId): Payment {
             if ($idempotencyKey !== null) {
                 $existing = FinancialTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
                 if ($existing !== null) {
@@ -226,7 +228,7 @@ class PaymentService
             if ($processingFeeAmount < 0 || $processingFeeAmount >= $amount) {
                 throw ValidationException::withMessages(['processing_fee' => 'Processing Fee must be less than the total payment.']);
             }
-            $preview = $this->preview($lockedPlan, $amount - $processingFeeAmount, $paymentType, $overpaymentDisposition?->value, $serviceFeeAmount, $serviceFeeMonth);
+            $preview = $this->preview($lockedPlan, $amount - $processingFeeAmount, $paymentType, $overpaymentDisposition?->value, $serviceFeeAmount, $serviceFeeMonth, $invoiceId);
             if ($processingFeeAmount > 0) {
                 $preview['allocations'][] = [
                     'type' => PaymentAllocationType::ProcessingFee,

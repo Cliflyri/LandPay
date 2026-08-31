@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'portal.enabled' => \App\Http\Middleware\EnsurePortalAccountIsEnabled::class,
             'portal.read-only' => \App\Http\Middleware\EnsurePortalImpersonationIsReadOnly::class,
             'square.payment-csp' => \App\Http\Middleware\SquarePaymentContentSecurityPolicy::class,
+            'secure.invoice' => \App\Http\Middleware\EnsureSecureInvoiceAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

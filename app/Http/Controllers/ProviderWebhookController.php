@@ -42,7 +42,7 @@ class ProviderWebhookController extends Controller
         }
 
         $actor = User::query()->where('status', 'active')->oldest()->firstOrFail();
-        $payment = $this->payments->post($intent->paymentPlan, $actor, $intent->amount, 'regular', PaymentMethod::Card, now()->toDateString(), $intent->client_id, $provider.':'.$data['payment_id'], $intent->overpayment_disposition ? OverpaymentDisposition::from($intent->overpayment_disposition) : null, 'provider:'.$provider.':'.$data['payment_id']);
+        $payment = $this->payments->post($intent->paymentPlan, $actor, $intent->amount, 'regular', PaymentMethod::Card, now()->toDateString(), $intent->client_id, $provider.':'.$data['payment_id'], $intent->overpayment_disposition ? OverpaymentDisposition::from($intent->overpayment_disposition) : null, 'provider:'.$provider.':'.$data['payment_id'], invoiceId: $intent->invoice_id);
         $intent->update(['status' => 'received', 'provider_payment_id' => $data['payment_id'], 'payment_id' => $payment->id, 'received_at' => now()]);
         $clientName = trim($intent->client->first_name.' '.$intent->client->last_name);
         AdminNotice::create(['type' => 'online_payment_received', 'client_id' => $intent->client_id, 'client_payment_intent_id' => $intent->id, 'title' => 'Online payment received', 'message' => $clientName.' paid '.Money::format($intent->amount).' by '.ucfirst($provider).' on '.$payment->received_date->format('M j, Y').'. Payment posted successfully.']);

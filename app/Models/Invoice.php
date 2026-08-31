@@ -55,4 +55,5 @@ class Invoice extends Model
         return $this->hasMany(InvoiceReminder::class);
     }
     public function emailDeliveries(): HasMany { return $this->hasMany(EmailDelivery::class); }
+    public function accessLink(): \Illuminate\Database\Eloquent\Relations\HasOne { return $this->hasOne(InvoiceAccessLink::class); }
 }

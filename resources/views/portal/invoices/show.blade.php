@@ -4,7 +4,9 @@
 @section('body_class', 'admin-page')
 
 @section('content')
+@include('portal._secure-invoice-notice')
 @php($statusLabel = str($invoice->status->value)->replace('_', ' ')->title())
+@if(session('status'))<div class="container site-container mt-3"><div class="alert alert-info mb-0">{{session('status')}}</div></div>@endif
 
 <section class="admin-section">
     <div class="container site-container">
@@ -34,7 +36,7 @@
                     @if ($balance > 0)
                         <a
                             class="btn btn-sun"
-                            href="{{ route('portal.make-payment.create', [
+                            href="{{ ($secureAccess ?? false) ? route('secure-invoice.payment.create') : route('portal.make-payment.create', [
                                 'plan' => $invoice->payment_plan_id,
                                 'amount' => number_format($balance / 100, 2, '.', ''),
                             ]) }}"
@@ -45,14 +47,14 @@
 
                 <a
                     class="btn btn-brand"
-                    href="{{ route('portal.invoices.download', $invoice) }}"
+                    href="{{ ($secureAccess ?? false) ? route('secure-invoice.download') : route('portal.invoices.download', $invoice) }}"
                 >
                     Download PDF
                 </a>
 
                 <a
                     class="btn btn-outline-brand"
-                    href="{{ route('portal.invoices.index') }}"
+                    href="{{ ($secureAccess ?? false) ? route('portal.login') : route('portal.invoices.index') }}"
                 >
                     Back
                 </a>
@@ -127,7 +129,7 @@
                     @if ($balance > 0)
                         <a
                             class="btn btn-sun mt-3"
-                            href="{{ route('portal.make-payment.create', [
+                            href="{{ ($secureAccess ?? false) ? route('secure-invoice.payment.create') : route('portal.make-payment.create', [
                                 'plan' => $invoice->payment_plan_id,
                                 'amount' => number_format($balance / 100, 2, '.', ''),
                             ]) }}"

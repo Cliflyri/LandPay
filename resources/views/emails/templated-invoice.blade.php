@@ -13,6 +13,7 @@
 <tr style="background:#edf3e9;font-size:17px"><td><strong>Balance due</strong></td><td align="right"><strong>{{ \App\Support\Money::format($balance ?? 0) }}</strong></td></tr>
 </table>
 @endif
+@unless($magicLinkEmbedded)<p style="margin:26px 0 8px"><a href="{{ $secureUrl }}" style="display:inline-block;padding:12px 20px;background:#d99a2b;color:#173f40;text-decoration:none;font-weight:bold;border-radius:6px">View and pay invoice</a></p><p style="font-size:12px;color:#61716e">For security, this link expires. Sign in is required for other account information.</p>@endunless
 @if(in_array($deliveryFormat,['pdf','both'],true))<p style="margin-top:22px;color:#61716e;font-size:13px">A PDF copy of this invoice is attached.</p>@endif
 </td></tr>
 <tr><td style="padding:20px 30px;background:#edf3e9;color:#52635f;font-size:12px">

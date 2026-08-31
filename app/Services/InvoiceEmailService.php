@@ -16,6 +16,7 @@ class InvoiceEmailService
         private readonly FinancialBalanceService $balances,
         private readonly InvoiceReminderService $recipients,
         private readonly EmailTemplateService $templates,
+        private readonly InvoiceAccessLinkService $links,
     ) {}
 
     public function send(Invoice $invoice, User $actor, string $format = 'both'): EmailDelivery
@@ -30,7 +31,8 @@ class InvoiceEmailService
         if (! in_array($format, ['inline', 'pdf', 'both'], true)) {
             throw ValidationException::withMessages(['delivery_format' => 'Choose inline, PDF attachment, or both.']);
         }
-        $rendered = $this->templates->render('invoice-email', $invoice, $client, $balance);
+        $secureUrl = $this->links->url($this->links->activeOrCreate($invoice, $client, $actor));
+        $rendered = $this->templates->render('invoice-email', $invoice, $client, $balance, $secureUrl);
         $delivery = EmailDelivery::query()->create([
             'invoice_id' => $invoice->id,
             'payment_plan_id' => $invoice->payment_plan_id,
@@ -44,7 +46,7 @@ class InvoiceEmailService
             'status' => 'pending',
         ]);
         try {
-            Mail::to($delivery->recipient_email)->send(new TemplatedInvoiceMail($invoice, $rendered['subject'], $rendered['body'], $format, $balance));
+            Mail::to($delivery->recipient_email)->send(new TemplatedInvoiceMail($invoice, $rendered['subject'], $rendered['body'], $format, $balance, $secureUrl, $rendered['uses_magic_invoice_link']));
             $delivery->update(['status' => 'sent', 'sent_at' => now()]);
         } catch (Throwable $exception) {
             $delivery->update(['status' => 'failed', 'failed_at' => now(), 'failure_message' => str($exception->getMessage())->limit(500)]);

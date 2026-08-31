@@ -32,9 +32,22 @@ use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentCo
 use App\Http\Controllers\Portal\SharedDocumentController as PortalSharedDocumentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProviderWebhookController;
+use App\Http\Controllers\SecureInvoiceController;
+use App\Http\Controllers\Admin\InvoiceAccessLinkController;
 
 Route::view('/', 'welcome')->name('home');
 Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider',['square','stripe'])->name('webhooks.provider');
+
+Route::prefix('invoice-access')->name('secure-invoice.')->middleware('secure.invoice')->group(function (): void {
+    Route::get('invoice', [SecureInvoiceController::class, 'show'])->name('show');
+    Route::get('invoice/download', [SecureInvoiceController::class, 'download'])->name('download');
+    Route::get('pay', [MakePaymentController::class, 'create'])->middleware('square.payment-csp')->name('payment.create');
+    Route::post('pay/preview', [MakePaymentController::class, 'preview'])->middleware(['square.payment-csp', 'throttle:10,1'])->name('payment.preview');
+    Route::post('pay', [MakePaymentController::class, 'store'])->middleware('throttle:10,1')->name('payment.store');
+    Route::get('payment/{intent}', [MakePaymentController::class, 'show'])->name('payment.show');
+    Route::delete('payment/{intent}', [MakePaymentController::class, 'cancel'])->middleware('throttle:10,1')->name('payment.cancel');
+});
+Route::get('invoice-access/{token}', [SecureInvoiceController::class, 'enter'])->middleware('throttle:30,1')->name('secure-invoice.enter');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])
@@ -143,6 +156,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
     Route::post('invoices/{invoice}/first-payment', [InvoiceController::class, 'createFirstPayment'])->name('invoices.first-payment.store');
     Route::post('invoices/{invoice}/email', [InvoiceEmailController::class, 'store'])->name('invoices.email.store');
+    Route::post('invoices/{invoice}/secure-link', [InvoiceAccessLinkController::class, 'store'])->name('invoices.secure-link.store');
+    Route::post('invoices/{invoice}/secure-link/regenerate', [InvoiceAccessLinkController::class, 'regenerate'])->name('invoices.secure-link.regenerate');
+    Route::delete('invoices/{invoice}/secure-link', [InvoiceAccessLinkController::class, 'destroy'])->name('invoices.secure-link.destroy');
     Route::post('invoices/{invoice}/reminders', [InvoiceReminderController::class, 'store'])->name('invoices.reminders.store');
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/payment-methods', [PaymentMethodSettingsController::class, 'index'])->name('payment-methods.index');

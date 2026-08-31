@@ -5,6 +5,7 @@
 @section('body_class','admin-page')
 
 @section('content')
+@include('portal._secure-invoice-notice')
 
 <section class="admin-section">
     <div class="container site-container">
@@ -15,14 +16,14 @@
                 <h1>Make a payment</h1>
                 <p class="mb-0">Choose the plan, amount, and payment method.</p>
             </div>
-            <a class="btn btn-outline-brand" href="{{ route('portal.dashboard') }}">Dashboard</a>
+            <a class="btn btn-outline-brand" href="{{ ($secureAccess ?? false) ? route('secure-invoice.show') : route('portal.dashboard') }}">Dashboard</a>
         </div>
 
         @if($errors->any())
             <div class="alert alert-danger mt-4">{{ $errors->first() }}</div>
         @endif
 
-        <form class="admin-next-card mt-4" id="payment-form" method="post" action="{{ route('portal.make-payment.store') }}">
+        <form class="admin-next-card mt-4" id="payment-form" method="post" action="{{ ($secureAccess ?? false) ? route('secure-invoice.payment.store') : route('portal.make-payment.store') }}">
             @csrf
 
             <div class="row g-3">

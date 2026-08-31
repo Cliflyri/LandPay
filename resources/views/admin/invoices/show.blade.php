@@ -7,6 +7,8 @@
     $clientName = $primary?->organization_name ?: trim(($primary?->first_name ?? '').' '.($primary?->last_name ?? '')) ?: 'Not assigned';
     $statusLabel = str($invoice->status->value)->replace('_', ' ')->title();
     $invoiceSentAt = $invoice->emailDeliveries->where('template_slug', 'invoice-email')->where('status', 'sent')->sortByDesc('sent_at')->first()?->sent_at;
+    $secureLink = $invoice->accessLink;
+    $secureLinkActive = $secureLink?->isActive() ?? false;
 @endphp
 <section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
@@ -16,13 +18,23 @@
             <form method="post" action="{{route('admin.invoices.email.store',$invoice)}}" class="d-flex gap-2" onsubmit='return confirm(@js('Email invoice '.$invoice->invoice_number.' to '.$reminderRecipient->client->email.'?')) && confirm("Final confirmation: send this invoice email now?");'>@csrf<select class="form-select" name="delivery_format" aria-label="Invoice email format"><option value="inline" @selected(old('delivery_format','inline')==='inline')>Inline only</option><option value="both" @selected(old('delivery_format')==='both')>Inline + PDF</option><option value="pdf" @selected(old('delivery_format')==='pdf')>PDF attachment</option></select><button class="btn btn-outline-brand text-nowrap" type="submit">Email invoice</button></form>
         @endif
         @if($invoice->status !== \App\Enums\InvoiceStatus::Voided && $balance>0 && $reminderRecipient?->client?->email)<form method="post" action="{{route('admin.invoices.reminders.store',$invoice)}}" onsubmit="return confirm('Send a payment reminder to {{$reminderRecipient->client->email}}?');">@csrf<button class="btn btn-outline-brand text-nowrap" type="submit">Send reminder</button></form>@endif
-        @if($invoice->status !== \App\Enums\InvoiceStatus::Voided)<a class="btn btn-outline-brand text-nowrap" href="{{route('admin.invoices.edit',$invoice)}}">Edit invoice</a>@endif
+        @if($invoice->status !== \App\Enums\InvoiceStatus::Voided)
+        <div class="dropdown">
+            <button class="btn btn-outline-brand dropdown-toggle text-nowrap" type="button" data-bs-toggle="dropdown">More actions</button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><form method="post" action="{{route('admin.invoices.secure-link.store',$invoice)}}">@csrf<button class="dropdown-item" type="submit">{{$secureLinkActive?'Copy secure payment link':'Create secure payment link'}}</button></form></li>
+                @if($secureLink)<li><form method="post" action="{{route('admin.invoices.secure-link.regenerate',$invoice)}}" onsubmit="return confirm('Regenerate this secure link? The previous link will stop working.');">@csrf<button class="dropdown-item" type="submit">Regenerate secure payment link</button></form></li>
+                <li><form method="post" action="{{route('admin.invoices.secure-link.destroy',$invoice)}}" onsubmit="return confirm('Revoke secure invoice access?');">@csrf @method('DELETE')<button class="dropdown-item text-danger" type="submit">Revoke secure payment link</button></form></li>@endif
+            </ul>
+        </div>
+        <a class="btn btn-outline-brand text-nowrap" href="{{route('admin.invoices.edit',$invoice)}}">Edit invoice</a>@endif
         <a class="btn btn-brand text-nowrap" href="{{route('admin.plans.payments.create',$invoice->paymentPlan)}}">Enter payment</a>
         <a class="btn btn-outline-brand text-nowrap" href="{{route('admin.plans.show',$invoice->paymentPlan)}}">Back to plan</a>
     </div>
 </div>
 
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
+@if(session('secure_link_url'))<div class="admin-next-card mt-3"><label class="form-label" for="secure-link-url">Secure payment link</label><div class="input-group"><input class="form-control" id="secure-link-url" value="{{session('secure_link_url')}}" readonly><button class="btn btn-outline-brand" type="button" onclick="navigator.clipboard?.writeText(document.getElementById('secure-link-url').value);this.textContent='Copied'">Copy</button></div></div>@endif
 @if($errors->any())<div class="alert alert-danger mt-4">{{$errors->first()}}</div>@endif
 @if($invoice->status === \App\Enums\InvoiceStatus::Voided)<div class="alert alert-warning mt-4"><strong>Deleted invoice.</strong> This invoice is retained for audit history, but its obligation has been removed.</div>@endif
 
@@ -34,6 +46,7 @@
         <div class="col-sm-6 col-lg-3"><dt>Due date</dt><dd class="mb-0 {{$balance>0 && $invoice->due_date->isPast() ? 'invoice-date-overdue' : ''}}">{{$invoice->due_date->format('M j, Y')}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>Sent</dt><dd class="mb-0">{{$invoiceSentAt?->format('M j, Y g:i A') ?? 'Not sent'}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>First viewed</dt><dd class="mb-0">{{$invoice->first_viewed_at?->format('M j, Y g:i A') ?? 'Not yet viewed'}}</dd></div>
+        <div class="col-sm-6 col-lg-3"><dt>Secure payment link</dt><dd class="mb-0">{{$secureLinkActive?'Active until '.$secureLink->expires_at->format('M j, Y'):($secureLink?'Revoked or expired':'Not created')}}</dd></div>
         <div class="col-sm-6 col-lg-3"><dt>Billing period</dt><dd class="mb-0">
             @if($invoice->period_start && $invoice->period_end)
     {{ $invoice->period_start->format('M j') }}

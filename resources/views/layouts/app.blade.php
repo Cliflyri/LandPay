@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/landpay.css') }}">
     @stack('styles')
 </head>
-<body class="@yield('body_class') {{ request()->routeIs('portal.*') ? 'portal-page' : '' }}">
+<body class="@yield('body_class') {{ request()->routeIs('portal.*', 'secure-invoice.*') ? 'portal-page' : '' }}">
 <a class="skip-link" href="#main-content">Skip to main content</a>
 @if(session('portal_impersonation'))<div class="portal-admin-banner" role="status"><span><strong>Administrator view:</strong> Viewing the client portal for {{session('portal_impersonation.client_name')}} in read-only mode.</span><form method="post" action="{{route('admin.portal-access.destroy')}}">@csrf @method('DELETE')<button class="btn btn-sm btn-light" type="submit">Return to administration</button></form></div>@endif
 <header class="site-header" data-site-header>

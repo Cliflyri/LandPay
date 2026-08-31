@@ -81,9 +81,15 @@ class InvoiceManagementTest extends TestCase
         $this->assertSame('sent', $reminder->status);
         $this->assertSame('client@example.com', $reminder->recipient_email);
         $this->assertSame(52_000, $reminder->balance_snapshot);
-        Mail::assertSent(InvoiceReminderMail::class, fn ($mail) => $mail->hasTo('client@example.com') && $mail->balance === 52_000);
+        Mail::assertSent(InvoiceReminderMail::class, fn ($mail) => $mail->hasTo('client@example.com')
+            && $mail->balance === 52_000
+            && $mail->magicLinkEmbedded
+            && substr_count($mail->render(), 'View and pay invoice') === 1);
         $this->get(route('admin.dashboard'))->assertOk()->assertSee('Send reminder')->assertDontSee('Never');
-        $this->get(route('admin.settings.index'))->assertOk()->assertSee('Email templates')->assertSee('Invoice email');
+        $this->get(route('admin.settings.index'))->assertOk()
+            ->assertSee('Email templates')
+            ->assertSee('Invoice email')
+            ->assertSee('{{ magic_invoice_link }}');
         $invoiceTemplate = EmailTemplate::query()->where('slug', 'invoice-email')->sole();
         $this->put(route('admin.settings.templates.update', $invoiceTemplate), [
             'subject' => 'Your {{ invoice_number }} balance is {{ amount_due }}',
@@ -103,6 +109,8 @@ class InvoiceManagementTest extends TestCase
         Mail::assertSent(TemplatedInvoiceMail::class, function ($mail): bool {
             return $mail->hasTo('client@example.com')
                 && $mail->deliveryFormat === 'both'
+                && ! $mail->magicLinkEmbedded
+                && substr_count($mail->render(), 'View and pay invoice') === 1
                 && count($mail->attachments()) === 1;
         });
         $this->put(route('admin.settings.templates.update', $invoiceTemplate), [

@@ -17,6 +17,7 @@ class InvoiceReminderService
     public function __construct(
         private readonly FinancialBalanceService $balances,
         private readonly EmailTemplateService $templates,
+        private readonly InvoiceAccessLinkService $links,
     ) {}
 
     public function send(Invoice $invoice, ?User $actor, bool $automated = false, ?\Illuminate\Support\Carbon $triggerDate = null, ?string $triggerType = null): InvoiceReminder
@@ -31,7 +32,8 @@ class InvoiceReminderService
         if ($client === null || blank($client->email) || filter_var($client->email, FILTER_VALIDATE_EMAIL) === false) {
             throw ValidationException::withMessages(['recipient' => 'No valid invoice-recipient email is configured for this payment plan.']);
         }
-        $rendered = $this->templates->render('payment-reminder', $invoice, $client, $balance);
+        $secureUrl = $this->links->url($this->links->activeOrCreate($invoice, $client, $actor));
+        $rendered = $this->templates->render('payment-reminder', $invoice, $client, $balance, $secureUrl);
         $reminder = InvoiceReminder::query()->create([
             'invoice_id' => $invoice->id,
             'payment_plan_id' => $invoice->payment_plan_id,
@@ -45,7 +47,7 @@ class InvoiceReminderService
             'trigger_type' => $triggerType,
         ]);
         try {
-            Mail::to($reminder->recipient_email)->send(new InvoiceReminderMail($invoice, $balance, $this->clientName($client), $rendered['subject'], $rendered['body']));
+            Mail::to($reminder->recipient_email)->send(new InvoiceReminderMail($invoice, $balance, $this->clientName($client), $rendered['subject'], $rendered['body'], $secureUrl, $rendered['uses_magic_invoice_link']));
             $reminder->update(['status' => 'sent', 'sent_at' => now()]);
         } catch (Throwable $exception) {
             $reminder->update(['status' => 'failed', 'failed_at' => now(), 'failure_message' => str($exception->getMessage())->limit(500)]);

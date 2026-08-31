@@ -87,6 +87,7 @@ class SquareCardPaymentService
                     $locked->overpayment_disposition ? OverpaymentDisposition::from($locked->overpayment_disposition) : null,
                     'provider:square:'.$payment['id'],
                     processingFeeAmount: $feeInvoice === null ? (int) $locked->processing_fee_amount : 0,
+                    invoiceId: $locked->invoice_id,
                 );
                 $locked->update(['status' => 'received', 'payment_id' => $posted->id, 'received_at' => now()]);
                 $clientName = trim($locked->client->first_name.' '.$locked->client->last_name);
@@ -105,6 +106,7 @@ class SquareCardPaymentService
 
     private function feeInvoice(ClientPaymentIntent $intent): ?Invoice
     {
+        if ($intent->invoice_id) return $intent->invoice;
         return $intent->paymentPlan->invoices()->orderBy('due_date')->orderBy('id')->get()
             ->first(fn (Invoice $invoice) => $this->balances->invoiceBalance($invoice) > 0);
     }

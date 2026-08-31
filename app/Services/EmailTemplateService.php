@@ -12,11 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 class EmailTemplateService
 {
-    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'late_fee_notice', 'payment_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
+    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'late_fee_notice', 'payment_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
 
     public const TEMPLATE_VARIABLES = [
-        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'late_fee_notice', 'company_name', 'company_email', 'company_phone'],
-        'invoice-email' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'company_name', 'company_email', 'company_phone'],
+        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'late_fee_notice', 'company_name', 'company_email', 'company_phone'],
+        'invoice-email' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'company_name', 'company_email', 'company_phone'],
         'payment-receipt' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
         'payment-reversal' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
         'portal-invitation' => ['client_name', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'],
@@ -29,12 +29,12 @@ class EmailTemplateService
             'payment-reminder' => [
                 'name' => 'Payment reminder',
                 'subject' => 'Payment reminder for invoice {{ invoice_number }}',
-                'body_html' => '<p>Hello {{ client_name }},</p><p>This is a friendly reminder that invoice <strong>{{ invoice_number }}</strong> has a remaining balance of <strong>{{ amount_due }}</strong> and was due on {{ due_date }}.</p><p>View this invoice: <a href="{{ invoice_portal_url }}">{{ invoice_portal_url }}</a></p><p>If payment has already been sent, please disregard this message. Contact us if you have questions or need to discuss the account.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>This is a friendly reminder that invoice <strong>{{ invoice_number }}</strong> has a remaining balance of <strong>{{ amount_due }}</strong> and was due on {{ due_date }}.</p><p>{{ magic_invoice_link }}</p><p>If payment has already been sent, please disregard this message. Contact us if you have questions or need to discuss the account.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
             ],
             'invoice-email' => [
                 'name' => 'Invoice email',
                 'subject' => 'Invoice {{ invoice_number }} from {{ company_name }}',
-                'body_html' => '<p>Hello {{ client_name }},</p><p>Your invoice <strong>{{ invoice_number }}</strong> is ready. The amount due is <strong>{{ amount_due }}</strong> by {{ due_date }}.</p><p>View this invoice: <a href="{{ invoice_portal_url }}">{{ invoice_portal_url }}</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>Your invoice <strong>{{ invoice_number }}</strong> is ready. The amount due is <strong>{{ amount_due }}</strong> by {{ due_date }}.</p><p>{{ magic_invoice_link }}</p><p>Invoice details are included with this email. Please contact us if you have any questions.</p><p>Visit your client portal: <a href="{{ client_portal_url }}">{{ client_portal_url }}</a></p>',
             ],
             'payment-receipt' => [
                 'name' => 'Payment receipt',
@@ -60,6 +60,14 @@ class EmailTemplateService
         foreach ($this->defaults() as $slug => $default) {
             EmailTemplate::query()->firstOrCreate(['slug' => $slug], $default + ['active' => true]);
         }
+        foreach (['payment-reminder', 'invoice-email'] as $slug) {
+            $template = EmailTemplate::query()->where('slug', $slug)->first();
+            $oldLink = '<p>View this invoice: <a href="{{ invoice_portal_url }}">{{ invoice_portal_url }}</a></p>';
+            if ($template && str_contains($template->body_html, $oldLink)) {
+                $template->update(['body_html' => str_replace($oldLink, '<p>{{ magic_invoice_link }}</p>', $template->body_html)]);
+            }
+        }
+
         $reminder = EmailTemplate::query()->where('slug', 'payment-reminder')->first();
         if ($reminder && ! str_contains($reminder->body_html, '{{ late_fee_notice }}')) {
             $reminder->update(['body_html' => $reminder->body_html.'<p>{{ late_fee_notice }}</p>']);
@@ -74,17 +82,18 @@ class EmailTemplateService
         return EmailTemplate::query()->where('slug', $slug)->firstOrFail();
     }
 
-    /** @return array{subject:string,body:string,variables:array<string,string>} */
-    public function render(string $slug, Invoice $invoice, Client $client, int $balance): array
+    /** @return array{subject:string,body:string,variables:array<string,string>,uses_magic_invoice_link:bool} */
+    public function render(string $slug, Invoice $invoice, Client $client, int $balance, ?string $magicInvoiceUrl = null): array
     {
         $template = $this->find($slug);
-        $variables = $this->variables($invoice, $client, $balance);
+        $variables = $this->variables($invoice, $client, $balance, $magicInvoiceUrl);
 
         return [
             'subject' => $this->replace($template->subject, $variables),
 
             'body' => $this->replace($template->body_html, $variables),
             'variables' => $variables,
+            'uses_magic_invoice_link' => preg_match('/{{\\s*magic_invoice_link\\s*}}/', $template->body_html) === 1,
         ];
     }
 
@@ -96,7 +105,7 @@ class EmailTemplateService
     }
 
     /** @return array<string, string> */
-    public function variables(Invoice $invoice, Client $client, int $balance): array
+    public function variables(Invoice $invoice, Client $client, int $balance, ?string $magicInvoiceUrl = null): array
     {
         $plan = $invoice->paymentPlan;
         return [
@@ -109,6 +118,7 @@ class EmailTemplateService
             'plan_description' => $plan->title,
             'client_portal_url' => route('portal.dashboard'),
             'invoice_portal_url' => route('portal.invoices.show', $invoice),
+            'magic_invoice_link' => $this->magicInvoiceButton($magicInvoiceUrl),
             'late_fee_notice' => $invoice->items()->whereIn('item_type', [InvoiceItemType::LateFeeStageOne->value, InvoiceItemType::LateFeeStageTwo->value])->exists() ? 'A late fee has been added to this invoice because the payment is delinquent. Please make payment as soon as possible.' : '',
             'company_name' => AppSetting::valueFor('company_name', config('app.name', 'LandPay')),
             'company_email' => AppSetting::valueFor('company_email', ''),
@@ -131,8 +141,19 @@ class EmailTemplateService
     {
         $this->validateVariables($text, $variables);
         foreach ($variables as $key => $value) {
-            $text = preg_replace_callback('/{{\s*'.preg_quote($key, '/').'\s*}}/', fn () => e($value), $text);
+            $text = preg_replace_callback(
+                '/{{\s*'.preg_quote($key, '/').'\s*}}/',
+                fn () => $key === 'magic_invoice_link' ? $value : e($value),
+                $text,
+            );
         }
         return $text;
+    }
+
+    private function magicInvoiceButton(?string $url): string
+    {
+        $url = e($url ?: '#');
+
+        return '<a href="'.$url.'" style="display:inline-block;padding:12px 20px;background:#d99a2b;color:#173f40;text-decoration:none;font-weight:bold;border-radius:6px">View and pay invoice</a>';
     }
 }

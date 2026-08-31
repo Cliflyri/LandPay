@@ -21,6 +21,8 @@ class InvoiceReminderMail extends Mailable
         public readonly string $clientName,
         public readonly ?string $renderedSubject = null,
         public readonly ?string $renderedBody = null,
+        public readonly ?string $secureUrl = null,
+        public readonly bool $magicLinkEmbedded = false,
     ) {}
 
     public function envelope(): Envelope
@@ -33,6 +35,6 @@ class InvoiceReminderMail extends Mailable
     {
         return $this->renderedBody === null
             ? new Content(view: 'emails.invoice-reminder')
-            : new Content(view: 'emails.templated-message', text: 'emails.templated-text');
+            : new Content(view: 'emails.templated-reminder', text: 'emails.reminder-text');
     }
 }
