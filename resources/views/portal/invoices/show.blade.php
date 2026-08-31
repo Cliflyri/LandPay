@@ -29,7 +29,20 @@
                 </p>
             </div>
 
-            <div>
+            <div class="d-flex flex-wrap gap-2">
+
+                    @if ($balance > 0)
+                        <a
+                            class="btn btn-sun"
+                            href="{{ route('portal.make-payment.create', [
+                                'plan' => $invoice->payment_plan_id,
+                                'amount' => number_format($balance / 100, 2, '.', ''),
+                            ]) }}"
+                        >
+                            Pay Now
+                        </a>
+                    @endif
+
                 <a
                     class="btn btn-brand"
                     href="{{ route('portal.invoices.download', $invoice) }}"
@@ -43,48 +56,15 @@
                 >
                     Back
                 </a>
+
+
+
             </div>
         </div>
 
         <div class="row g-4 mt-2 align-items-start">
-            <div class="col-lg-7">
-                <div class="admin-next-card">
-                    <h2>Charges</h2>
 
-                    <div class="table-responsive">
-                        <table class="table align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Description</th>
-                                    <th class="text-end">Amount</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                @foreach ($invoice->items->sortBy('display_order') as $item)
-                                    <tr>
-                                        <td>
-                                            {{ $item->description }}
-
-                                            @if ($item->waiver_reason)
-                                                <small class="d-block text-muted">
-                                                    {{ $item->waiver_reason }}
-                                                </small>
-                                            @endif
-                                        </td>
-
-                                        <td class="money-cell">
-                                            {{ \App\Support\Money::format($item->amount) }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-5">
+<div class="col-lg-5">
                 <aside
                     class="admin-next-card invoice-financial-summary"
                     aria-labelledby="client-invoice-summary-title"
@@ -157,6 +137,47 @@
                     @endif
                 </aside>
             </div>
+
+
+
+            <div class="col-lg-7">
+                <div class="admin-next-card">
+                    <h2>Charges</h2>
+
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach ($invoice->items->sortBy('display_order') as $item)
+                                    <tr>
+                                        <td>
+                                            {{ $item->description }}
+
+                                            @if ($item->waiver_reason)
+                                                <small class="d-block text-muted">
+                                                    {{ $item->waiver_reason }}
+                                                </small>
+                                            @endif
+                                        </td>
+
+                                        <td class="money-cell">
+                                            {{ \App\Support\Money::format($item->amount) }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            
         </div>
     </div>
 </section>
