@@ -56,6 +56,11 @@ class MakePaymentController extends Controller {
   $oldInput=$request->old();
   if(is_array($oldInput))$input=array_replace($oldInput,$input);
   $account=$request->user('client');
+  $storedPostalCode=trim((string)optional($account->client)->postal_code);
+  $postalDigits=preg_replace('/\D/','',$storedPostalCode);
+  $squarePostalCode=preg_match('/^\d{5}(?:[- ]?\d{4})?$/',$storedPostalCode)&&in_array(strlen($postalDigits),[5,9],true)
+   ?(strlen($postalDigits)===9?substr($postalDigits,0,5).'-'.substr($postalDigits,5):$postalDigits)
+   :null;
   $plans=PaymentPlan::query()->whereIn('id',$account->activePlanIds())->whereIn('status',['active','paused'])->with('invoices')->get();
   abort_if($plans->isEmpty(),403);
   $methods=$this->methods->enabled();
@@ -72,7 +77,7 @@ class MakePaymentController extends Controller {
   $methodKeys=collect($methods)->pluck('key');
   $input+=['payment_plan_id'=>$selected->id,'amount'=>$amount,'method'=>$methodKeys->contains($requestedMethod)?$requestedMethod:($methods[0]['key']??null)];
   $activeStates=[];
-  return view('portal.make-payment.simple',['plans'=>$plans,'planBalances'=>$balances,'selectedPlan'=>$selected,'methods'=>$methods,'general'=>$this->methods->general(),'square'=>$this->squareFees->clientConfiguration(),'activeStates'=>$activeStates,'pendingNotifications'=>$pendingNotifications,'input'=>$input]);
+  return view('portal.make-payment.simple',['plans'=>$plans,'planBalances'=>$balances,'selectedPlan'=>$selected,'methods'=>$methods,'general'=>$this->methods->general(),'square'=>$this->squareFees->clientConfiguration(),'squarePostalCode'=>$squarePostalCode,'activeStates'=>$activeStates,'pendingNotifications'=>$pendingNotifications,'input'=>$input]);
  }
  private function plan(Request $request,int $id): PaymentPlan{abort_unless(in_array($id,$request->user('client')->activePlanIds(),true),404);return PaymentPlan::findOrFail($id);}
  private function validateInput(Request $request): array{return $request->validate(['payment_plan_id'=>['required','integer'],'amount'=>['required','decimal:0,2','gt:0'],'method'=>['required',Rule::in(PaymentMethodConfigurationService::METHODS)],'overpayment_disposition'=>['nullable',Rule::in(['principal','next_invoice_credit'])],'client_note'=>['nullable','string','max:1000'],'square_source_id'=>['nullable','string','max:255'],'square_card_type'=>['nullable','string','max:20']]);}

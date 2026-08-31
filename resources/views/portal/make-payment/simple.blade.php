@@ -502,7 +502,9 @@
                     squareConfig.location_id
                 );
 
-                payments.card()
+                const cardOptions = @json($squarePostalCode ? ['postalCode' => $squarePostalCode] : null);
+
+                (cardOptions ? payments.card(cardOptions) : payments.card())
                     .then(async card => {
                         squareCard = card;
                         await squareCard.attach('#square-card-container');
