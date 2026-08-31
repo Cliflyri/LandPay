@@ -16,5 +16,5 @@
         &mdash;
     @endif
 </td>
-        <td class="money-cell">{{\App\Support\Money::format($allocation->amount)}}</td></tr>@endforeach</tbody></table></div></div></div></section>
+        <td class="money-cell">{{\App\Support\Money::format($allocation->amount)}}</td></tr>@endforeach</tbody><tfoot><tr class="table-light border-top border-2"><th colspan="2" class="text-end">Payment total</th><th class="money-cell">{{\App\Support\Money::format($payment->gross_amount)}}</th></tr></tfoot></table></div></div></div></section>
 @endsection
