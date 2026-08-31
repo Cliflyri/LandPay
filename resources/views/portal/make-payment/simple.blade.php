@@ -920,6 +920,12 @@
     document.querySelectorAll('[data-send-payment]').forEach(b =>
         b.addEventListener('click', async () => {
 
+            if (cents(amount.value) < 1) {
+                alert('Enter a payment amount of at least $0.01.');
+                amount.focus();
+                return;
+            }
+
             const panel = b.closest('[data-panel]'),
                 extra =
                     cents(amount.value) >
