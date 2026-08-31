@@ -204,8 +204,9 @@ class PaymentService
         ?string $idempotencyKey = null,
         int $serviceFeeAmount = 0,
         ?string $serviceFeeMonth = null,
+        int $processingFeeAmount = 0,
     ): Payment {
-        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey, $serviceFeeAmount, $serviceFeeMonth): Payment {
+        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey, $serviceFeeAmount, $serviceFeeMonth, $processingFeeAmount): Payment {
             if ($idempotencyKey !== null) {
                 $existing = FinancialTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
                 if ($existing !== null) {
@@ -222,7 +223,20 @@ class PaymentService
                     $lockedPlan->first_due_date,
                 );
             }
-            $preview = $this->preview($lockedPlan, $amount, $paymentType, $overpaymentDisposition?->value, $serviceFeeAmount, $serviceFeeMonth);
+            if ($processingFeeAmount < 0 || $processingFeeAmount >= $amount) {
+                throw ValidationException::withMessages(['processing_fee' => 'Processing Fee must be less than the total payment.']);
+            }
+            $preview = $this->preview($lockedPlan, $amount - $processingFeeAmount, $paymentType, $overpaymentDisposition?->value, $serviceFeeAmount, $serviceFeeMonth);
+            if ($processingFeeAmount > 0) {
+                $preview['allocations'][] = [
+                    'type' => PaymentAllocationType::ProcessingFee,
+                    'amount' => $processingFeeAmount,
+                    'component' => FinancialEffectComponent::AdministrativeFee,
+                    'label' => 'Processing Fee',
+                    'invoice_id' => null,
+                    'invoice_item_id' => null,
+                ];
+            }
             if (false && $preview['overpayment_amount'] > 0 && $overpaymentDisposition === null) {
                 throw ValidationException::withMessages(['overpayment_disposition' => 'Record the client’s instruction for the overpayment before posting.']);
             }
@@ -246,7 +260,7 @@ class PaymentService
                             description: 'Scheduled payment applied to principal',
                         );
                     }
-                } elseif ($allocation['type'] === PaymentAllocationType::ServiceFee) {
+                } elseif (in_array($allocation['type'], [PaymentAllocationType::ServiceFee, PaymentAllocationType::ProcessingFee], true)) {
                     // Collected directly as a non-principal fee; no receivable or principal balance changes.
                 } elseif ($allocation['type'] === PaymentAllocationType::PurchaseBalance) {
                     $effects[] = new PostingEffect(FinancialEffectType::PurchaseBalance, -$allocation['amount'], $allocation['component'], description: $allocation['label']);
@@ -264,7 +278,7 @@ class PaymentService
                 $effects,
                 actor: $actor,
                 description: $paymentType === 'principal_only' ? 'Principal-only payment' : 'Payment received',
-                metadata: ['payment_type' => $paymentType],
+                metadata: ['payment_type' => $paymentType, 'processing_fee_amount' => $processingFeeAmount],
                 idempotencyKey: $idempotencyKey,
             );
             $payment = Payment::query()->create([

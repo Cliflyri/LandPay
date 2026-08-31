@@ -40,10 +40,6 @@ class SquareCardPaymentService
         }
 
         $feeInvoice = $intent->processing_fee_amount > 0 ? $this->feeInvoice($intent) : null;
-        if ($intent->processing_fee_amount > 0 && $feeInvoice === null) {
-            throw ValidationException::withMessages(['amount' => 'A Processing Fee requires an open invoice.']);
-        }
-
         $sandbox = AppSetting::valueFor('square_environment', 'sandbox') !== 'live';
         $url = ($sandbox ? 'https://connect.squareupsandbox.com' : 'https://connect.squareup.com').'/v2/payments';
         $response = Http::withToken($secret)->withHeaders(['Square-Version' => '2026-07-15'])->post($url, [
@@ -75,7 +71,7 @@ class SquareCardPaymentService
                 if ($locked->status === 'received') {
                     return $locked;
                 }
-                if ($locked->processing_fee_amount > 0) {
+                if ($locked->processing_fee_amount > 0 && $feeInvoice !== null) {
                     $this->postFee($locked, $feeInvoice);
                 }
                 $actor = User::query()->where('status', 'active')->oldest()->firstOrFail();
@@ -90,6 +86,7 @@ class SquareCardPaymentService
                     'square:'.$payment['id'],
                     $locked->overpayment_disposition ? OverpaymentDisposition::from($locked->overpayment_disposition) : null,
                     'provider:square:'.$payment['id'],
+                    processingFeeAmount: $feeInvoice === null ? (int) $locked->processing_fee_amount : 0,
                 );
                 $locked->update(['status' => 'received', 'payment_id' => $posted->id, 'received_at' => now()]);
                 $clientName = trim($locked->client->first_name.' '.$locked->client->last_name);

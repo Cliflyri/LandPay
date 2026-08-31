@@ -11,6 +11,7 @@
             @if($notice->paymentIntent?->overpayment_disposition)<p class="mb-0 mt-1"><strong>Client overpayment instruction:</strong> {{$notice->paymentIntent->overpayment_disposition === 'next_invoice_credit' ? 'Keep extra as account credit.' : 'Apply extra to principal.'}}</p>@endif
         </div><div class="d-flex align-items-start gap-2 flex-shrink-0">
             @if($notice->changeRequest)<a class="btn btn-sm btn-brand" href="{{route('admin.client-change-requests.show',$notice->changeRequest)}}">Review</a>
+            @elseif($notice->type === 'square_payment_anomaly' && $notice->paymentIntent?->payment)<a class="btn btn-sm btn-brand" href="{{route('admin.payments.show',$notice->paymentIntent->payment)}}">Review payment</a>
             @elseif($notice->paymentIntent?->status === 'announced')<a class="btn btn-sm btn-brand" href="{{route('admin.payment-intents.receive',$notice->paymentIntent)}}">Receive payment</a>
             @elseif($notice->secureMessageThread)<a class="btn btn-sm btn-outline-brand" href="{{route('admin.messages.show',$notice->secureMessageThread)}}">Open message</a>
             @elseif($notice->client)<a class="btn btn-sm btn-outline-brand" href="{{route('admin.clients.show',$notice->client)}}">Open client</a>@endif

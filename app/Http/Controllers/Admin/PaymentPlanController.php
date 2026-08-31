@@ -256,7 +256,7 @@ public function index(Request $request): View
                         ->sum('amount_delta')
                     : 0;
                 $directFee = $sign * (int) $allocations
-                    ->filter(fn ($allocation) => $allocation->allocation_type->value === 'service_fee')
+                    ->filter(fn ($allocation) => in_array($allocation->allocation_type->value, ['service_fee', 'processing_fee'], true))
                     ->sum('amount');
                 $fee = $effectFee + $directFee;
 
