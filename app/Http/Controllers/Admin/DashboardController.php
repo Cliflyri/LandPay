@@ -91,7 +91,7 @@ class DashboardController extends Controller
     private function notices()
     {
         return AdminNotice::query()->whereNull('dismissed_at')
-            ->with(['client', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread'])
+            ->with(['client', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread', 'invoice'])
             ->latest()->get();
     }
 

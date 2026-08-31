@@ -221,6 +221,7 @@ a { text-underline-offset: .2em; }
 .dashboard-status { display: inline-block; padding: .34rem .62rem; border-radius: 100px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
 .dashboard-table .dashboard-status { min-width: 7rem; padding: .45rem .75rem; border-radius: .2rem; text-align: center; }
 .invoice-delivery-marker{display:inline-flex;align-items:center;padding:.2rem .45rem;border:1px solid currentColor;border-left-width:4px;border-radius:.12rem;font-size:.68rem;font-weight:800;letter-spacing:.04em;line-height:1.15;text-transform:uppercase;white-space:nowrap}.invoice-delivery-marker.is-viewed{color:#32683c;background:#f2f8f0}.invoice-delivery-marker.is-sent{color:#315f68;background:#eef6f7}.invoice-delivery-marker.is-unsent{color:#68716f;background:#f5f6f5}
+.notice-ledger{min-width:1100px}.notice-ledger td{padding-top:.55rem;padding-bottom:.55rem}.notice-ledger-category{font-size:.78rem;font-weight:700;color:var(--lp-muted);white-space:nowrap}.notice-ledger-summary{min-width:18rem;max-width:42rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notice-ledger-summary a{font-weight:700}
 .status-current { color: #32683c; background: #e8f2e6; }
 .status-ready-to-close { color: #2f6b38; background: #dff0dc; }
 .status-due-soon { color: #725718; background: #fff1c8; }
@@ -291,8 +292,8 @@ a { text-underline-offset: .2em; }
 .copy-command .btn { flex: 0 0 auto; background: #fff; }
 @media (max-width: 575.98px) { .settings-tabs { flex-wrap: nowrap; overflow-x: auto; } .settings-tabs .nav-link { white-space: nowrap; } .copy-command { flex-direction: column; } }
 
-.dashboard-table-card .table-responsive { cursor: grab; }
-.dashboard-table-card .table-responsive.is-dragging { cursor: grabbing; user-select: none; }
+.dashboard-table-card .table-responsive, [data-drag-scroll] { cursor: grab; }
+.dashboard-table-card .table-responsive.is-dragging, [data-drag-scroll].is-dragging { cursor: grabbing; user-select: none; }
 
 /* Client-plan list and administrator portal view */
 .client-plan-table { min-width: 1180px; }
@@ -622,4 +623,9 @@ body.admin-layout .admin-section > .site-container {
 .form-check-input:checked {
     background-color: #173f40;
     border-color: #173f40;
+}
+
+.admin-sidebar-offcanvas {
+    --bs-offcanvas-bg: #173f40;
+    --bs-offcanvas-color: #fff;
 }

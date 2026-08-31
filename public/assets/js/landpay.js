@@ -67,7 +67,7 @@ document.querySelectorAll('[data-current-balance-toggle]').forEach((button) => {
     });
 });
 
-document.querySelectorAll('.dashboard-table-card .table-responsive').forEach((container) => {
+document.querySelectorAll('.dashboard-table-card .table-responsive, [data-drag-scroll]').forEach((container) => {
     let startX = 0;
     let startScrollLeft = 0;
     let mouseDown = false;
@@ -144,9 +144,12 @@ if (adminStatusRoot) {
             const messageText = [status.unread_messages ? status.unread_messages + ' unread' : '', status.starred_messages ? '★ ' + status.starred_messages : ''].filter(Boolean).join(' · ');
             document.querySelectorAll('[data-admin-message-badge]').forEach(badge => { badge.textContent = messageText; badge.classList.toggle('d-none', !messageText); });
             document.querySelectorAll('[data-admin-notice-link]').forEach(link => {
-                link.classList.toggle('d-none', !status.open_notices);
+                link.classList.remove('d-none');
                 const badge = link.querySelector('[data-admin-notice-badge]');
-                if (badge) badge.textContent = status.open_notices + ' open';
+                if (badge) {
+                    badge.textContent = status.open_notices + ' open';
+                    badge.classList.toggle('d-none', !status.open_notices);
+                }
             });
             if (notices && notices.dataset.adminNoticesRevision !== status.notices_revision) notices.outerHTML = status.notices_html;
         } catch (_) {

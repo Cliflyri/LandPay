@@ -12,9 +12,9 @@
 
 <nav class="admin-sidebar-nav" aria-label="Administrator navigation">
         <a
-            class="admin-sidebar-link admin-notice-link {{ $noticeLinkBackground ? 'admin-notice-link-background' : '' }} {{ $openAdminNoticeCount > 0 ? '' : 'd-none' }}"
+            class="admin-sidebar-link admin-notice-link {{ $noticeLinkBackground ? 'admin-notice-link-background' : '' }} {{ request()->routeIs('admin.notices.*') ? 'active' : '' }}"
             data-admin-notice-link
-            href="{{ route('admin.dashboard') }}#admin-notices"
+            href="{{ route('admin.notices.index') }}"
             aria-label="{{ $openAdminNoticeCount }} open administrator {{ Str::plural('notice', $openAdminNoticeCount) }}"
         >
             <span aria-hidden="true">
@@ -24,7 +24,7 @@
                 </svg>
             </span>
             Notices
-            <span class="admin-notice-badge" data-admin-notice-badge>{{ $openAdminNoticeCount }} open</span>
+            <span class="admin-notice-badge {{ $openAdminNoticeCount > 0 ? '' : 'd-none' }}" data-admin-notice-badge>{{ $openAdminNoticeCount }} open</span>
         </a>
 
 

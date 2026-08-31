@@ -106,6 +106,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('client-change-requests/{changeRequest}', [ClientChangeRequestController::class, 'show'])->name('client-change-requests.show');
     Route::post('client-change-requests/{changeRequest}/apply', [ClientChangeRequestController::class, 'apply'])->name('client-change-requests.apply');
     Route::post('client-change-requests/{changeRequest}/reject', [ClientChangeRequestController::class, 'reject'])->name('client-change-requests.reject');
+    Route::get('notices', [AdminNoticeController::class, 'index'])->name('notices.index');
     Route::post('notices/{notice}/dismiss', [AdminNoticeController::class, 'dismiss'])->name('notices.dismiss');
     Route::get('dashboard/status', [DashboardController::class, 'status'])->name('dashboard.status');
     Route::get('messages', [AdminSecureMessageController::class, 'index'])->name('messages.index');
