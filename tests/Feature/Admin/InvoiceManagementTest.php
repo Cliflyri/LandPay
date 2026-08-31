@@ -205,6 +205,8 @@ class InvoiceManagementTest extends TestCase
             description: 'Early payment held for next invoice',
         );
 
+        $contractBeforeInvoice = app(FinancialBalanceService::class)->contractBalance($plan);
+
         $this->actingAs($user)->post(route('admin.plans.invoices.manual.store', $plan), [
             'issue_date' => '2026-08-15',
             'items' => [
@@ -234,6 +236,20 @@ class InvoiceManagementTest extends TestCase
             ->assertSeeText('+$75.00')
             ->assertSeeText('-$35.00')
             ->assertSeeText('+$40.00');
+
+        $this->get(route('admin.invoices.show', $invoice))
+            ->assertOk()
+            ->assertSee('Delete invoice</h2>', false)
+            ->assertSee('account credit applied to this invoice will be restored');
+
+        $this->delete(route('admin.invoices.destroy', $invoice), ['reason' => 'Manual invoice created in error'])
+            ->assertRedirect(route('admin.plans.show', $plan))
+            ->assertSessionHas('success');
+
+        $this->assertSame('voided', $invoice->fresh()->status->value);
+        $this->assertSame(7_500, app(FinancialBalanceService::class)->clientCredit($plan));
+        $this->assertSame($contractBeforeInvoice, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertSame(0, app(FinancialBalanceService::class)->invoiceBalance($invoice));
     }
     public function test_dashboard_breaks_current_balance_into_linked_invoice_due_dates(): void
     {

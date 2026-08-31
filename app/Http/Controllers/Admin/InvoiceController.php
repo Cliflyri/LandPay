@@ -177,7 +177,7 @@ $primaryClientName = $primaryClient?->organization_name
             'invoice' => $invoice,
             'balance' => $balance,
             'summary' => compact('subtotal', 'waivers', 'invoiceAmount', 'creditApplied', 'paidToDate', 'adjustments'),
-            'canDelete' => $balance > 0 && $balance === $invoiceAmount,
+            'canDelete' => $this->voids->canVoid($invoice),
             'canCreateFirstPayment' => $invoice->status === InvoiceStatus::Voided
                 && $invoice->items->contains(fn ($item) => $item->description === 'First payment')
                 && ! Invoice::query()
@@ -264,7 +264,7 @@ $primaryClientName = $primaryClient?->organization_name
         $this->voids->void($invoice, $request->user(), $data['reason']);
 
         return redirect()->route('admin.plans.show', $plan)
-            ->with('success', 'Invoice deleted. Its obligation was removed without changing the contract balance.');
+            ->with('success', 'Invoice deleted. Its obligation was removed and any applied account credit was restored.');
     }
 
     private function form(PaymentPlan $plan, ?array $preview = null, array $input = []): View
