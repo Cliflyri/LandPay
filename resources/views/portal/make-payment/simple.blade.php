@@ -709,7 +709,7 @@
             '[data-panel=card] [data-send-payment]'
         );
 
-        if (button) button.textContent = 'Pay Now (Credit Card)';
+        if (button) button.textContent = 'Review Payment (Credit Card)';
 
     }
 
