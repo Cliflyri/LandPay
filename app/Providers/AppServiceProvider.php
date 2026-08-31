@@ -6,6 +6,7 @@ use App\Services\SmtpConfigurationService;
 use App\Models\AdminNotice;
 use App\Models\PortalAccount;
 use App\Models\SecureMessageThread;
+use App\Observers\AdminNoticeObserver;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         app(SmtpConfigurationService::class)->apply();
+        AdminNotice::observe(AdminNoticeObserver::class);
         View::composer('layouts.admin', fn ($view) => $view->with([
             'openAdminNoticeCount' => AdminNotice::query()->whereNull('dismissed_at')->count(),
             'unreadSecureMessageCount' => SecureMessageThread::query()->unreadByAdmin()->count(),

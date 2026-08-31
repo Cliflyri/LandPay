@@ -42,7 +42,15 @@ class SettingsController extends Controller
             'smtp' => $this->smtp->values(),
             'reminderSettings' => $this->automation->settings(),
             'upcomingReminders' => $this->automation->eligible(now()->startOfDay(), true)->take(10),
-            'notificationSettings'=>['notice'=>AppSetting::valueFor('invoice_view_admin_notice_enabled','0')==='1','email'=>AppSetting::valueFor('invoice_view_admin_email_enabled','0')==='1','address'=>AppSetting::valueFor('invoice_view_admin_email','')],
+            'notificationSettings' => [
+                'invoice_view_notice' => AppSetting::valueFor('invoice_view_admin_notice_enabled', '0') === '1',
+                'invoice' => AppSetting::valueFor('admin_notice_email_invoice', '0') === '1',
+                'payments' => AppSetting::valueFor('admin_notice_email_payments', '0') === '1',
+                'secure_messages' => AppSetting::valueFor('admin_notice_email_secure_messages', AppSetting::valueFor('secure_message_admin_email_enabled', '0')) === '1',
+                'documents' => AppSetting::valueFor('admin_notice_email_documents', '0') === '1',
+                'account_portal' => AppSetting::valueFor('admin_notice_email_account_portal', '0') === '1',
+                'address' => AppSetting::valueFor('admin_notice_email_address', ''),
+            ],
         ]);
     }
 
@@ -59,13 +67,49 @@ class SettingsController extends Controller
         return back()->with('success', 'Company and email settings saved.');
     }
 
-    public function updateNotifications(Request $request):RedirectResponse
+    public function updateNotifications(Request $request): RedirectResponse
     {
-        $data=$request->validate(['invoice_view_admin_notice_enabled'=>['nullable','boolean'],'invoice_view_admin_email_enabled'=>['nullable','boolean'],'invoice_view_admin_email'=>['nullable','email','max:254']]);
-        $email=trim($data['invoice_view_admin_email']??'');$fallback=AppSetting::valueFor('reply_to_email')?:AppSetting::valueFor('company_email');
-        if($request->boolean('invoice_view_admin_email_enabled')&&blank($email?:$fallback))throw ValidationException::withMessages(['invoice_view_admin_email'=>'Enter a notification email or configure a reply-to or company email.']);
-        AppSetting::putMany(['invoice_view_admin_notice_enabled'=>$request->boolean('invoice_view_admin_notice_enabled')?'1':'0','invoice_view_admin_email_enabled'=>$request->boolean('invoice_view_admin_email_enabled')?'1':'0','invoice_view_admin_email'=>$email]);
-        return redirect()->route('admin.settings.index',['section'=>'notifications'])->with('success','Notification settings saved.');
+        $data = $request->validate([
+            'invoice_view_admin_notice_enabled' => ['nullable', 'boolean'],
+            'admin_notice_email_invoice' => ['nullable', 'boolean'],
+            'admin_notice_email_payments' => ['nullable', 'boolean'],
+            'admin_notice_email_secure_messages' => ['nullable', 'boolean'],
+            'admin_notice_email_documents' => ['nullable', 'boolean'],
+            'admin_notice_email_account_portal' => ['nullable', 'boolean'],
+            'admin_notice_email_address' => ['nullable', 'email', 'max:254'],
+            'secure_message_email_opt_out_ack' => ['sometimes', 'accepted'],
+        ]);
+
+        $email = trim($data['admin_notice_email_address'] ?? '');
+        $anyEmail = collect(['invoice', 'payments', 'secure_messages', 'documents', 'account_portal'])
+            ->contains(fn ($category) => $request->boolean('admin_notice_email_'.$category));
+        $fallback = AppSetting::valueFor('reply_to_email') ?: AppSetting::valueFor('company_email');
+        if ($anyEmail && blank($email ?: $fallback)) {
+            throw ValidationException::withMessages(['admin_notice_email_address' => 'Enter a notification email or configure a reply-to or company email.']);
+        }
+
+        $secureWasEnabled = AppSetting::valueFor(
+            'admin_notice_email_secure_messages',
+            AppSetting::valueFor('secure_message_admin_email_enabled', '0')
+        ) === '1';
+        $secureEnabled = $request->boolean('admin_notice_email_secure_messages');
+        if ($secureWasEnabled && ! $secureEnabled && ! $request->boolean('secure_message_email_opt_out_ack')) {
+            throw ValidationException::withMessages(['secure_message_email_opt_out_ack' => 'Confirm that new secure messages will only appear in LandPay before disabling these emails.']);
+        }
+
+        AppSetting::putMany([
+            'invoice_view_admin_notice_enabled' => $request->boolean('invoice_view_admin_notice_enabled') ? '1' : '0',
+            'admin_notice_email_invoice' => $request->boolean('admin_notice_email_invoice') ? '1' : '0',
+            'admin_notice_email_payments' => $request->boolean('admin_notice_email_payments') ? '1' : '0',
+            'admin_notice_email_secure_messages' => $secureEnabled ? '1' : '0',
+            'secure_message_admin_email_enabled' => $secureEnabled ? '1' : '0',
+            'admin_notice_email_documents' => $request->boolean('admin_notice_email_documents') ? '1' : '0',
+            'admin_notice_email_account_portal' => $request->boolean('admin_notice_email_account_portal') ? '1' : '0',
+            'admin_notice_email_address' => $email,
+        ]);
+
+        return redirect()->route('admin.settings.index', ['section' => 'notifications'])
+            ->with('success', 'Notification settings saved.');
     }
 
     public function updateTemplate(Request $request, EmailTemplate $template): RedirectResponse

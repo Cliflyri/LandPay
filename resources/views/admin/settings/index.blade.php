@@ -46,10 +46,19 @@
 <div class="col-12"><button class="btn btn-brand">Save SMTP settings</button></div></form>
 <hr class="my-4"><form method="post" action="{{route('admin.settings.smtp.test')}}" class="row g-2 align-items-end">@csrf<div class="col-md-8"><label class="form-label" for="test_email">Send test email to</label><input class="form-control" type="email" id="test_email" name="test_email" value="{{old('test_email',$settings['company_email'])}}" required></div><div class="col-md-4"><button class="btn btn-outline-brand w-100">Send test email</button></div></form></div>
 </div>
-<div class="tab-pane fade" id="notification-settings" role="tabpanel" tabindex="0"><div class="admin-next-card mt-4"><h2>Administrator notifications</h2><p class="text-muted">Choose how LandPay alerts administrators when a client first views an invoice. The first-view date is recorded even when both options are off.</p><form method="post" action="{{route('admin.settings.notifications.update')}}" class="row g-3">@csrf @method('put')
-<div class="col-12"><div class="form-check form-switch"><input type="hidden" name="invoice_view_admin_notice_enabled" value="0"><input class="form-check-input" type="checkbox" id="invoice_view_admin_notice_enabled" name="invoice_view_admin_notice_enabled" value="1" @checked(old('invoice_view_admin_notice_enabled',$notificationSettings['notice']))><label class="form-check-label" for="invoice_view_admin_notice_enabled">Create an admin notice when an invoice is first viewed</label></div></div>
-<div class="col-12"><div class="form-check form-switch"><input type="hidden" name="invoice_view_admin_email_enabled" value="0"><input class="form-check-input" type="checkbox" id="invoice_view_admin_email_enabled" name="invoice_view_admin_email_enabled" value="1" @checked(old('invoice_view_admin_email_enabled',$notificationSettings['email']))><label class="form-check-label" for="invoice_view_admin_email_enabled">Email admin when an invoice is first viewed</label></div></div>
-<div class="col-md-8"><label class="form-label" for="invoice_view_admin_email">Notification email <span class="text-muted">(optional)</span></label><input class="form-control" type="email" autocomplete="email" id="invoice_view_admin_email" name="invoice_view_admin_email" value="{{old('invoice_view_admin_email',$notificationSettings['address'])}}" placeholder="Uses reply-to or company email when blank"><small class="text-muted">This address remains saved if email notifications are temporarily switched off.</small></div><div class="col-12"><button class="btn btn-brand">Save notification settings</button></div></form></div></div>
+<div class="tab-pane fade" id="notification-settings" role="tabpanel" tabindex="0">
+<div class="admin-next-card mt-4"><h2>Administrator email notifications</h2><p class="text-muted">Admin notices always remain available in LandPay. Select which notice categories should also be emailed.</p>
+<form method="post" action="{{route('admin.settings.notifications.update')}}" class="row g-3" id="admin-notice-email-settings">@csrf @method('put')
+<div class="col-12"><h3 class="h5 mb-2">Invoice first views</h3><div class="form-check form-switch"><input type="hidden" name="invoice_view_admin_notice_enabled" value="0"><input class="form-check-input" type="checkbox" id="invoice_view_admin_notice_enabled" name="invoice_view_admin_notice_enabled" value="1" @checked(old('invoice_view_admin_notice_enabled',$notificationSettings['invoice_view_notice']))><label class="form-check-label" for="invoice_view_admin_notice_enabled">Create an admin notice when an invoice is first viewed</label></div></div>
+<div class="col-12"><hr class="my-1"><h3 class="h5 mt-3">Email administrator about</h3></div>
+@foreach(['invoice'=>'Invoice activity','payments'=>'Payments and payment issues','documents'=>'Client document uploads','account_portal'=>'Account and portal changes'] as $category=>$label)
+<div class="col-md-6"><div class="form-check form-switch"><input type="hidden" name="admin_notice_email_{{$category}}" value="0"><input class="form-check-input" type="checkbox" id="admin_notice_email_{{$category}}" name="admin_notice_email_{{$category}}" value="1" @checked(old('admin_notice_email_'.$category,$notificationSettings[$category]))><label class="form-check-label" for="admin_notice_email_{{$category}}">{{$label}}</label></div></div>
+@endforeach
+<div class="col-12"><div class="form-check form-switch"><input type="hidden" name="admin_notice_email_secure_messages" value="0"><input class="form-check-input" type="checkbox" id="admin_notice_email_secure_messages" name="admin_notice_email_secure_messages" value="1" @checked(old('admin_notice_email_secure_messages',$notificationSettings['secure_messages']))><label class="form-check-label fw-semibold" for="admin_notice_email_secure_messages">New secure messages</label><small class="text-muted d-block">Recommended so important client messages are not missed.</small></div></div>
+<div class="col-12 alert alert-warning mb-0" id="secure-message-opt-out" @if(old('admin_notice_email_secure_messages',$notificationSettings['secure_messages'])) hidden @endif><div class="form-check"><input class="form-check-input" type="checkbox" id="secure_message_email_opt_out_ack" name="secure_message_email_opt_out_ack" value="1"><label class="form-check-label" for="secure_message_email_opt_out_ack">I understand that new secure messages will only appear in LandPay admin notices.</label></div></div>
+<div class="col-md-8"><label class="form-label" for="admin_notice_email_address">Notification email <span class="text-muted">(optional)</span></label><input class="form-control" type="email" autocomplete="email" id="admin_notice_email_address" name="admin_notice_email_address" value="{{old('admin_notice_email_address',$notificationSettings['address'])}}" placeholder="Uses reply-to or company email when blank"><small class="text-muted">This address and all category choices remain saved when individual categories are switched off.</small></div>
+<div class="col-12"><button class="btn btn-brand">Save notification settings</button></div></form></div>
+</div>
 <div class="tab-pane fade" id="reminder-settings" role="tabpanel" tabindex="0">
 
 
@@ -233,6 +242,17 @@
 @push('scripts')
 <script>
 const settingsParams = new URLSearchParams(window.location.search);
+if (settingsParams.get('section') === 'notifications' && window.bootstrap) {
+    const notificationsTab = document.querySelector('[data-bs-target="#notification-settings"]');
+    if (notificationsTab) window.bootstrap.Tab.getOrCreateInstance(notificationsTab).show();
+}
+const secureMessageEmail = document.getElementById('admin_notice_email_secure_messages');
+const secureMessageOptOut = document.getElementById('secure-message-opt-out');
+if (secureMessageEmail && secureMessageOptOut) {
+    const syncSecureMessageOptOut = () => { secureMessageOptOut.hidden = secureMessageEmail.checked; };
+    secureMessageEmail.addEventListener('change', syncSecureMessageOptOut);
+    syncSecureMessageOptOut();
+}
 if (settingsParams.get('section') === 'templates' && window.bootstrap) {
     const mainTab = document.querySelector('[data-bs-target="#template-settings"]');
     const templateTab = document.querySelector(`[data-bs-target="#template-${settingsParams.get('template')}"]`);

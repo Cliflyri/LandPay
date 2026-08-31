@@ -48,41 +48,7 @@
                 @endforeach
             </div>
 
-            <form
-                method="post"
-                action="{{ route('admin.messages.email-notifications') }}"
-                class="form-check form-switch mb-0"
-            >
-                @csrf
-
-                <input type="hidden" name="enabled" value="0">
-
-                <input
-                    class="form-check-input"
-                    type="checkbox"
-                    role="switch"
-                    id="admin-message-email"
-                    name="enabled"
-                    value="1"
-                    @checked($adminEmailEnabled)
-                    @disabled(!$adminEmailAvailable)
-                    onchange="this.form.submit()"
-                >
-
-                <label class="form-check-label" for="admin-message-email">
-                    @if($adminEmailAvailable)
-                        Email notifications
-                        <small class="text-muted">
-                            ({{ $adminEmail }})
-                        </small>
-                    @else
-                        Email notifications &mdash; no reply-to email set
-                        <a href="{{ route('admin.settings.index') }}#company-settings">
-                            Set email
-                        </a>
-                    @endif
-                </label>
-            </form>
+            <a class="btn btn-sm btn-outline-brand" href="{{route('admin.settings.index',['section'=>'notifications'])}}">Admin email preferences</a>
         </div>
 
         <div class="dashboard-table-card">

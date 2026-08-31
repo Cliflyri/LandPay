@@ -156,12 +156,8 @@ class SecureMessageController extends Controller
 
     public function updateEmailNotifications(Request $request): RedirectResponse
     {
-        $email = \App\Models\AppSetting::valueFor('reply_to_email');
-        if ($request->boolean('enabled') && (blank($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL))) {
-            return back()->with('error', 'Set a valid reply-to email in Admin Settings before enabling secure-message email notifications.');
-        }
-        \App\Models\AppSetting::putMany(['secure_message_admin_email_enabled' => $request->boolean('enabled') ? '1' : '0']);
-        return back()->with('success', 'Administrator email notifications updated.');
+        return redirect()->route('admin.settings.index', ['section' => 'notifications'])
+            ->with('success', 'Secure-message email preferences are now managed under Notifications.');
     }
 
     public function star(SecureMessageThread $thread): RedirectResponse
