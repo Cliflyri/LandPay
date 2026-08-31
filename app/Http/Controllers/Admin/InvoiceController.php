@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
+use App\Services\AutomaticInvoiceService;
 use App\Services\FinancialBalanceService;
 use App\Services\FirstPaymentInvoiceService;
 use App\Services\InvoiceEditService;
@@ -36,6 +37,7 @@ class InvoiceController extends Controller
         private readonly MonthlyServiceFeeHistoryService $monthlyServiceFeeHistory,
         private readonly InvoiceEditService $invoiceEdits,
         private readonly InvoiceEmailService $invoiceEmails,
+        private readonly AutomaticInvoiceService $automaticInvoices,
     ) {}
 
     public function create(PaymentPlan $plan): View
@@ -398,8 +400,10 @@ $primaryClientName = $primaryClient?->organization_name
             ->whereNotNull('period_start')
             ->max('period_start');
 
-        return $latestPeriod
-            ? Carbon::parse($latestPeriod)->addMonthNoOverflow()->format('Y-m')
-            : now()->format('Y-m');
+        if ($latestPeriod) {
+            return Carbon::parse($latestPeriod)->addMonthNoOverflow()->format('Y-m');
+        }
+
+        return $this->automaticInvoices->nextDate($plan)?->format('Y-m') ?? now()->format('Y-m');
     }
 }

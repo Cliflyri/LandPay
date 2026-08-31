@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 30, 2026 at 05:47 PM
+-- Generation Time: Aug 31, 2026 at 06:01 PM
 -- Server version: 10.11.19-MariaDB-log
 -- PHP Version: 8.4.24
 
@@ -39,46 +39,52 @@ CREATE TABLE `admin_notices` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `client_payment_intent_id` bigint(20) UNSIGNED DEFAULT NULL,
-  `secure_message_thread_id` bigint(20) UNSIGNED DEFAULT NULL
+  `secure_message_thread_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `provider_event_id` varchar(120) DEFAULT NULL,
+  `provider_event_type` varchar(80) DEFAULT NULL,
+  `invoice_id` bigint(20) UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `admin_notices`
 --
 
-INSERT INTO `admin_notices` (`id`, `type`, `client_id`, `client_change_request_id`, `title`, `message`, `dismissed_by_user_id`, `dismissed_at`, `created_at`, `updated_at`, `client_payment_intent_id`, `secure_message_thread_id`) VALUES
-(1, 'portal_invitation_accepted', 17, NULL, 'Portal invitation accepted', 'Chris Costa - chris@mohavedeals.com activated portal access.', 1, '2026-08-11 18:22:36', '2026-08-11 17:48:52', '2026-08-11 18:22:36', NULL, NULL),
-(2, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $75.00 by Square on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:54:31', '2026-08-11 18:21:46', '2026-08-12 20:54:31', 3, NULL),
-(3, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $135.00 by Square on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:54:33', '2026-08-11 18:31:55', '2026-08-12 20:54:33', 4, NULL),
-(4, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $45.00 by Stripe on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:54:27', '2026-08-11 19:03:24', '2026-08-12 20:54:27', 5, NULL),
-(5, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $1.00 by Square on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:56:30', '2026-08-11 19:10:55', '2026-08-12 20:56:30', 6, NULL),
-(6, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $0.65 by Stripe on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:56:28', '2026-08-11 19:45:30', '2026-08-12 20:56:28', 10, NULL),
-(8, 'portal_invitation_accepted', 16, NULL, 'Portal invitation accepted', 'Joyce Costa - joygr8@yahoo.com activated portal access.', 1, '2026-08-12 20:56:02', '2026-08-12 20:39:27', '2026-08-12 20:56:02', NULL, NULL),
-(9, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-12 20:54:56', '2026-08-12 20:40:54', '2026-08-12 20:54:56', 11, NULL),
-(10, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-12 20:55:55', '2026-08-12 20:44:41', '2026-08-12 20:55:55', 12, NULL),
-(11, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Let me know if you get this\".', 1, '2026-08-12 20:53:55', '2026-08-12 20:45:51', '2026-08-12 20:53:55', NULL, 2),
-(12, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Let me know if you get this\".', 1, '2026-08-12 21:36:44', '2026-08-12 21:17:59', '2026-08-12 21:36:44', NULL, 2),
-(13, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Let me know if you get this\".', 1, '2026-08-12 21:36:44', '2026-08-12 21:19:27', '2026-08-12 21:36:44', NULL, 2),
-(14, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-13 18:35:24', '2026-08-13 17:13:22', '2026-08-13 18:35:24', 13, NULL),
-(15, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $145.00 by Zelle for plan Testprop1.', 1, '2026-08-14 22:55:30', '2026-08-14 17:43:33', '2026-08-14 22:55:30', 14, NULL),
-(16, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Venmo for plan Testprop1.', 1, '2026-08-15 21:05:38', '2026-08-15 16:39:46', '2026-08-15 21:05:38', 16, NULL),
-(17, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $230.00 by Zelle for plan Testprop1.', 1, '2026-08-15 21:05:23', '2026-08-15 16:45:18', '2026-08-15 21:05:23', 17, NULL),
-(18, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Thank you\".', 1, '2026-08-16 10:33:52', '2026-08-16 04:14:46', '2026-08-16 10:33:52', NULL, 4),
-(19, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Thank you\".', 1, '2026-08-16 17:33:48', '2026-08-16 15:47:04', '2026-08-16 17:33:48', NULL, 4),
-(20, 'portal_invitation_accepted', 1, NULL, 'Portal invitation accepted', 'Ernest Hayes - ernesth33jr@gmail.com activated portal access.', 1, '2026-08-17 18:49:55', '2026-08-17 15:46:53', '2026-08-17 18:49:55', NULL, NULL),
-(21, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $125.00 by Zelle for plan Testprop1.', 1, '2026-08-17 18:02:48', '2026-08-17 17:34:29', '2026-08-17 18:02:48', 18, NULL),
-(22, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $105.00 by Zelle for plan Testprop1.', 1, '2026-08-18 16:40:13', '2026-08-18 15:28:03', '2026-08-18 16:40:13', 19, NULL),
-(23, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $50.00 by Zelle for plan Testprop1.', 1, '2026-08-21 12:33:59', '2026-08-20 21:53:04', '2026-08-21 12:33:59', 20, NULL),
-(24, 'portal_invitation_accepted', 2, NULL, 'Portal invitation accepted', 'Tami McCarthy - tamiwicchick@aol.com activated portal access.', 1, '2026-08-21 15:50:54', '2026-08-21 15:02:27', '2026-08-21 15:50:54', NULL, NULL),
-(25, 'client_contact_change', 2, 1, 'Client contact update requested', 'Tami McCarthy submitted 6 contact change(s) for review.', 1, '2026-08-21 15:47:45', '2026-08-21 15:03:07', '2026-08-21 15:47:45', NULL, NULL),
-(26, 'secure_message_reply', 16, NULL, 'New secure message', 'Joyce Costa sent a new secure message.', 1, '2026-08-21 18:17:16', '2026-08-21 17:56:57', '2026-08-21 18:17:16', NULL, 7),
-(27, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Original pjurchase price of property\".', 1, '2026-08-21 20:44:02', '2026-08-21 20:17:37', '2026-08-21 20:44:02', NULL, 7),
-(28, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Original pjurchase price of property\".', 1, '2026-08-22 11:02:07', '2026-08-22 01:16:12', '2026-08-22 11:02:07', NULL, 7),
-(29, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-23 17:16:41', '2026-08-23 17:12:43', '2026-08-23 17:16:41', 21, NULL),
-(30, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $127.00 by Zelle for plan Testprop1.', 1, '2026-08-24 00:24:36', '2026-08-24 00:24:18', '2026-08-24 00:24:36', 22, NULL),
-(31, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-27 13:24:38', '2026-08-24 14:12:16', '2026-08-27 13:24:38', 23, NULL),
-(32, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Notices\".', 1, '2026-08-28 01:23:11', '2026-08-28 01:02:50', '2026-08-28 01:23:11', NULL, 8),
-(33, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Notices\".', 1, '2026-08-28 18:55:30', '2026-08-28 18:04:26', '2026-08-28 18:55:30', NULL, 8);
+INSERT INTO `admin_notices` (`id`, `type`, `client_id`, `client_change_request_id`, `title`, `message`, `dismissed_by_user_id`, `dismissed_at`, `created_at`, `updated_at`, `client_payment_intent_id`, `secure_message_thread_id`, `provider_event_id`, `provider_event_type`, `invoice_id`) VALUES
+(1, 'portal_invitation_accepted', 17, NULL, 'Portal invitation accepted', 'Chris Costa - chris@mohavedeals.com activated portal access.', 1, '2026-08-11 18:22:36', '2026-08-11 17:48:52', '2026-08-11 18:22:36', NULL, NULL, NULL, NULL, NULL),
+(2, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $75.00 by Square on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:54:31', '2026-08-11 18:21:46', '2026-08-12 20:54:31', 3, NULL, NULL, NULL, NULL),
+(3, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $135.00 by Square on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:54:33', '2026-08-11 18:31:55', '2026-08-12 20:54:33', 4, NULL, NULL, NULL, NULL),
+(4, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $45.00 by Stripe on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:54:27', '2026-08-11 19:03:24', '2026-08-12 20:54:27', 5, NULL, NULL, NULL, NULL),
+(5, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $1.00 by Square on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:56:30', '2026-08-11 19:10:55', '2026-08-12 20:56:30', 6, NULL, NULL, NULL, NULL),
+(6, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $0.65 by Stripe on Aug 11, 2026. Payment posted successfully.', 1, '2026-08-12 20:56:28', '2026-08-11 19:45:30', '2026-08-12 20:56:28', 10, NULL, NULL, NULL, NULL),
+(8, 'portal_invitation_accepted', 16, NULL, 'Portal invitation accepted', 'Joyce Costa - joygr8@yahoo.com activated portal access.', 1, '2026-08-12 20:56:02', '2026-08-12 20:39:27', '2026-08-12 20:56:02', NULL, NULL, NULL, NULL, NULL),
+(9, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-12 20:54:56', '2026-08-12 20:40:54', '2026-08-12 20:54:56', 11, NULL, NULL, NULL, NULL),
+(10, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-12 20:55:55', '2026-08-12 20:44:41', '2026-08-12 20:55:55', 12, NULL, NULL, NULL, NULL),
+(11, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Let me know if you get this\".', 1, '2026-08-12 20:53:55', '2026-08-12 20:45:51', '2026-08-12 20:53:55', NULL, 2, NULL, NULL, NULL),
+(12, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Let me know if you get this\".', 1, '2026-08-12 21:36:44', '2026-08-12 21:17:59', '2026-08-12 21:36:44', NULL, 2, NULL, NULL, NULL),
+(13, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Let me know if you get this\".', 1, '2026-08-12 21:36:44', '2026-08-12 21:19:27', '2026-08-12 21:36:44', NULL, 2, NULL, NULL, NULL),
+(14, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-13 18:35:24', '2026-08-13 17:13:22', '2026-08-13 18:35:24', 13, NULL, NULL, NULL, NULL),
+(15, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $145.00 by Zelle for plan Testprop1.', 1, '2026-08-14 22:55:30', '2026-08-14 17:43:33', '2026-08-14 22:55:30', 14, NULL, NULL, NULL, NULL),
+(16, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Venmo for plan Testprop1.', 1, '2026-08-15 21:05:38', '2026-08-15 16:39:46', '2026-08-15 21:05:38', 16, NULL, NULL, NULL, NULL),
+(17, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $230.00 by Zelle for plan Testprop1.', 1, '2026-08-15 21:05:23', '2026-08-15 16:45:18', '2026-08-15 21:05:23', 17, NULL, NULL, NULL, NULL),
+(18, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Thank you\".', 1, '2026-08-16 10:33:52', '2026-08-16 04:14:46', '2026-08-16 10:33:52', NULL, 4, NULL, NULL, NULL),
+(19, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Thank you\".', 1, '2026-08-16 17:33:48', '2026-08-16 15:47:04', '2026-08-16 17:33:48', NULL, 4, NULL, NULL, NULL),
+(20, 'portal_invitation_accepted', 1, NULL, 'Portal invitation accepted', 'Ernest Hayes - ernesth33jr@gmail.com activated portal access.', 1, '2026-08-17 18:49:55', '2026-08-17 15:46:53', '2026-08-17 18:49:55', NULL, NULL, NULL, NULL, NULL),
+(21, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $125.00 by Zelle for plan Testprop1.', 1, '2026-08-17 18:02:48', '2026-08-17 17:34:29', '2026-08-17 18:02:48', 18, NULL, NULL, NULL, NULL),
+(22, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $105.00 by Zelle for plan Testprop1.', 1, '2026-08-18 16:40:13', '2026-08-18 15:28:03', '2026-08-18 16:40:13', 19, NULL, NULL, NULL, NULL),
+(23, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $50.00 by Zelle for plan Testprop1.', 1, '2026-08-21 12:33:59', '2026-08-20 21:53:04', '2026-08-21 12:33:59', 20, NULL, NULL, NULL, NULL),
+(24, 'portal_invitation_accepted', 2, NULL, 'Portal invitation accepted', 'Tami McCarthy - tamiwicchick@aol.com activated portal access.', 1, '2026-08-21 15:50:54', '2026-08-21 15:02:27', '2026-08-21 15:50:54', NULL, NULL, NULL, NULL, NULL),
+(25, 'client_contact_change', 2, 1, 'Client contact update requested', 'Tami McCarthy submitted 6 contact change(s) for review.', 1, '2026-08-21 15:47:45', '2026-08-21 15:03:07', '2026-08-21 15:47:45', NULL, NULL, NULL, NULL, NULL),
+(26, 'secure_message_reply', 16, NULL, 'New secure message', 'Joyce Costa sent a new secure message.', 1, '2026-08-21 18:17:16', '2026-08-21 17:56:57', '2026-08-21 18:17:16', NULL, 7, NULL, NULL, NULL),
+(27, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Original pjurchase price of property\".', 1, '2026-08-21 20:44:02', '2026-08-21 20:17:37', '2026-08-21 20:44:02', NULL, 7, NULL, NULL, NULL),
+(28, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Original pjurchase price of property\".', 1, '2026-08-22 11:02:07', '2026-08-22 01:16:12', '2026-08-22 11:02:07', NULL, 7, NULL, NULL, NULL),
+(29, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-23 17:16:41', '2026-08-23 17:12:43', '2026-08-23 17:16:41', 21, NULL, NULL, NULL, NULL),
+(30, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $127.00 by Zelle for plan Testprop1.', 1, '2026-08-24 00:24:36', '2026-08-24 00:24:18', '2026-08-24 00:24:36', 22, NULL, NULL, NULL, NULL),
+(31, 'client_payment_announced', 16, NULL, 'Payment intended', 'Joyce Costa intends to pay $115.00 by Zelle for plan Testprop1.', 1, '2026-08-27 13:24:38', '2026-08-24 14:12:16', '2026-08-27 13:24:38', 23, NULL, NULL, NULL, NULL),
+(32, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Notices\".', 1, '2026-08-28 01:23:11', '2026-08-28 01:02:50', '2026-08-28 01:23:11', NULL, 8, NULL, NULL, NULL),
+(33, 'secure_message_reply', 16, NULL, 'Secure message reply', 'Joyce Costa replied to \"Notices\".', 1, '2026-08-28 18:55:30', '2026-08-28 18:04:26', '2026-08-28 18:55:30', NULL, 8, NULL, NULL, NULL),
+(34, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $1.34 by Square on Aug 30, 2026. Payment posted successfully.', NULL, NULL, '2026-08-30 22:23:13', '2026-08-30 22:23:13', 29, NULL, NULL, NULL, NULL),
+(35, 'online_payment_received', 17, NULL, 'Online payment received', 'Chris Costa paid $1.00 by Square on Aug 30, 2026. Payment posted successfully.', NULL, NULL, '2026-08-30 22:27:48', '2026-08-30 22:27:48', 30, NULL, NULL, NULL, NULL),
+(36, 'client_payment_announced', 17, NULL, 'Payment intended', 'Chris Costa intends to pay $5.00 by Zelle for plan Testprop2.', NULL, NULL, '2026-08-31 13:05:46', '2026-08-31 13:05:46', 31, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -126,8 +132,8 @@ INSERT INTO `app_settings` (`id`, `key`, `value`, `created_at`, `updated_at`) VA
 (25, 'payment_melio_button', 'I sent this payment', '2026-08-11 17:29:14', '2026-08-11 17:29:14'),
 (26, 'square_environment', 'live', '2026-08-11 17:44:54', '2026-08-11 18:34:56'),
 (27, 'square_public_id', 'LSER7260N94E5', '2026-08-11 17:44:54', '2026-08-11 18:34:56'),
-(28, 'square_api_secret', 'eyJpdiI6IlpUdGU5VWYrNEo1U0Q3VTQ0MitUZkE9PSIsInZhbHVlIjoia0JHK1VPdWFTN1Z6U2VFWGVBcTRTZnc5R3RKMmxnaHhyZHE4TnN6bzFraVdMQW5tR1FSU3FoczF4ay9rSEtidlc3U3ZoMloxY3ROMlYxUUFBUUVIQk5MSXhnakhIcWM0cG01WXFQZ00zMG89IiwibWFjIjoiNTM2ZjZjZTM5YTg3N2JhN2RjN2JmYmRhMTlhZTM1NzZmZGZkMWQwNTBlMjIzYTcyMzczNDY3OTAwN2IwZTE3NCIsInRhZyI6IiJ9', '2026-08-11 17:44:54', '2026-08-11 18:34:56'),
-(29, 'square_webhook_secret', 'eyJpdiI6InBwUkV6NDUveWExdEVSZUNIbkovekE9PSIsInZhbHVlIjoiVG80UlRCdUlEdTF6MUVVZThLV3k0ckxaQWpacU1LMmozYkg1MWtRWTJiWT0iLCJtYWMiOiJkZWQ2ODdhMmQzZDNjY2U3MDRkNDExYTM1OWY0MmZjYjc5M2YxYTk4NGViYmYxNGZiNWNkYTM3ODliMzM2Nzk4IiwidGFnIjoiIn0=', '2026-08-11 17:47:50', '2026-08-11 18:34:56'),
+(28, 'square_api_secret', 'eyJpdiI6ImZuN015cGRQY0FrY0hmNkRVZUlrMWc9PSIsInZhbHVlIjoiUjd4ampqNnlXdXhvb3dFSUU4STkzdz09IiwibWFjIjoiNjg1NmY5NDYxODMzODNlZmM2MmEzNmMyNWQ5MmUzYTk1YTA5YWZjNjkxMTE1NWJlZmY0N2YwOThhNTRmNWMwMSIsInRhZyI6IiJ9', '2026-08-11 17:44:54', '2026-08-31 02:03:24'),
+(29, 'square_webhook_secret', 'eyJpdiI6Ilh4RHZ4eWMvS1pjQ2YyY1J0OVByM1E9PSIsInZhbHVlIjoiWndQOHFHbDJMVmRMQm5XTlkyK3dxYk15VVdJTXp2Zkc4RC9IYU1GQm84ND0iLCJtYWMiOiIzNjJmM2NhMjVkNmVjOTVhMTg0ODQ1MmFhYjc4YWNmYTIyMWZiNGRhNjU0YWNlMjIyMjY5YzE1MDMzY2RiYTgzIiwidGFnIjoiIn0=', '2026-08-11 17:47:50', '2026-08-30 22:22:51'),
 (30, 'payment_cash_app_enabled', '1', '2026-08-11 17:50:39', '2026-08-11 17:50:39'),
 (31, 'payment_cash_app_name', 'Cash App', '2026-08-11 17:50:39', '2026-08-11 17:50:39'),
 (32, 'payment_cash_app_instructions', 'If payment is coming from an account other than your own, please notify admin.', '2026-08-11 17:50:39', '2026-08-11 17:50:39'),
@@ -143,7 +149,7 @@ INSERT INTO `app_settings` (`id`, `key`, `value`, `created_at`, `updated_at`) VA
 (42, 'payment_venmo_image_url', 'https://mohavedeals.com/images/payment/venmo.png', '2026-08-11 17:50:56', '2026-08-11 17:50:56'),
 (43, 'payment_venmo_button', 'I sent this payment', '2026-08-11 17:50:56', '2026-08-11 17:50:56'),
 (44, 'payment_card_enabled', '1', '2026-08-11 17:51:51', '2026-08-11 17:51:51'),
-(45, 'payment_card_name', 'Credit or debit card', '2026-08-11 17:51:51', '2026-08-11 17:51:51'),
+(45, 'payment_card_name', 'Credit/Debit Card', '2026-08-11 17:51:51', '2026-08-31 02:29:15'),
 (46, 'payment_card_instructions', '', '2026-08-11 17:51:51', '2026-08-11 17:51:51'),
 (47, 'payment_card_recipient', '', '2026-08-11 17:51:51', '2026-08-11 17:51:51'),
 (48, 'payment_card_link', '', '2026-08-11 17:51:51', '2026-08-11 17:51:51'),
@@ -165,7 +171,28 @@ INSERT INTO `app_settings` (`id`, `key`, `value`, `created_at`, `updated_at`) VA
 (64, 'payment_zelle_recipient', 'sales@mohavedeals.com', '2026-08-19 22:44:19', '2026-08-19 22:44:19'),
 (65, 'payment_zelle_link', '', '2026-08-19 22:44:19', '2026-08-19 22:44:19'),
 (66, 'payment_zelle_image_url', 'https://mohavedeals.com/images/payment/zelle.png', '2026-08-19 22:44:19', '2026-08-19 22:44:19'),
-(67, 'payment_zelle_button', 'I sent this payment', '2026-08-19 22:44:19', '2026-08-19 22:44:19');
+(67, 'payment_zelle_button', 'I sent this payment', '2026-08-19 22:44:19', '2026-08-19 22:44:19'),
+(68, 'square_application_id', 'sq0idp-Cn20VKyQ120qpANVIW146Q', '2026-08-30 19:36:57', '2026-08-30 19:36:57'),
+(69, 'square_checkout_experience', 'landpay', '2026-08-30 19:36:57', '2026-08-30 19:58:25'),
+(70, 'square_processing_fee_enabled', '1', '2026-08-30 19:36:57', '2026-08-30 19:36:57'),
+(71, 'square_processing_fee_percent', '2.9', '2026-08-30 19:36:57', '2026-08-30 19:36:57'),
+(72, 'square_processing_fee_amount', '30', '2026-08-30 19:36:57', '2026-08-30 19:36:57'),
+(73, 'square_processing_fee_cap', '', '2026-08-30 19:36:57', '2026-08-30 19:36:57'),
+(74, 'square_processing_fee_adjust', '1', '2026-08-30 19:36:57', '2026-08-31 02:20:58'),
+(75, 'payment_other_enabled', '0', '2026-08-31 02:22:24', '2026-08-31 02:30:45'),
+(76, 'payment_other_name', 'Bank Wire', '2026-08-31 02:22:24', '2026-08-31 02:28:47'),
+(77, 'payment_other_instructions', 'If you would like to make a larger payment by wire transfer, please notify us above, and we will send instructions through secure messaging.  Thank you.', '2026-08-31 02:22:24', '2026-08-31 02:28:09'),
+(78, 'payment_other_recipient', '', '2026-08-31 02:22:24', '2026-08-31 02:22:24'),
+(79, 'payment_other_link', '', '2026-08-31 02:22:24', '2026-08-31 02:22:24'),
+(80, 'payment_other_image_url', '', '2026-08-31 02:22:24', '2026-08-31 02:26:33'),
+(81, 'payment_other_button', 'I will make this payment', '2026-08-31 02:22:24', '2026-08-31 02:22:24'),
+(82, 'invoice_view_admin_notice_enabled', '1', '2026-08-31 13:03:43', '2026-08-31 13:03:43'),
+(83, 'admin_notice_email_invoice', '1', '2026-08-31 13:03:43', '2026-08-31 13:03:43'),
+(84, 'admin_notice_email_payments', '1', '2026-08-31 13:03:43', '2026-08-31 13:03:43'),
+(85, 'admin_notice_email_secure_messages', '1', '2026-08-31 13:03:43', '2026-08-31 13:03:43'),
+(86, 'admin_notice_email_documents', '1', '2026-08-31 13:03:43', '2026-08-31 13:03:43'),
+(87, 'admin_notice_email_account_portal', '1', '2026-08-31 13:03:43', '2026-08-31 13:03:43'),
+(88, 'admin_notice_email_address', '', '2026-08-31 13:03:43', '2026-08-31 13:03:43');
 
 -- --------------------------------------------------------
 
@@ -295,7 +322,12 @@ INSERT INTO `audit_logs` (`id`, `uuid`, `actor_type`, `actor_user_id`, `actor_cl
 (98, '7e5422a3-8fbe-4aee-b78e-4728817ced40', 'administrator', 1, 16, 'client_portal.admin_access_started', 'App\\Models\\Client', 16, NULL, '{\"mode\":\"read_only\",\"started_at\":\"2026-08-28T15:04:40-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-28 22:04:40'),
 (99, '12aa07a0-1d2a-4f95-ba62-cfc7fe362b5e', 'administrator', 1, 16, 'client_portal.admin_access_started', 'App\\Models\\Client', 16, NULL, '{\"mode\":\"read_only\",\"started_at\":\"2026-08-28T15:08:44-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-28 22:08:44'),
 (100, '776d14b6-27ee-48c7-9117-75eaba8a961e', 'administrator', 1, 16, 'client_portal.admin_access_ended', 'App\\Models\\Client', 16, '{\"started_at\":\"2026-08-28T15:08:44-07:00\",\"start_audit_id\":99}', '{\"ended_at\":\"2026-08-28T15:11:43-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-28 22:11:43'),
-(101, '3ae3aca8-e5ad-4205-8dd7-eefe09420fcb', 'administrator', 1, NULL, 'payment_plan.amended', 'App\\Models\\PaymentPlan', 17, '{\"plan\":{\"plan_number\":\"Testprop1\",\"title\":\"1.14 Imaginary Acres of land\",\"asset_description\":null,\"notes\":null,\"status\":\"active\",\"plan_start_date\":\"2026-08-11T07:00:00.000000Z\",\"first_payment_amount\":null,\"first_due_date\":null,\"purchase_price\":250000,\"documentation_fee_standard\":24900,\"documentation_fee_waived\":0,\"documentation_fee_waiver_reason\":null},\"billing_terms\":{\"id\":27,\"payment_plan_id\":17,\"frequency\":\"monthly\",\"invoice_day\":3,\"due_days_after_issue\":3,\"grace_days\":2,\"scheduled_payment_amount\":10000,\"monthly_service_fee\":1500,\"stage_one_enabled\":1,\"stage_one_fee_type\":\"fixed\",\"stage_one_fixed_amount\":2500,\"stage_one_percentage_rate\":null,\"stage_one_minimum_amount\":0,\"stage_one_days_late\":3,\"stage_two_enabled\":1,\"stage_two_fee_type\":\"fixed\",\"stage_two_fixed_amount\":5000,\"stage_two_percentage_rate\":null,\"stage_two_minimum_amount\":0,\"stage_two_days_late\":6,\"default_eligibility_days\":60,\"effective_from\":\"2026-08-29\",\"effective_to\":null,\"reason\":\"adjust late fees\",\"created_by_user_id\":1,\"created_at\":\"2026-08-28 15:04:33\",\"updated_at\":\"2026-08-28 15:04:33\"}}', '{\"plan\":{\"plan_number\":\"Testprop1\",\"title\":\"1.14 Imaginary Acres of land\",\"asset_description\":null,\"notes\":null,\"status\":\"active\",\"plan_start_date\":\"2026-08-11T07:00:00.000000Z\",\"first_payment_amount\":null,\"first_due_date\":null,\"purchase_price\":250000,\"documentation_fee_standard\":24900,\"documentation_fee_waived\":0,\"documentation_fee_waiver_reason\":null},\"billing_terms\":{\"payment_plan_id\":17,\"frequency\":\"monthly\",\"invoice_day\":\"3\",\"due_days_after_issue\":\"3\",\"grace_days\":\"1\",\"scheduled_payment_amount\":10000,\"monthly_service_fee\":1500,\"stage_one_enabled\":true,\"stage_one_fee_type\":\"fixed\",\"stage_one_fixed_amount\":2500,\"stage_one_percentage_rate\":null,\"stage_one_minimum_amount\":0,\"stage_one_days_late\":2,\"stage_two_enabled\":true,\"stage_two_fee_type\":\"fixed\",\"stage_two_fixed_amount\":5000,\"stage_two_percentage_rate\":null,\"stage_two_minimum_amount\":0,\"stage_two_days_late\":\"6\",\"default_eligibility_days\":\"60\",\"effective_from\":\"2026-08-29 00:00:00\",\"reason\":\"change grace days\",\"created_by_user_id\":1,\"updated_at\":\"2026-08-28 15:13:24\",\"created_at\":\"2026-08-28 15:13:24\",\"id\":28},\"reason\":\"change grace days\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-28 22:13:24');
+(101, '3ae3aca8-e5ad-4205-8dd7-eefe09420fcb', 'administrator', 1, NULL, 'payment_plan.amended', 'App\\Models\\PaymentPlan', 17, '{\"plan\":{\"plan_number\":\"Testprop1\",\"title\":\"1.14 Imaginary Acres of land\",\"asset_description\":null,\"notes\":null,\"status\":\"active\",\"plan_start_date\":\"2026-08-11T07:00:00.000000Z\",\"first_payment_amount\":null,\"first_due_date\":null,\"purchase_price\":250000,\"documentation_fee_standard\":24900,\"documentation_fee_waived\":0,\"documentation_fee_waiver_reason\":null},\"billing_terms\":{\"id\":27,\"payment_plan_id\":17,\"frequency\":\"monthly\",\"invoice_day\":3,\"due_days_after_issue\":3,\"grace_days\":2,\"scheduled_payment_amount\":10000,\"monthly_service_fee\":1500,\"stage_one_enabled\":1,\"stage_one_fee_type\":\"fixed\",\"stage_one_fixed_amount\":2500,\"stage_one_percentage_rate\":null,\"stage_one_minimum_amount\":0,\"stage_one_days_late\":3,\"stage_two_enabled\":1,\"stage_two_fee_type\":\"fixed\",\"stage_two_fixed_amount\":5000,\"stage_two_percentage_rate\":null,\"stage_two_minimum_amount\":0,\"stage_two_days_late\":6,\"default_eligibility_days\":60,\"effective_from\":\"2026-08-29\",\"effective_to\":null,\"reason\":\"adjust late fees\",\"created_by_user_id\":1,\"created_at\":\"2026-08-28 15:04:33\",\"updated_at\":\"2026-08-28 15:04:33\"}}', '{\"plan\":{\"plan_number\":\"Testprop1\",\"title\":\"1.14 Imaginary Acres of land\",\"asset_description\":null,\"notes\":null,\"status\":\"active\",\"plan_start_date\":\"2026-08-11T07:00:00.000000Z\",\"first_payment_amount\":null,\"first_due_date\":null,\"purchase_price\":250000,\"documentation_fee_standard\":24900,\"documentation_fee_waived\":0,\"documentation_fee_waiver_reason\":null},\"billing_terms\":{\"payment_plan_id\":17,\"frequency\":\"monthly\",\"invoice_day\":\"3\",\"due_days_after_issue\":\"3\",\"grace_days\":\"1\",\"scheduled_payment_amount\":10000,\"monthly_service_fee\":1500,\"stage_one_enabled\":true,\"stage_one_fee_type\":\"fixed\",\"stage_one_fixed_amount\":2500,\"stage_one_percentage_rate\":null,\"stage_one_minimum_amount\":0,\"stage_one_days_late\":2,\"stage_two_enabled\":true,\"stage_two_fee_type\":\"fixed\",\"stage_two_fixed_amount\":5000,\"stage_two_percentage_rate\":null,\"stage_two_minimum_amount\":0,\"stage_two_days_late\":\"6\",\"default_eligibility_days\":\"60\",\"effective_from\":\"2026-08-29 00:00:00\",\"reason\":\"change grace days\",\"created_by_user_id\":1,\"updated_at\":\"2026-08-28 15:13:24\",\"created_at\":\"2026-08-28 15:13:24\",\"id\":28},\"reason\":\"change grace days\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-28 22:13:24'),
+(102, '30380eca-3f5c-41c4-8e97-28ee807aec0c', 'administrator', 1, 16, 'client_portal.admin_access_started', 'App\\Models\\Client', 16, NULL, '{\"mode\":\"read_only\",\"started_at\":\"2026-08-30T14:56:41-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-30 21:56:41'),
+(103, '2480370b-3264-41ec-9c0e-6ac49a4c66b4', 'administrator', 1, 16, 'client_portal.admin_access_ended', 'App\\Models\\Client', 16, '{\"started_at\":\"2026-08-30T14:56:41-07:00\",\"start_audit_id\":102}', '{\"ended_at\":\"2026-08-30T14:56:43-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-30 21:56:43'),
+(104, '8f235033-6bcc-467d-99c1-05b5313c7b48', 'administrator', 1, 16, 'client_portal.admin_access_started', 'App\\Models\\Client', 16, NULL, '{\"mode\":\"read_only\",\"started_at\":\"2026-08-30T14:56:46-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-30 21:56:46'),
+(105, '5379709a-85b8-4c81-8a1d-9e21efe82f95', 'administrator', 1, 16, 'client_portal.admin_access_ended', 'App\\Models\\Client', 16, '{\"started_at\":\"2026-08-30T14:56:46-07:00\",\"start_audit_id\":104}', '{\"ended_at\":\"2026-08-30T14:57:29-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-30 21:57:29'),
+(106, '9befb740-5c79-49ce-9076-ac8802f75081', 'administrator', 1, 16, 'client_portal.admin_access_started', 'App\\Models\\Client', 16, NULL, '{\"mode\":\"read_only\",\"started_at\":\"2026-08-30T22:50:41-07:00\"}', '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', '2026-08-31 05:50:41');
 
 -- --------------------------------------------------------
 
@@ -341,14 +373,6 @@ CREATE TABLE `cache` (
   `value` mediumtext NOT NULL,
   `expiration` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `cache`
---
-
-INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('landpay-cache-da4b9237bacccdf19c0760cab7aec4a8359010b0', 'i:1;', 1787951126),
-('landpay-cache-da4b9237bacccdf19c0760cab7aec4a8359010b0:timer', 'i:1787951126;', 1787951126);
 
 -- --------------------------------------------------------
 
@@ -416,7 +440,7 @@ INSERT INTO `clients` (`id`, `uuid`, `client_type`, `first_name`, `middle_name`,
 (14, '5733df94-528d-47a5-9da7-1ea2e7cbb2c6', 'individual', 'Gilbert', NULL, 'Burciaga', 'BCP Contractors', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'US', 'active', NULL, 1, 1, NULL, '2026-08-10 14:04:33', '2026-08-10 14:35:10'),
 (15, '4efd5903-607c-4ae9-9cbf-29cece056850', 'individual', 'Edgar', NULL, 'Diaz', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'US', 'active', NULL, 1, 1, NULL, '2026-08-10 14:08:47', '2026-08-10 14:08:47'),
 (16, 'a032b7c6-a955-4fe6-b509-59e277ed34df', 'individual', 'Joyce', NULL, 'Costa', NULL, NULL, 'joygr8@yahoo.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'US', 'active', NULL, 1, 1, NULL, '2026-08-11 13:50:46', '2026-08-11 13:50:46'),
-(17, '8abeda0d-d933-4b37-b72f-1bc293507d34', 'individual', 'Chris', NULL, 'Costa', NULL, NULL, 'chris@mohavedeals.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'US', 'active', NULL, 1, 1, NULL, '2026-08-11 17:48:37', '2026-08-11 17:48:37');
+(17, '8abeda0d-d933-4b37-b72f-1bc293507d34', 'individual', 'Chris', NULL, 'Costa', NULL, NULL, 'chris@mohavedeals.com', NULL, NULL, NULL, NULL, NULL, NULL, '86426', 'US', 'active', NULL, 1, 1, NULL, '2026-08-11 17:48:37', '2026-08-30 21:48:57');
 
 -- --------------------------------------------------------
 
@@ -499,6 +523,9 @@ CREATE TABLE `client_payment_intents` (
   `portal_account_id` bigint(20) UNSIGNED NOT NULL,
   `method` varchar(40) NOT NULL,
   `amount` bigint(20) UNSIGNED NOT NULL,
+  `base_amount` bigint(20) UNSIGNED DEFAULT NULL,
+  `processing_fee_amount` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
+  `card_type` varchar(20) DEFAULT NULL,
   `payment_type` varchar(30) NOT NULL DEFAULT 'regular',
   `overpayment_disposition` varchar(30) DEFAULT NULL,
   `client_reference` varchar(150) DEFAULT NULL,
@@ -520,30 +547,38 @@ CREATE TABLE `client_payment_intents` (
 -- Dumping data for table `client_payment_intents`
 --
 
-INSERT INTO `client_payment_intents` (`id`, `uuid`, `payment_plan_id`, `client_id`, `portal_account_id`, `method`, `amount`, `payment_type`, `overpayment_disposition`, `client_reference`, `client_note`, `status`, `provider`, `provider_checkout_id`, `provider_payment_id`, `checkout_url`, `expires_at`, `payment_id`, `received_at`, `cancelled_at`, `created_at`, `updated_at`) VALUES
-(1, 'ba95fcaf-46d1-49fd-936a-3b79c10874a9', 18, 17, 1, 'card', 5000, 'regular', 'principal', NULL, NULL, 'announced', NULL, NULL, NULL, NULL, '2026-08-25 17:59:04', NULL, NULL, NULL, '2026-08-11 17:59:04', '2026-08-11 17:59:04'),
-(2, '71e9e36b-8374-4ef0-92eb-3f5b77c0f364', 18, 17, 1, 'card', 7500, 'regular', 'principal', NULL, NULL, 'failed', 'square', NULL, NULL, NULL, '2026-08-25 18:20:03', NULL, NULL, NULL, '2026-08-11 18:20:03', '2026-08-11 18:20:03'),
-(3, 'e049cee3-9f9f-4b6c-9857-2a0e31a53532', 18, 17, 1, 'card', 7500, 'regular', 'principal', NULL, NULL, 'received', 'square', '4k0xZ4rLealqvCiq86Ezpmt6xIEZY', 'RS5climqc9lOvAQA0e9ipaoWCJPZY', 'https://sandbox.square.link/u/uFuRKNQy', '2026-08-12 18:21:23', 1, '2026-08-11 18:21:46', NULL, '2026-08-11 18:21:22', '2026-08-11 18:21:46'),
-(4, '8b83044c-1628-4dd1-b4b2-6168e34d785a', 18, 17, 1, 'card', 13500, 'regular', 'principal', NULL, 'This is for the first payment', 'received', 'square', '6XptehrVmX2dkEplpScsgHuCTOQZY', '1MDdi7er1uMEgXKQmPMBWECx5mJZY', 'https://sandbox.square.link/u/Tf7JQp01', '2026-08-12 18:31:44', 2, '2026-08-11 18:31:55', NULL, '2026-08-11 18:31:43', '2026-08-11 18:31:55'),
-(5, '4cd96bee-865f-4320-bad0-41c2d7180125', 18, 17, 1, 'card', 4500, 'regular', 'principal', NULL, NULL, 'received', 'stripe', 'cs_test_a1NiaooWyiec2rq4m86rruegUAHHvYL5KKM4qcQtyb48GthLTixz4gVGzQ', 'pi_3U3NkLIC2f6Um3lL01Z6jg9s', 'https://checkout.stripe.com/c/pay/cs_test_a1NiaooWyiec2rq4m86rruegUAHHvYL5KKM4qcQtyb48GthLTixz4gVGzQ#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDROaFRrQExGN2MzUGg2aUl1X1VMNnRVdlU2XG1%2FYklsfWBwdktMZzYwUU1iMWFscTVNVEtSX2lPTDRna2A8T3ZNRGE8VjZcb19iSn82PXx1XDRmXVNvUVw1NVM9QjFIamFcJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl', '2026-08-12 19:02:09', 3, '2026-08-11 19:03:24', NULL, '2026-08-11 19:02:07', '2026-08-11 19:03:24'),
-(6, 'b621dbc2-5b59-4cda-9b19-3ceba74685f2', 18, 17, 1, 'card', 100, 'regular', 'principal', NULL, 'Testing square', 'received', 'square', '8GDk5rJWQzv5HXEfmmZmq0ZWDeAZY', 'R610ZdDwlaCbSCbz3BJVtGW5NcRZY', 'https://square.link/u/Few9Cnc0', '2026-08-12 19:09:57', 4, '2026-08-11 19:10:55', NULL, '2026-08-11 19:09:57', '2026-08-11 19:10:55'),
-(7, '2dbb21d2-5768-4312-86c2-afb2c009b116', 18, 17, 1, 'card', 110, 'regular', 'principal', NULL, 'testing stripe', 'announced', NULL, NULL, NULL, NULL, '2026-08-25 19:12:11', NULL, NULL, NULL, '2026-08-11 19:12:11', '2026-08-11 19:12:11'),
-(8, '630b929d-b20c-4b1b-afc0-e50d085a7ed9', 18, 17, 1, 'card', 110, 'regular', 'principal', NULL, 'testing stripe', 'announced', NULL, NULL, NULL, NULL, '2026-08-25 19:13:34', NULL, NULL, NULL, '2026-08-11 19:13:34', '2026-08-11 19:13:34'),
-(9, 'b926e7a8-d518-40b0-8a1f-90734a2112d8', 18, 17, 1, 'card', 110, 'regular', 'principal', NULL, 'testing stripe', 'announced', NULL, NULL, NULL, NULL, '2026-08-25 19:34:14', NULL, NULL, NULL, '2026-08-11 19:34:14', '2026-08-11 19:34:14'),
-(10, '96d04bd7-46be-40cf-82b5-1426f3c7fb63', 18, 17, 1, 'card', 65, 'regular', 'principal', NULL, NULL, 'received', 'stripe', 'cs_live_a1uqx2tcELK0wro9AyZnHQTBfLwKgRdrGog1cEFloNdg5i9qDMlq83xc1Z', 'pi_3U3OOwIC2f6Um3lL0BfiHwu3', 'https://checkout.stripe.com/c/pay/cs_live_a1uqx2tcELK0wro9AyZnHQTBfLwKgRdrGog1cEFloNdg5i9qDMlq83xc1Z#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWmlsc2BaMDROaFRrQExGN2MzUGg2aUlIY0RndFRAYHREfFZuNnBEVWpMa2ZTUzJxbDNLXH9tdXZARn01Rnd1ajVJQk5UPGNiaTBCR24xNTZBUDxvaXRpTERGSU09Yn01NUxRaFxQXW0xJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl', '2026-08-12 19:44:06', 5, '2026-08-11 19:45:30', NULL, '2026-08-11 19:44:05', '2026-08-11 19:45:30'),
-(11, 'bd11281d-3030-487b-a838-daaa7f0ba389', 17, 16, 2, 'zelle', 11500, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-26 20:40:54', 6, '2026-08-12 20:54:56', NULL, '2026-08-12 20:40:54', '2026-08-12 20:54:56'),
-(12, '52a44bd9-0931-4b0b-9016-0842a2424c3c', 17, 16, 2, 'zelle', 11500, 'regular', NULL, NULL, NULL, 'cancelled', NULL, NULL, NULL, NULL, '2026-08-26 20:44:41', NULL, NULL, '2026-08-12 20:55:55', '2026-08-12 20:44:41', '2026-08-12 20:55:55'),
-(13, 'ea5b4593-768b-4adf-a700-a3e362eb0e60', 17, 16, 2, 'zelle', 11500, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-27 17:13:22', 7, '2026-08-13 18:35:24', NULL, '2026-08-13 17:13:22', '2026-08-13 18:35:24'),
-(14, 'e1948323-a1df-49fd-b510-4fa7fd5661b3', 17, 16, 2, 'zelle', 14500, 'regular', 'principal', NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-28 17:43:33', 8, '2026-08-14 22:55:30', NULL, '2026-08-14 17:43:33', '2026-08-14 22:55:30'),
-(15, 'e7f6ce91-490a-46fa-8344-13abfc45be71', 17, 16, 2, 'card', 11500, 'regular', NULL, NULL, NULL, 'checkout_pending', 'square', 'sMCUNm2QH0HBEa0OKdqKrPdnODFZY', NULL, 'https://square.link/u/PMEzz6yX', '2026-08-16 16:37:08', NULL, NULL, NULL, '2026-08-15 16:37:08', '2026-08-15 16:37:08'),
-(16, '57c9b105-1fb7-402d-b92c-9a9f5773b28e', 17, 16, 2, 'venmo', 11500, 'regular', NULL, NULL, NULL, 'cancelled', NULL, NULL, NULL, NULL, '2026-08-29 16:39:46', NULL, NULL, '2026-08-15 21:05:38', '2026-08-15 16:39:46', '2026-08-15 21:05:38'),
-(17, '0a0f6693-95a5-4360-839e-1d05aa147dd9', 17, 16, 2, 'zelle', 23000, 'regular', 'next_invoice_credit', NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-29 16:45:18', 9, '2026-08-15 21:05:23', NULL, '2026-08-15 16:45:18', '2026-08-15 21:05:23'),
-(18, 'feb30ec0-7776-4cd9-91f2-4e149239d4a3', 17, 16, 2, 'zelle', 12500, 'regular', 'next_invoice_credit', NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-31 17:34:29', 11, '2026-08-17 18:02:48', NULL, '2026-08-17 17:34:29', '2026-08-17 18:02:48'),
-(19, 'dc012f38-6a27-4d20-b45d-a07a9c3ffd64', 17, 16, 2, 'zelle', 10500, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-01 15:28:03', 12, '2026-08-18 16:40:13', NULL, '2026-08-18 15:28:03', '2026-08-18 16:40:13'),
-(20, 'bd617121-e6c6-43e0-bd82-11683bc0305f', 17, 16, 2, 'zelle', 5000, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-03 21:53:04', 13, '2026-08-21 12:33:59', NULL, '2026-08-20 21:53:04', '2026-08-21 12:33:59'),
-(21, '067e06ab-b33e-4de4-82cc-614ebbefc389', 17, 16, 2, 'zelle', 11500, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-06 17:12:43', 16, '2026-08-23 17:16:41', NULL, '2026-08-23 17:12:43', '2026-08-23 17:16:41'),
-(22, '3a5e0ff8-3802-4b96-aa81-980fa841a260', 17, 16, 2, 'zelle', 12700, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-07 00:24:18', 17, '2026-08-24 00:24:36', NULL, '2026-08-24 00:24:18', '2026-08-24 00:24:36'),
-(23, '5891244c-7d05-46c6-ab9e-b68c1960a3aa', 17, 16, 2, 'zelle', 11500, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-07 14:12:16', 18, '2026-08-27 13:24:38', NULL, '2026-08-24 14:12:16', '2026-08-27 13:24:38');
+INSERT INTO `client_payment_intents` (`id`, `uuid`, `payment_plan_id`, `client_id`, `portal_account_id`, `method`, `amount`, `base_amount`, `processing_fee_amount`, `card_type`, `payment_type`, `overpayment_disposition`, `client_reference`, `client_note`, `status`, `provider`, `provider_checkout_id`, `provider_payment_id`, `checkout_url`, `expires_at`, `payment_id`, `received_at`, `cancelled_at`, `created_at`, `updated_at`) VALUES
+(1, 'ba95fcaf-46d1-49fd-936a-3b79c10874a9', 18, 17, 1, 'card', 5000, NULL, 0, NULL, 'regular', 'principal', NULL, NULL, 'announced', NULL, NULL, NULL, NULL, '2026-08-25 17:59:04', NULL, NULL, NULL, '2026-08-11 17:59:04', '2026-08-11 17:59:04'),
+(2, '71e9e36b-8374-4ef0-92eb-3f5b77c0f364', 18, 17, 1, 'card', 7500, NULL, 0, NULL, 'regular', 'principal', NULL, NULL, 'failed', 'square', NULL, NULL, NULL, '2026-08-25 18:20:03', NULL, NULL, NULL, '2026-08-11 18:20:03', '2026-08-11 18:20:03'),
+(3, 'e049cee3-9f9f-4b6c-9857-2a0e31a53532', 18, 17, 1, 'card', 7500, NULL, 0, NULL, 'regular', 'principal', NULL, NULL, 'received', 'square', '4k0xZ4rLealqvCiq86Ezpmt6xIEZY', 'RS5climqc9lOvAQA0e9ipaoWCJPZY', 'https://sandbox.square.link/u/uFuRKNQy', '2026-08-12 18:21:23', 1, '2026-08-11 18:21:46', NULL, '2026-08-11 18:21:22', '2026-08-11 18:21:46'),
+(4, '8b83044c-1628-4dd1-b4b2-6168e34d785a', 18, 17, 1, 'card', 13500, NULL, 0, NULL, 'regular', 'principal', NULL, 'This is for the first payment', 'received', 'square', '6XptehrVmX2dkEplpScsgHuCTOQZY', '1MDdi7er1uMEgXKQmPMBWECx5mJZY', 'https://sandbox.square.link/u/Tf7JQp01', '2026-08-12 18:31:44', 2, '2026-08-11 18:31:55', NULL, '2026-08-11 18:31:43', '2026-08-11 18:31:55'),
+(5, '4cd96bee-865f-4320-bad0-41c2d7180125', 18, 17, 1, 'card', 4500, NULL, 0, NULL, 'regular', 'principal', NULL, NULL, 'received', 'stripe', 'cs_test_a1NiaooWyiec2rq4m86rruegUAHHvYL5KKM4qcQtyb48GthLTixz4gVGzQ', 'pi_3U3NkLIC2f6Um3lL01Z6jg9s', 'https://checkout.stripe.com/c/pay/cs_test_a1NiaooWyiec2rq4m86rruegUAHHvYL5KKM4qcQtyb48GthLTixz4gVGzQ#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDROaFRrQExGN2MzUGg2aUl1X1VMNnRVdlU2XG1%2FYklsfWBwdktMZzYwUU1iMWFscTVNVEtSX2lPTDRna2A8T3ZNRGE8VjZcb19iSn82PXx1XDRmXVNvUVw1NVM9QjFIamFcJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl', '2026-08-12 19:02:09', 3, '2026-08-11 19:03:24', NULL, '2026-08-11 19:02:07', '2026-08-11 19:03:24'),
+(6, 'b621dbc2-5b59-4cda-9b19-3ceba74685f2', 18, 17, 1, 'card', 100, NULL, 0, NULL, 'regular', 'principal', NULL, 'Testing square', 'received', 'square', '8GDk5rJWQzv5HXEfmmZmq0ZWDeAZY', 'R610ZdDwlaCbSCbz3BJVtGW5NcRZY', 'https://square.link/u/Few9Cnc0', '2026-08-12 19:09:57', 4, '2026-08-11 19:10:55', NULL, '2026-08-11 19:09:57', '2026-08-11 19:10:55'),
+(7, '2dbb21d2-5768-4312-86c2-afb2c009b116', 18, 17, 1, 'card', 110, NULL, 0, NULL, 'regular', 'principal', NULL, 'testing stripe', 'announced', NULL, NULL, NULL, NULL, '2026-08-25 19:12:11', NULL, NULL, NULL, '2026-08-11 19:12:11', '2026-08-11 19:12:11'),
+(8, '630b929d-b20c-4b1b-afc0-e50d085a7ed9', 18, 17, 1, 'card', 110, NULL, 0, NULL, 'regular', 'principal', NULL, 'testing stripe', 'announced', NULL, NULL, NULL, NULL, '2026-08-25 19:13:34', NULL, NULL, NULL, '2026-08-11 19:13:34', '2026-08-11 19:13:34'),
+(9, 'b926e7a8-d518-40b0-8a1f-90734a2112d8', 18, 17, 1, 'card', 110, NULL, 0, NULL, 'regular', 'principal', NULL, 'testing stripe', 'announced', NULL, NULL, NULL, NULL, '2026-08-25 19:34:14', NULL, NULL, NULL, '2026-08-11 19:34:14', '2026-08-11 19:34:14'),
+(10, '96d04bd7-46be-40cf-82b5-1426f3c7fb63', 18, 17, 1, 'card', 65, NULL, 0, NULL, 'regular', 'principal', NULL, NULL, 'received', 'stripe', 'cs_live_a1uqx2tcELK0wro9AyZnHQTBfLwKgRdrGog1cEFloNdg5i9qDMlq83xc1Z', 'pi_3U3OOwIC2f6Um3lL0BfiHwu3', 'https://checkout.stripe.com/c/pay/cs_live_a1uqx2tcELK0wro9AyZnHQTBfLwKgRdrGog1cEFloNdg5i9qDMlq83xc1Z#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWmlsc2BaMDROaFRrQExGN2MzUGg2aUlIY0RndFRAYHREfFZuNnBEVWpMa2ZTUzJxbDNLXH9tdXZARn01Rnd1ajVJQk5UPGNiaTBCR24xNTZBUDxvaXRpTERGSU09Yn01NUxRaFxQXW0xJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl', '2026-08-12 19:44:06', 5, '2026-08-11 19:45:30', NULL, '2026-08-11 19:44:05', '2026-08-11 19:45:30'),
+(11, 'bd11281d-3030-487b-a838-daaa7f0ba389', 17, 16, 2, 'zelle', 11500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-26 20:40:54', 6, '2026-08-12 20:54:56', NULL, '2026-08-12 20:40:54', '2026-08-12 20:54:56'),
+(12, '52a44bd9-0931-4b0b-9016-0842a2424c3c', 17, 16, 2, 'zelle', 11500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'cancelled', NULL, NULL, NULL, NULL, '2026-08-26 20:44:41', NULL, NULL, '2026-08-12 20:55:55', '2026-08-12 20:44:41', '2026-08-12 20:55:55'),
+(13, 'ea5b4593-768b-4adf-a700-a3e362eb0e60', 17, 16, 2, 'zelle', 11500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-27 17:13:22', 7, '2026-08-13 18:35:24', NULL, '2026-08-13 17:13:22', '2026-08-13 18:35:24'),
+(14, 'e1948323-a1df-49fd-b510-4fa7fd5661b3', 17, 16, 2, 'zelle', 14500, NULL, 0, NULL, 'regular', 'principal', NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-28 17:43:33', 8, '2026-08-14 22:55:30', NULL, '2026-08-14 17:43:33', '2026-08-14 22:55:30'),
+(15, 'e7f6ce91-490a-46fa-8344-13abfc45be71', 17, 16, 2, 'card', 11500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'checkout_pending', 'square', 'sMCUNm2QH0HBEa0OKdqKrPdnODFZY', NULL, 'https://square.link/u/PMEzz6yX', '2026-08-16 16:37:08', NULL, NULL, NULL, '2026-08-15 16:37:08', '2026-08-15 16:37:08'),
+(16, '57c9b105-1fb7-402d-b92c-9a9f5773b28e', 17, 16, 2, 'venmo', 11500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'cancelled', NULL, NULL, NULL, NULL, '2026-08-29 16:39:46', NULL, NULL, '2026-08-15 21:05:38', '2026-08-15 16:39:46', '2026-08-15 21:05:38'),
+(17, '0a0f6693-95a5-4360-839e-1d05aa147dd9', 17, 16, 2, 'zelle', 23000, NULL, 0, NULL, 'regular', 'next_invoice_credit', NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-29 16:45:18', 9, '2026-08-15 21:05:23', NULL, '2026-08-15 16:45:18', '2026-08-15 21:05:23'),
+(18, 'feb30ec0-7776-4cd9-91f2-4e149239d4a3', 17, 16, 2, 'zelle', 12500, NULL, 0, NULL, 'regular', 'next_invoice_credit', NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-08-31 17:34:29', 11, '2026-08-17 18:02:48', NULL, '2026-08-17 17:34:29', '2026-08-17 18:02:48'),
+(19, 'dc012f38-6a27-4d20-b45d-a07a9c3ffd64', 17, 16, 2, 'zelle', 10500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-01 15:28:03', 12, '2026-08-18 16:40:13', NULL, '2026-08-18 15:28:03', '2026-08-18 16:40:13'),
+(20, 'bd617121-e6c6-43e0-bd82-11683bc0305f', 17, 16, 2, 'zelle', 5000, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-03 21:53:04', 13, '2026-08-21 12:33:59', NULL, '2026-08-20 21:53:04', '2026-08-21 12:33:59'),
+(21, '067e06ab-b33e-4de4-82cc-614ebbefc389', 17, 16, 2, 'zelle', 11500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-06 17:12:43', 16, '2026-08-23 17:16:41', NULL, '2026-08-23 17:12:43', '2026-08-23 17:16:41'),
+(22, '3a5e0ff8-3802-4b96-aa81-980fa841a260', 17, 16, 2, 'zelle', 12700, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-07 00:24:18', 17, '2026-08-24 00:24:36', NULL, '2026-08-24 00:24:18', '2026-08-24 00:24:36'),
+(23, '5891244c-7d05-46c6-ab9e-b68c1960a3aa', 17, 16, 2, 'zelle', 11500, NULL, 0, NULL, 'regular', NULL, NULL, NULL, 'received', NULL, NULL, NULL, NULL, '2026-09-07 14:12:16', 18, '2026-08-27 13:24:38', NULL, '2026-08-24 14:12:16', '2026-08-27 13:24:38'),
+(24, 'df6f4138-1c4a-4ff9-84b2-ce610c838365', 18, 17, 1, 'card', 100, 100, 0, NULL, 'regular', 'principal', NULL, NULL, 'checkout_pending', 'square', 'K7GGxCcI3xB1FXA2WrtjZYLiOFFZY', NULL, 'https://square.link/u/spDuCdfe', '2026-08-31 18:58:01', NULL, NULL, NULL, '2026-08-30 18:58:00', '2026-08-30 18:58:01'),
+(25, 'bd4bede8-9565-492f-bf5f-bd4cf34235b0', 18, 17, 1, 'card', 100, 100, 0, NULL, 'regular', 'principal', NULL, NULL, 'checkout_pending', 'square', 'KRnPAcvxZjn1QvhaHWuKu9UVSSEZY', NULL, 'https://square.link/u/mcWWMBBi', '2026-08-31 19:32:06', NULL, NULL, NULL, '2026-08-30 19:32:06', '2026-08-30 19:32:06'),
+(26, '6e67fb87-8b10-455e-a058-738c2ba06a88', 18, 17, 1, 'card', 134, 100, 34, 'CREDIT', 'regular', 'principal', NULL, NULL, 'announced', 'square', NULL, NULL, NULL, '2026-09-13 21:55:56', NULL, NULL, NULL, '2026-08-30 21:55:56', '2026-08-30 21:55:56'),
+(27, 'a63ad459-a4a1-4e40-95a5-795df3fe2880', 18, 17, 1, 'card', 134, 100, 34, 'CREDIT', 'regular', 'principal', NULL, NULL, 'failed', 'square', NULL, NULL, NULL, '2026-09-13 22:20:15', NULL, NULL, NULL, '2026-08-30 22:20:15', '2026-08-30 22:20:16'),
+(28, 'b92ec642-3499-4ac1-ba4e-141cc91e4f53', 18, 17, 1, 'card', 134, 100, 34, 'CREDIT', 'regular', 'principal', NULL, NULL, 'failed', 'square', NULL, NULL, NULL, '2026-09-13 22:21:44', NULL, NULL, NULL, '2026-08-30 22:21:44', '2026-08-30 22:21:44'),
+(29, 'fafdc022-d6cc-46bd-a8d2-e2a537a2588b', 18, 17, 1, 'card', 134, 100, 34, 'CREDIT', 'regular', 'principal', NULL, NULL, 'received', 'square', NULL, 'LJQzCKZSG2cGnsRnAahyTxbdQ58YY', NULL, '2026-09-13 22:23:11', 22, '2026-08-30 22:23:13', NULL, '2026-08-30 22:23:11', '2026-08-30 22:23:13'),
+(30, '9376d63c-bc28-4084-b4ad-295e10f21702', 18, 17, 1, 'card', 100, 100, 0, 'DEBIT', 'regular', 'principal', NULL, NULL, 'received', 'square', NULL, 'NgFqdt9gdA5ISqCRthCxsF8Iq0aZY', NULL, '2026-09-13 22:27:46', 23, '2026-08-30 22:27:48', NULL, '2026-08-30 22:27:46', '2026-08-30 22:27:48'),
+(31, '98ab8e58-f569-4489-9e33-d8fbfbdc6471', 18, 17, 1, 'zelle', 500, NULL, 0, NULL, 'regular', 'principal', NULL, NULL, 'announced', NULL, NULL, NULL, NULL, '2026-09-14 13:05:46', NULL, NULL, NULL, '2026-08-31 13:05:46', '2026-08-31 13:05:46');
 
 -- --------------------------------------------------------
 
@@ -630,7 +665,9 @@ INSERT INTO `email_deliveries` (`id`, `invoice_id`, `payment_id`, `payment_plan_
 (29, NULL, 18, 17, 16, 1, 'payment-receipt', 'joygr8@yahoo.com', 'Payment receipt for $115.00', '<p>Hello Joyce Costa,</p><p>Thank you. We received your payment of <strong>$115.00</strong> on August 27, 2026.</p><p>View this payment: <a href=\"https://landpay.mohavedeals.com/portal/payments/18\">https://landpay.mohavedeals.com/portal/payments/18</a></p><p>Your payment receipt is included below and attached as a PDF.</p><p>Visit your client portal: <a href=\"https://landpay.mohavedeals.com/portal\">https://landpay.mohavedeals.com/portal</a></p>', 'both', 'sent', '2026-08-27 13:24:38', NULL, NULL, '2026-08-27 13:24:38', '2026-08-27 13:24:38'),
 (30, 24, NULL, 17, 16, 1, 'invoice-email', 'joygr8@yahoo.com', 'Invoice INV-17-20260828 from Mohave Deals LandPay', '<p>Hello Joyce Costa,</p><p>Your invoice <strong>INV-17-20260828</strong> is ready. The amount due is <strong>$115.00</strong> and considered late by September 2, 2026.</p><p>View this invoice: <a href=\"http://landpay.mohavedeals.com/portal/invoices/24\">http://landpay.mohavedeals.com/portal/invoices/24</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p>', 'inline', 'sent', '2026-08-28 10:00:04', NULL, NULL, '2026-08-28 10:00:03', '2026-08-28 10:00:04'),
 (31, 25, NULL, 17, 16, 1, 'invoice-email', 'joygr8@yahoo.com', 'Invoice INV-17-20260829 from Mohave Deals LandPay', '<p>Hello Joyce Costa,</p><p>Your invoice <strong>INV-17-20260829</strong> is ready. The amount due is <strong>$115.00</strong> and considered late by September 1, 2026.</p><p>View this invoice: <a href=\"http://landpay.mohavedeals.com/portal/invoices/25\">http://landpay.mohavedeals.com/portal/invoices/25</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p>', 'inline', 'sent', '2026-08-29 10:00:03', NULL, NULL, '2026-08-29 10:00:02', '2026-08-29 10:00:03'),
-(32, 26, NULL, 17, 16, 1, 'invoice-email', 'joygr8@yahoo.com', 'Invoice INV-17-20260830 from Mohave Deals LandPay', '<p>Hello Joyce Costa,</p><p>Your invoice <strong>INV-17-20260830</strong> is ready. The amount due is <strong>$115.00</strong> and considered late by September 2, 2026.</p><p>View this invoice: <a href=\"http://landpay.mohavedeals.com/portal/invoices/26\">http://landpay.mohavedeals.com/portal/invoices/26</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p>', 'inline', 'sent', '2026-08-30 10:00:04', NULL, NULL, '2026-08-30 10:00:03', '2026-08-30 10:00:04');
+(32, 26, NULL, 17, 16, 1, 'invoice-email', 'joygr8@yahoo.com', 'Invoice INV-17-20260830 from Mohave Deals LandPay', '<p>Hello Joyce Costa,</p><p>Your invoice <strong>INV-17-20260830</strong> is ready. The amount due is <strong>$115.00</strong> and considered late by September 2, 2026.</p><p>View this invoice: <a href=\"http://landpay.mohavedeals.com/portal/invoices/26\">http://landpay.mohavedeals.com/portal/invoices/26</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p>', 'inline', 'sent', '2026-08-30 10:00:04', NULL, NULL, '2026-08-30 10:00:03', '2026-08-30 10:00:04'),
+(33, 28, NULL, 17, 16, 1, 'invoice-email', 'joygr8@yahoo.com', 'Invoice INV-17-20260831 from Mohave Deals LandPay', '<p>Hello Joyce Costa,</p><p>Your invoice <strong>INV-17-20260831</strong> is ready. The amount due is <strong>$115.00</strong> and considered late by September 3, 2026.</p><p>View this invoice: <a href=\"http://landpay.mohavedeals.com/portal/invoices/28\">http://landpay.mohavedeals.com/portal/invoices/28</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p>', 'inline', 'sent', '2026-08-31 10:00:05', NULL, NULL, '2026-08-31 10:00:02', '2026-08-31 10:00:05'),
+(34, 10, NULL, 18, 17, 1, 'invoice-email', 'chris@mohavedeals.com', 'Invoice INV-18-202608 from Mohave Deals LandPay', '<p>Hello Chris Costa,</p><p>Your invoice <strong>INV-18-202608</strong> is ready. The amount due is <strong>$0.00</strong> and considered late by August 19, 2026.</p><p>View this invoice: <a href=\"https://landpay.mohavedeals.com/portal/invoices/10\">https://landpay.mohavedeals.com/portal/invoices/10</a></p><p>Invoice details are included with this email. Please contact us if you have any questions.</p>', 'inline', 'sent', '2026-08-31 11:45:18', NULL, NULL, '2026-08-31 11:45:17', '2026-08-31 11:45:18');
 
 -- --------------------------------------------------------
 
@@ -851,7 +888,15 @@ INSERT INTO `financial_transactions` (`id`, `uuid`, `payment_plan_id`, `invoice_
 (120, 'f8585dda-b039-45fb-af1d-d21254b68666', 11, NULL, 'reversal', 19581, '2026-08-30', '2026-08-30 13:28:33', 'Payment reversal', 'Mistaken Entry', 'administrator', 1, NULL, NULL, NULL, 119, NULL, NULL, NULL, '2026-08-30 13:28:33'),
 (121, '59cd0405-3a6e-4b71-89da-33c29c775bb4', 11, NULL, 'payment', 19581, '2026-08-30', '2026-08-30 13:40:54', 'Payment received', NULL, 'administrator', 1, NULL, NULL, NULL, NULL, 'payment:eb6dcbdf-ea0a-4467-b816-d03156166e02', NULL, '{\"payment_type\":\"regular\"}', '2026-08-30 13:40:54'),
 (122, 'b67ea2d1-914e-4e80-9be8-3dfe7b9570e2', 11, NULL, 'reversal', 19581, '2026-08-30', '2026-08-30 13:57:00', 'Payment reversal', 'Payment system revision testing - removed payment', 'administrator', 1, NULL, NULL, NULL, 121, NULL, NULL, NULL, '2026-08-30 13:57:00'),
-(123, '973f3f90-a6a7-45b0-a5fd-1637819a234a', 11, NULL, 'payment', 19581, '2026-08-30', '2026-08-30 15:13:50', 'Payment received', NULL, 'administrator', 1, NULL, NULL, NULL, NULL, 'payment:9c23dc0f-0236-49ec-b8e4-7a968a73b35c', NULL, '{\"payment_type\":\"regular\"}', '2026-08-30 15:13:50');
+(123, '973f3f90-a6a7-45b0-a5fd-1637819a234a', 11, NULL, 'payment', 19581, '2026-08-30', '2026-08-30 15:13:50', 'Payment received', NULL, 'administrator', 1, NULL, NULL, NULL, NULL, 'payment:9c23dc0f-0236-49ec-b8e4-7a968a73b35c', NULL, '{\"payment_type\":\"regular\"}', '2026-08-30 15:13:50'),
+(124, 'a8bc7a25-dfc4-47f0-9f72-b3760ce3fa45', 18, NULL, 'payment', 134, '2026-08-30', '2026-08-30 22:23:13', 'Payment received', NULL, 'administrator', 1, NULL, NULL, NULL, NULL, 'provider:square:LJQzCKZSG2cGnsRnAahyTxbdQ58YY', NULL, '{\"payment_type\":\"regular\",\"processing_fee_amount\":34}', '2026-08-30 22:23:13'),
+(125, 'faa32f99-9d7c-4093-835b-28f23351c5da', 18, NULL, 'payment', 100, '2026-08-30', '2026-08-30 22:27:48', 'Payment received', NULL, 'administrator', 1, NULL, NULL, NULL, NULL, 'provider:square:NgFqdt9gdA5ISqCRthCxsF8Iq0aZY', NULL, '{\"payment_type\":\"regular\",\"processing_fee_amount\":0}', '2026-08-30 22:27:48'),
+(126, 'bb7c0de7-9fc0-4802-b0e5-22c6aa4cb6bc', 18, 27, 'invoice_charge', 3000, '2026-08-30', '2026-08-30 23:24:00', 'Plan payment', NULL, 'administrator', 1, NULL, NULL, NULL, NULL, 'manual-invoice:54cca471-ec01-4508-81c9-365aaee40651:item:0', NULL, NULL, '2026-08-30 23:24:00'),
+(127, 'eb93dead-fac5-4111-a053-4a55eb72c813', 18, 27, 'credit_application', 3000, '2026-08-30', '2026-08-30 23:24:00', 'Account credit applied to invoice', NULL, 'administrator', 1, NULL, NULL, NULL, NULL, 'manual-invoice:54cca471-ec01-4508-81c9-365aaee40651:account-credit', NULL, NULL, '2026-08-30 23:24:00'),
+(128, '5c114f21-939e-460f-afe9-8b0f6c50156a', 18, 27, 'reversal', 3000, '2026-08-30', '2026-08-31 00:28:43', 'Account credit restored for deleted invoice', 'Testing', 'administrator', 1, NULL, NULL, NULL, 127, 'invoice:void:54cca471-ec01-4508-81c9-365aaee40651:credit:127', NULL, NULL, '2026-08-31 00:28:43'),
+(129, 'fafbde86-58ba-4e09-bcfa-7f76aa3d1a67', 18, 27, 'adjustment', 3000, '2026-08-30', '2026-08-31 00:28:43', 'Invoice deleted by administrator', 'Testing', 'administrator', 1, NULL, NULL, NULL, NULL, 'invoice:void:54cca471-ec01-4508-81c9-365aaee40651', NULL, NULL, '2026-08-31 00:28:43'),
+(130, 'c9b6cb69-9f66-4c66-8730-8be2a25c7420', 17, 28, 'invoice_charge', 10000, '2026-08-31', '2026-08-31 10:00:02', 'Monthly scheduled purchase payment', NULL, 'system', NULL, NULL, NULL, NULL, NULL, 'monthly-invoice:ee2e8174-7292-4d46-a471-d2c7a85fde27:scheduled-payment', NULL, NULL, '2026-08-31 10:00:02'),
+(131, '01ac2cd9-9be5-4ae3-930f-96faa5df7b4f', 17, 28, 'recurring_fee', 1500, '2026-08-31', '2026-08-31 10:00:02', 'Monthly service fee', NULL, 'system', NULL, NULL, NULL, NULL, NULL, 'monthly-invoice:ee2e8174-7292-4d46-a471-d2c7a85fde27:monthly-service-fee', NULL, '{\"standard_amount\":1500,\"waived_amount\":0,\"waiver_reason\":null}', '2026-08-31 10:00:02');
 
 -- --------------------------------------------------------
 
@@ -876,40 +921,43 @@ CREATE TABLE `invoices` (
   `created_by_user_id` bigint(20) UNSIGNED NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `generation_source` varchar(24) NOT NULL DEFAULT 'administrator'
+  `generation_source` varchar(24) NOT NULL DEFAULT 'administrator',
+  `first_viewed_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `invoices`
 --
 
-INSERT INTO `invoices` (`id`, `uuid`, `payment_plan_id`, `payment_plan_billing_term_id`, `invoice_number`, `period_start`, `period_end`, `issue_date`, `due_date`, `status`, `issued_at`, `operationally_closed_at`, `reopened_at`, `created_by_user_id`, `created_at`, `updated_at`, `generation_source`) VALUES
-(1, '92c23727-2a51-4e7d-b7fd-0d7dc798f234', 1, NULL, 'INV-1-202501', '2025-01-01', '2025-01-31', '2025-01-03', '2025-01-08', 'voided', '2026-08-10 10:00:02', '2026-08-10 11:42:20', NULL, 1, '2026-08-10 10:00:02', '2026-08-10 11:42:20', 'system'),
-(2, 'f37c0c04-071f-456e-9d7f-a594f6ea7319', 1, NULL, 'INV-1-202502', '2025-02-01', '2025-02-28', '2025-02-03', '2025-02-08', 'voided', '2026-08-10 10:00:02', '2026-08-10 11:42:32', NULL, 1, '2026-08-10 10:00:02', '2026-08-10 11:42:32', 'system'),
-(3, '9e64cc35-7500-4908-a202-1575968bfd1e', 11, NULL, 'M11-260803-V0', NULL, NULL, '2026-08-03', '2026-08-08', 'paid', '2026-08-10 23:00:43', NULL, NULL, 1, '2026-08-10 23:00:43', '2026-08-30 15:13:50', 'manual'),
-(4, 'a381672c-e1e7-4df3-b62c-4b225f42aa67', 1, NULL, 'INV-1-202503', '2025-03-01', '2025-03-31', '2025-03-03', '2025-03-08', 'voided', '2026-08-11 10:00:04', '2026-08-11 16:54:29', NULL, 1, '2026-08-11 10:00:04', '2026-08-11 16:54:29', 'system'),
-(5, 'cde7535a-9011-484e-8adb-7d4bd271dc24', 1, NULL, 'INV-1-202504', '2025-04-01', '2025-04-30', '2025-04-03', '2025-04-08', 'voided', '2026-08-11 10:00:04', '2026-08-11 16:54:09', NULL, 1, '2026-08-11 10:00:04', '2026-08-11 16:54:09', 'system'),
-(6, '32ae251f-c8a8-4fb6-bc84-b2c72bb3d131', 17, NULL, 'INV-17-20260812', '2026-08-12', '2026-08-12', '2026-08-12', '2026-08-17', 'paid', '2026-08-12 10:00:03', NULL, NULL, 1, '2026-08-12 10:00:03', '2026-08-12 20:54:56', 'system'),
-(7, '1fc366ff-f300-4818-b7a1-72440aeb8419', 17, NULL, 'INV-17-20260813', '2026-08-13', '2026-08-13', '2026-08-13', '2026-08-18', 'paid', '2026-08-13 10:00:03', NULL, NULL, 1, '2026-08-13 10:00:03', '2026-08-13 18:35:24', 'system'),
-(8, 'e3745a1f-3c38-4be6-b792-24a54a46c860', 18, 23, 'M18-260813-RB', NULL, NULL, '2026-08-13', '2026-08-18', 'voided', '2026-08-13 21:34:19', '2026-08-13 21:34:53', NULL, 1, '2026-08-13 21:34:19', '2026-08-13 21:34:53', 'manual'),
-(9, '78e5c04a-59e4-44c9-af12-6a71fcfa926c', 17, 21, 'INV-17-20260814', '2026-08-14', '2026-08-14', '2026-08-14', '2026-08-19', 'paid', '2026-08-14 10:00:03', NULL, NULL, 1, '2026-08-14 10:00:03', '2026-08-14 22:55:30', 'system'),
-(10, '6c5d9013-6419-4f56-b5ff-0a7968a45112', 18, 24, 'INV-18-202608', '2026-08-01', '2026-08-31', '2026-08-14', '2026-08-19', 'paid', '2026-08-14 10:00:11', NULL, NULL, 1, '2026-08-14 10:00:11', '2026-08-16 19:32:05', 'system'),
-(11, 'b29effd9-2baa-498b-8d8c-5402faa4343f', 17, 21, 'INV-17-20260815', '2026-08-15', '2026-08-15', '2026-08-15', '2026-08-20', 'paid', '2026-08-15 10:00:03', NULL, NULL, 1, '2026-08-15 10:00:03', '2026-08-15 21:05:23', 'system'),
-(12, 'c9d92d59-6403-4a94-9ddb-65768b57cde6', 17, 21, 'INV-17-20260816', '2026-08-16', '2026-08-16', '2026-08-16', '2026-08-21', 'paid', '2026-08-16 10:00:02', NULL, NULL, 1, '2026-08-16 10:00:02', '2026-08-16 10:00:02', 'system'),
-(13, 'f0414091-4a1c-41a9-acf2-4c13b695eac4', 17, 21, 'INV-17-20260817', '2026-08-17', '2026-08-17', '2026-08-17', '2026-08-22', 'paid', '2026-08-17 10:00:03', NULL, NULL, 1, '2026-08-17 10:00:03', '2026-08-17 18:02:48', 'system'),
-(14, '18ff9b81-dd35-43f4-af87-17864e9d4055', 17, 21, 'INV-17-20260818', '2026-08-18', '2026-08-18', '2026-08-18', '2026-08-23', 'paid', '2026-08-18 10:00:03', NULL, NULL, 1, '2026-08-18 10:00:03', '2026-08-18 16:40:13', 'system'),
-(15, '860f6936-d01e-4bf9-a76c-59dad0cbf59f', 17, 21, 'INV-17-20260819', '2026-08-19', '2026-08-19', '2026-08-19', '2026-08-24', 'paid', '2026-08-19 10:00:02', NULL, NULL, 1, '2026-08-19 10:00:02', '2026-08-23 17:16:41', 'system'),
-(16, 'dc6a87d8-d91b-4329-ae5c-d5280947dd1e', 17, 21, 'INV-17-20260820', '2026-08-20', '2026-08-20', '2026-08-20', '2026-08-25', 'paid', '2026-08-20 10:00:03', NULL, NULL, 1, '2026-08-20 10:00:03', '2026-08-24 00:24:36', 'system'),
-(17, 'd17f7755-351c-49a6-b04c-0efd669f25ac', 17, 21, 'INV-17-20260821', '2026-08-21', '2026-08-21', '2026-08-21', '2026-08-26', 'paid', '2026-08-21 10:00:03', NULL, NULL, 1, '2026-08-21 10:00:03', '2026-08-27 13:24:38', 'system'),
-(18, 'e95a6935-c28e-46fc-a192-67d01630a719', 17, 21, 'INV-17-20260822', '2026-08-22', '2026-08-22', '2026-08-22', '2026-08-27', 'partially_paid', '2026-08-22 10:00:03', NULL, NULL, 1, '2026-08-22 10:00:03', '2026-08-27 13:24:38', 'system'),
-(19, 'a6d05ec4-88d9-4629-b175-ba8ec3b65e9b', 17, 21, 'INV-17-20260823', '2026-08-23', '2026-08-23', '2026-08-23', '2026-08-28', 'issued', '2026-08-23 10:00:03', NULL, NULL, 1, '2026-08-23 10:00:03', '2026-08-23 10:00:03', 'system'),
-(20, 'b014b4c7-c930-4c73-a8cd-df6c54d455f5', 17, 21, 'INV-17-20260824', '2026-08-24', '2026-08-24', '2026-08-24', '2026-08-29', 'issued', '2026-08-24 10:00:03', NULL, NULL, 1, '2026-08-24 10:00:03', '2026-08-24 10:00:03', 'system'),
-(21, '128c0ac0-8593-4d4b-91ea-ff4b02f0b49b', 17, 21, 'INV-17-20260825', '2026-08-25', '2026-08-25', '2026-08-25', '2026-08-30', 'issued', '2026-08-25 10:00:03', NULL, NULL, 1, '2026-08-25 10:00:03', '2026-08-25 10:00:03', 'system'),
-(22, '36b7a105-709a-47dc-ba27-78c64d437b9b', 17, 21, 'INV-17-20260826', '2026-08-26', '2026-08-26', '2026-08-26', '2026-08-31', 'issued', '2026-08-26 10:00:03', NULL, NULL, 1, '2026-08-26 10:00:03', '2026-08-26 10:00:03', 'system'),
-(23, '5fb0f9e1-1211-4dc4-b410-547b0ac478f2', 17, 21, 'INV-17-20260827', '2026-08-27', '2026-08-27', '2026-08-27', '2026-09-01', 'issued', '2026-08-27 10:00:03', NULL, NULL, 1, '2026-08-27 10:00:03', '2026-08-27 10:00:03', 'system'),
-(24, 'dab8e5d6-67e8-40f0-831f-fadd2863a00d', 17, 21, 'INV-17-20260828', '2026-08-28', '2026-08-28', '2026-08-28', '2026-09-02', 'issued', '2026-08-28 10:00:03', NULL, NULL, 1, '2026-08-28 10:00:03', '2026-08-28 10:00:03', 'system'),
-(25, '2ab18a0f-800c-4ebc-b2a5-23b131feb1c0', 17, 27, 'INV-17-20260829', '2026-08-29', '2026-08-29', '2026-08-29', '2026-09-01', 'issued', '2026-08-29 10:00:02', NULL, NULL, 1, '2026-08-29 10:00:02', '2026-08-29 10:00:02', 'system'),
-(26, '5d967232-007c-4d12-8c55-bdf52a17da46', 17, 27, 'INV-17-20260830', '2026-08-30', '2026-08-30', '2026-08-30', '2026-09-02', 'issued', '2026-08-30 10:00:03', NULL, NULL, 1, '2026-08-30 10:00:03', '2026-08-30 10:00:03', 'system');
+INSERT INTO `invoices` (`id`, `uuid`, `payment_plan_id`, `payment_plan_billing_term_id`, `invoice_number`, `period_start`, `period_end`, `issue_date`, `due_date`, `status`, `issued_at`, `operationally_closed_at`, `reopened_at`, `created_by_user_id`, `created_at`, `updated_at`, `generation_source`, `first_viewed_at`) VALUES
+(1, '92c23727-2a51-4e7d-b7fd-0d7dc798f234', 1, NULL, 'INV-1-202501', '2025-01-01', '2025-01-31', '2025-01-03', '2025-01-08', 'voided', '2026-08-10 10:00:02', '2026-08-10 11:42:20', NULL, 1, '2026-08-10 10:00:02', '2026-08-10 11:42:20', 'system', NULL),
+(2, 'f37c0c04-071f-456e-9d7f-a594f6ea7319', 1, NULL, 'INV-1-202502', '2025-02-01', '2025-02-28', '2025-02-03', '2025-02-08', 'voided', '2026-08-10 10:00:02', '2026-08-10 11:42:32', NULL, 1, '2026-08-10 10:00:02', '2026-08-10 11:42:32', 'system', NULL),
+(3, '9e64cc35-7500-4908-a202-1575968bfd1e', 11, NULL, 'M11-260803-V0', NULL, NULL, '2026-08-03', '2026-08-08', 'paid', '2026-08-10 23:00:43', NULL, NULL, 1, '2026-08-10 23:00:43', '2026-08-30 15:13:50', 'manual', NULL),
+(4, 'a381672c-e1e7-4df3-b62c-4b225f42aa67', 1, NULL, 'INV-1-202503', '2025-03-01', '2025-03-31', '2025-03-03', '2025-03-08', 'voided', '2026-08-11 10:00:04', '2026-08-11 16:54:29', NULL, 1, '2026-08-11 10:00:04', '2026-08-11 16:54:29', 'system', NULL),
+(5, 'cde7535a-9011-484e-8adb-7d4bd271dc24', 1, NULL, 'INV-1-202504', '2025-04-01', '2025-04-30', '2025-04-03', '2025-04-08', 'voided', '2026-08-11 10:00:04', '2026-08-11 16:54:09', NULL, 1, '2026-08-11 10:00:04', '2026-08-11 16:54:09', 'system', NULL),
+(6, '32ae251f-c8a8-4fb6-bc84-b2c72bb3d131', 17, NULL, 'INV-17-20260812', '2026-08-12', '2026-08-12', '2026-08-12', '2026-08-17', 'paid', '2026-08-12 10:00:03', NULL, NULL, 1, '2026-08-12 10:00:03', '2026-08-12 20:54:56', 'system', NULL),
+(7, '1fc366ff-f300-4818-b7a1-72440aeb8419', 17, NULL, 'INV-17-20260813', '2026-08-13', '2026-08-13', '2026-08-13', '2026-08-18', 'paid', '2026-08-13 10:00:03', NULL, NULL, 1, '2026-08-13 10:00:03', '2026-08-13 18:35:24', 'system', NULL),
+(8, 'e3745a1f-3c38-4be6-b792-24a54a46c860', 18, 23, 'M18-260813-RB', NULL, NULL, '2026-08-13', '2026-08-18', 'voided', '2026-08-13 21:34:19', '2026-08-13 21:34:53', NULL, 1, '2026-08-13 21:34:19', '2026-08-13 21:34:53', 'manual', NULL),
+(9, '78e5c04a-59e4-44c9-af12-6a71fcfa926c', 17, 21, 'INV-17-20260814', '2026-08-14', '2026-08-14', '2026-08-14', '2026-08-19', 'paid', '2026-08-14 10:00:03', NULL, NULL, 1, '2026-08-14 10:00:03', '2026-08-14 22:55:30', 'system', NULL),
+(10, '6c5d9013-6419-4f56-b5ff-0a7968a45112', 18, 24, 'INV-18-202608', '2026-08-01', '2026-08-31', '2026-08-14', '2026-08-19', 'paid', '2026-08-14 10:00:11', NULL, NULL, 1, '2026-08-14 10:00:11', '2026-08-31 12:05:23', 'system', '2026-08-31 12:05:23'),
+(11, 'b29effd9-2baa-498b-8d8c-5402faa4343f', 17, 21, 'INV-17-20260815', '2026-08-15', '2026-08-15', '2026-08-15', '2026-08-20', 'paid', '2026-08-15 10:00:03', NULL, NULL, 1, '2026-08-15 10:00:03', '2026-08-15 21:05:23', 'system', NULL),
+(12, 'c9d92d59-6403-4a94-9ddb-65768b57cde6', 17, 21, 'INV-17-20260816', '2026-08-16', '2026-08-16', '2026-08-16', '2026-08-21', 'paid', '2026-08-16 10:00:02', NULL, NULL, 1, '2026-08-16 10:00:02', '2026-08-16 10:00:02', 'system', NULL),
+(13, 'f0414091-4a1c-41a9-acf2-4c13b695eac4', 17, 21, 'INV-17-20260817', '2026-08-17', '2026-08-17', '2026-08-17', '2026-08-22', 'paid', '2026-08-17 10:00:03', NULL, NULL, 1, '2026-08-17 10:00:03', '2026-08-17 18:02:48', 'system', NULL),
+(14, '18ff9b81-dd35-43f4-af87-17864e9d4055', 17, 21, 'INV-17-20260818', '2026-08-18', '2026-08-18', '2026-08-18', '2026-08-23', 'paid', '2026-08-18 10:00:03', NULL, NULL, 1, '2026-08-18 10:00:03', '2026-08-18 16:40:13', 'system', NULL),
+(15, '860f6936-d01e-4bf9-a76c-59dad0cbf59f', 17, 21, 'INV-17-20260819', '2026-08-19', '2026-08-19', '2026-08-19', '2026-08-24', 'paid', '2026-08-19 10:00:02', NULL, NULL, 1, '2026-08-19 10:00:02', '2026-08-23 17:16:41', 'system', NULL),
+(16, 'dc6a87d8-d91b-4329-ae5c-d5280947dd1e', 17, 21, 'INV-17-20260820', '2026-08-20', '2026-08-20', '2026-08-20', '2026-08-25', 'paid', '2026-08-20 10:00:03', NULL, NULL, 1, '2026-08-20 10:00:03', '2026-08-24 00:24:36', 'system', NULL),
+(17, 'd17f7755-351c-49a6-b04c-0efd669f25ac', 17, 21, 'INV-17-20260821', '2026-08-21', '2026-08-21', '2026-08-21', '2026-08-26', 'paid', '2026-08-21 10:00:03', NULL, NULL, 1, '2026-08-21 10:00:03', '2026-08-27 13:24:38', 'system', NULL),
+(18, 'e95a6935-c28e-46fc-a192-67d01630a719', 17, 21, 'INV-17-20260822', '2026-08-22', '2026-08-22', '2026-08-22', '2026-08-27', 'partially_paid', '2026-08-22 10:00:03', NULL, NULL, 1, '2026-08-22 10:00:03', '2026-08-27 13:24:38', 'system', NULL),
+(19, 'a6d05ec4-88d9-4629-b175-ba8ec3b65e9b', 17, 21, 'INV-17-20260823', '2026-08-23', '2026-08-23', '2026-08-23', '2026-08-28', 'issued', '2026-08-23 10:00:03', NULL, NULL, 1, '2026-08-23 10:00:03', '2026-08-23 10:00:03', 'system', NULL),
+(20, 'b014b4c7-c930-4c73-a8cd-df6c54d455f5', 17, 21, 'INV-17-20260824', '2026-08-24', '2026-08-24', '2026-08-24', '2026-08-29', 'issued', '2026-08-24 10:00:03', NULL, NULL, 1, '2026-08-24 10:00:03', '2026-08-24 10:00:03', 'system', NULL),
+(21, '128c0ac0-8593-4d4b-91ea-ff4b02f0b49b', 17, 21, 'INV-17-20260825', '2026-08-25', '2026-08-25', '2026-08-25', '2026-08-30', 'issued', '2026-08-25 10:00:03', NULL, NULL, 1, '2026-08-25 10:00:03', '2026-08-25 10:00:03', 'system', NULL),
+(22, '36b7a105-709a-47dc-ba27-78c64d437b9b', 17, 21, 'INV-17-20260826', '2026-08-26', '2026-08-26', '2026-08-26', '2026-08-31', 'issued', '2026-08-26 10:00:03', NULL, NULL, 1, '2026-08-26 10:00:03', '2026-08-26 10:00:03', 'system', NULL),
+(23, '5fb0f9e1-1211-4dc4-b410-547b0ac478f2', 17, 21, 'INV-17-20260827', '2026-08-27', '2026-08-27', '2026-08-27', '2026-09-01', 'issued', '2026-08-27 10:00:03', NULL, NULL, 1, '2026-08-27 10:00:03', '2026-08-27 10:00:03', 'system', NULL),
+(24, 'dab8e5d6-67e8-40f0-831f-fadd2863a00d', 17, 21, 'INV-17-20260828', '2026-08-28', '2026-08-28', '2026-08-28', '2026-09-02', 'issued', '2026-08-28 10:00:03', NULL, NULL, 1, '2026-08-28 10:00:03', '2026-08-28 10:00:03', 'system', NULL),
+(25, '2ab18a0f-800c-4ebc-b2a5-23b131feb1c0', 17, 27, 'INV-17-20260829', '2026-08-29', '2026-08-29', '2026-08-29', '2026-09-01', 'issued', '2026-08-29 10:00:02', NULL, NULL, 1, '2026-08-29 10:00:02', '2026-08-29 10:00:02', 'system', NULL),
+(26, '5d967232-007c-4d12-8c55-bdf52a17da46', 17, 27, 'INV-17-20260830', '2026-08-30', '2026-08-30', '2026-08-30', '2026-09-02', 'issued', '2026-08-30 10:00:03', NULL, NULL, 1, '2026-08-30 10:00:03', '2026-08-30 10:00:03', 'system', NULL),
+(27, '54cca471-ec01-4508-81c9-365aaee40651', 18, 24, 'M18-260830-MX', NULL, NULL, '2026-08-30', '2026-09-04', 'voided', '2026-08-30 23:24:00', '2026-08-31 00:28:43', NULL, 1, '2026-08-30 23:24:00', '2026-08-31 00:28:43', 'manual', NULL),
+(28, 'ee2e8174-7292-4d46-a471-d2c7a85fde27', 17, 27, 'INV-17-20260831', '2026-08-31', '2026-08-31', '2026-08-31', '2026-09-03', 'issued', '2026-08-31 10:00:02', NULL, NULL, 1, '2026-08-31 10:00:02', '2026-08-31 10:00:02', 'system', NULL);
 
 -- --------------------------------------------------------
 
@@ -994,7 +1042,10 @@ INSERT INTO `invoice_items` (`id`, `invoice_id`, `source_transaction_id`, `item_
 (52, 25, 115, 'monthly_service_fee', NULL, 'Monthly service fee', 1500, 1500, 0, NULL, NULL, NULL, NULL, 2, '2026-08-29 10:00:02'),
 (53, 26, 116, 'scheduled_purchase_payment', NULL, 'Scheduled purchase payment', 10000, 10000, 0, NULL, NULL, NULL, NULL, 1, '2026-08-30 10:00:03'),
 (54, 26, 117, 'monthly_service_fee', NULL, 'Monthly service fee', 1500, 1500, 0, NULL, NULL, NULL, NULL, 2, '2026-08-30 10:00:03'),
-(55, 3, 118, 'administrative_fee', NULL, 'Fee', 581, 581, 0, NULL, NULL, NULL, NULL, 1, '2026-08-30 13:25:25');
+(55, 3, 118, 'administrative_fee', NULL, 'Fee', 581, 581, 0, NULL, NULL, NULL, NULL, 1, '2026-08-30 13:25:25'),
+(56, 27, 126, 'scheduled_purchase_payment', NULL, 'Plan payment', 3000, 3000, 0, NULL, NULL, NULL, NULL, 1, '2026-08-30 23:24:00'),
+(57, 28, 130, 'scheduled_purchase_payment', NULL, 'Scheduled purchase payment', 10000, 10000, 0, NULL, NULL, NULL, NULL, 1, '2026-08-31 10:00:02'),
+(58, 28, 131, 'monthly_service_fee', NULL, 'Monthly service fee', 1500, 1500, 0, NULL, NULL, NULL, NULL, 2, '2026-08-31 10:00:02');
 
 -- --------------------------------------------------------
 
@@ -1043,7 +1094,10 @@ INSERT INTO `invoice_reminders` (`id`, `invoice_id`, `payment_plan_id`, `recipie
 (15, 25, 17, 16, 'joygr8@yahoo.com', 11500, 'sent', 1, '2026-08-29', 'before_due', NULL, '2026-08-29 11:00:04', NULL, NULL, '2026-08-29 11:00:04', '2026-08-29 11:00:04'),
 (16, 21, 17, 16, 'joygr8@yahoo.com', 11500, 'sent', 1, '2026-08-30', 'due_date', NULL, '2026-08-30 11:00:04', NULL, NULL, '2026-08-30 11:00:03', '2026-08-30 11:00:04'),
 (17, 24, 17, 16, 'joygr8@yahoo.com', 11500, 'sent', 1, '2026-08-30', 'before_due', NULL, '2026-08-30 11:00:04', NULL, NULL, '2026-08-30 11:00:04', '2026-08-30 11:00:04'),
-(18, 26, 17, 16, 'joygr8@yahoo.com', 11500, 'sent', 1, '2026-08-30', 'before_due', NULL, '2026-08-30 11:00:04', NULL, NULL, '2026-08-30 11:00:04', '2026-08-30 11:00:04');
+(18, 26, 17, 16, 'joygr8@yahoo.com', 11500, 'sent', 1, '2026-08-30', 'before_due', NULL, '2026-08-30 11:00:04', NULL, NULL, '2026-08-30 11:00:04', '2026-08-30 11:00:04'),
+(19, 18, 17, 16, 'joygr8@yahoo.com', 7800, 'sent', 1, '2026-08-31', 'past_due_1', NULL, '2026-08-31 11:00:03', NULL, NULL, '2026-08-31 11:00:02', '2026-08-31 11:00:03'),
+(20, 22, 17, 16, 'joygr8@yahoo.com', 11500, 'sent', 1, '2026-08-31', 'due_date', NULL, '2026-08-31 11:00:03', NULL, NULL, '2026-08-31 11:00:03', '2026-08-31 11:00:03'),
+(21, 28, 17, 16, 'joygr8@yahoo.com', 11500, 'sent', 1, '2026-08-31', 'before_due', NULL, '2026-08-31 11:00:04', NULL, NULL, '2026-08-31 11:00:03', '2026-08-31 11:00:04');
 
 -- --------------------------------------------------------
 
@@ -1141,7 +1195,10 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (42, '2026_08_14_140000_ensure_secure_message_document_tables', 7),
 (43, '2026_08_14_143354_make_invoice_item_amounts_signed', 7),
 (44, '2026_08_17_120000_create_secure_message_revisions_table', 8),
-(45, '2026_08_19_140000_add_scheduled_invoice_email_setting', 9);
+(45, '2026_08_19_140000_add_scheduled_invoice_email_setting', 9),
+(46, '2026_08_30_220000_add_square_fee_to_client_payment_intents', 10),
+(47, '2026_08_30_230000_add_provider_event_to_admin_notices', 11),
+(48, '2026_08_30_240000_add_first_viewed_at_to_invoices', 12);
 
 -- --------------------------------------------------------
 
@@ -1240,7 +1297,9 @@ INSERT INTO `payments` (`id`, `financial_transaction_id`, `payer_client_id`, `re
 (18, 111, 16, '2026-08-27', 'zelle', NULL, 11500, 11500, 0, NULL, NULL, NULL, NULL, '2026-08-27 13:24:38'),
 (19, 119, NULL, '2026-08-30', 'other', NULL, 19581, 18081, 0, NULL, NULL, NULL, NULL, '2026-08-30 13:27:37'),
 (20, 121, NULL, '2026-08-30', 'other', NULL, 19581, 19581, 0, NULL, NULL, NULL, NULL, '2026-08-30 13:40:54'),
-(21, 123, NULL, '2026-08-30', 'other', NULL, 19581, 19581, 0, NULL, NULL, NULL, NULL, '2026-08-30 15:13:50');
+(21, 123, NULL, '2026-08-30', 'other', NULL, 19581, 19581, 0, NULL, NULL, NULL, NULL, '2026-08-30 15:13:50'),
+(22, 124, 17, '2026-08-30', 'card', 'square:LJQzCKZSG2cGnsRnAahyTxbdQ58YY', 134, 0, 100, 'principal', 'administrator_recorded', '2026-08-30 22:23:13', 1, '2026-08-30 22:23:13'),
+(23, 125, 17, '2026-08-30', 'card', 'square:NgFqdt9gdA5ISqCRthCxsF8Iq0aZY', 100, 0, 100, 'principal', 'administrator_recorded', '2026-08-30 22:27:48', 1, '2026-08-30 22:27:48');
 
 -- --------------------------------------------------------
 
@@ -1316,7 +1375,10 @@ INSERT INTO `payment_allocations` (`id`, `payment_id`, `allocation_type`, `invoi
 (48, 21, 'invoice_item', 3, 55, NULL, NULL, 581, 1, '2026-08-30 15:13:50'),
 (49, 21, 'invoice_item', 3, 6, NULL, NULL, 1500, 2, '2026-08-30 15:13:50'),
 (50, 21, 'invoice_item', 3, 15, NULL, NULL, 2500, 3, '2026-08-30 15:13:50'),
-(51, 21, 'invoice_item', 3, 5, NULL, NULL, 15000, 4, '2026-08-30 15:13:50');
+(51, 21, 'invoice_item', 3, 5, NULL, NULL, 15000, 4, '2026-08-30 15:13:50'),
+(52, 22, 'purchase_balance', NULL, NULL, NULL, NULL, 100, 1, '2026-08-30 22:23:13'),
+(53, 22, 'processing_fee', NULL, NULL, NULL, NULL, 34, 2, '2026-08-30 22:23:13'),
+(54, 23, 'purchase_balance', NULL, NULL, NULL, NULL, 100, 1, '2026-08-30 22:27:48');
 
 -- --------------------------------------------------------
 
@@ -1553,8 +1615,8 @@ CREATE TABLE `portal_accounts` (
 --
 
 INSERT INTO `portal_accounts` (`id`, `client_id`, `email`, `password`, `enabled`, `remember_token`, `last_login_at`, `created_at`, `updated_at`) VALUES
-(1, 17, 'chris@mohavedeals.com', '$2y$12$lX9T3wXKdHQlOrKUH7LPButvnwU9qft6jh4iVvq5twLT4q/wbiSwm', 1, NULL, '2026-08-13 22:25:36', '2026-08-11 17:48:52', '2026-08-13 22:25:36'),
-(2, 16, 'joygr8@yahoo.com', '$2y$12$gOLe7Ztz1Lbpesay54dQMud7bQtEpWz0wBgRC6V6NBD6ur0N2OzIO', 1, 'vRbmP42SmxvTJR484AvuEY34ScDY1efB1d83Rn5kxuozSowCkXrbm8pONTGo', '2026-08-28 18:02:52', '2026-08-12 20:39:27', '2026-08-28 18:02:52'),
+(1, 17, 'chris@mohavedeals.com', '$2y$12$lX9T3wXKdHQlOrKUH7LPButvnwU9qft6jh4iVvq5twLT4q/wbiSwm', 1, NULL, '2026-08-31 12:05:23', '2026-08-11 17:48:52', '2026-08-31 12:05:23'),
+(2, 16, 'joygr8@yahoo.com', '$2y$12$gOLe7Ztz1Lbpesay54dQMud7bQtEpWz0wBgRC6V6NBD6ur0N2OzIO', 1, 'm2hVcb0yc4gXUWe1GfyAZb9L1BJOsTTlDhWE98e3DKgAiySSWJe6vyoDjXNB', '2026-08-28 18:02:52', '2026-08-12 20:39:27', '2026-08-28 18:02:52'),
 (3, 1, 'ernesth33jr@gmail.com', '$2y$12$vH9Iq7da9.PzLpIlhHTsrOUTYyeW2NwM/L/58553RIBVRjRGHVGgq', 1, 'TBdRPBVoFx6sbaJzvliOhqYugtwWWL3wKlKFQ3sSWETtGdp17plVTy7rWPlw', '2026-08-17 15:47:24', '2026-08-17 15:46:53', '2026-08-17 15:47:24'),
 (4, 2, 'tamiwicchick@aol.com', '$2y$12$lUQpHfEM5hNx9u1sOcRWVuUblZ0aE03FLTGnOF1k.b1vO7kbn3QEG', 1, 'qH6eO6ZDkwxP9wYL6mXHbsw37iWUWi9AXbWtK33efpMRQvq6NVDujNfZlt0R', '2026-08-21 15:02:46', '2026-08-21 15:02:27', '2026-08-21 15:02:46');
 
@@ -1792,23 +1854,15 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('2A39B6V0Ppykur8uSIyk8lqZ1JHfAGZBjG57urpE', NULL, '192.175.111.228', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJURDE3VTA5cXlnOHRZMjBkUlZxUm5DNG1mbFpnQWt3a2huSUlrbThvIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tIiwicm91dGUiOiJob21lIn0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfX0=', 1788105399),
-('2HB28pXNwWez5V29q2BaPtp3dN8ZwWcA5XyUmey9', NULL, '192.175.111.235', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJFRU94eTRzNGk4UFFSOXc4QmJrcXFuUWJSQTVZRjJ1YTE0V0tXTjJ2IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL3d3dy5sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788105401),
-('6Ira4mI3FPTjh5gqHD006CzNoCVJgXDbYp4g0a5N', NULL, '164.90.153.192', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiIyYjBJNVRXdVlsTXJNY3FmVWd3c2RuQ1dwdW8zSnk5VG82QmZ6dlBSIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC93d3cubGFuZHBheS5tb2hhdmVkZWFscy5jb20iLCJyb3V0ZSI6ImhvbWUifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1788098446),
-('9amILtuR5u4cn7Whl6P6b22JkOEmsxcls0v9SMak', NULL, '192.175.111.252', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJWSlMwRk1pVlNac05rTGRZMEdkSmhSOG5ZNzR2M0dTWHRCYTMzbmhIIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tIiwicm91dGUiOiJob21lIn0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfX0=', 1788105401),
-('A1RVjcksQmNCs1PM8vGSVyKLGuvxbUzOB6gq1jjr', NULL, '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', 'eyJfdG9rZW4iOiJVSjZnQzJWNFQ0bUVsWmk4UXJWcWI3MWY1azVNVTJvT0N5N0o1UUsyIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbVwvYWRtaW5cL2xvZ2luIiwicm91dGUiOiJhZG1pbi5sb2dpbiJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788110154),
-('ArIc6SUvy367ysQJs25tv9N5IbZByArRlK6Ut02z', NULL, '164.90.153.192', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJXU2dBS1VPUUttRWtsaWlrcTdDZ25FS2FaZ2tUQ0pFTHhWV21qSXF3IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL3d3dy5sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788098446),
-('B5KssKEQcPoXBhA358cHszodX27XqEhOW1q2nSAX', NULL, '192.175.111.251', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJWUlU4SklGWFh4QjVsNjA2Y3F1RjV6OWNpT2xRUFpYS2FBWTVhZlJ3IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL3d3dy5sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788105403),
-('FH1R3MgX3sVPIFym1qFhQLQLb7gWZgafeJcPcvfe', NULL, '192.175.111.238', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJ4Q1pyeVNVaGhPenN3Z2drb1YyaXdkT0RNRnpBZlNZMkZhSTF6VEVYIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tIiwicm91dGUiOiJob21lIn0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfX0=', 1788105401),
-('gcJBrmhZZRHkuSNem0gnLC9mBGqePX7FJ9AZkFLn', NULL, '192.175.111.246', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJ1YzNLZXB4VTRxRmxnN0NrQjdETU9Md1U1cHpGdFpaY3lxN2VFRzl3IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tIiwicm91dGUiOiJob21lIn0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfX0=', 1788105399),
-('GNTOCRKVqPu5ccnnfTWZ56uuAXUbEWIJ1LewCQJ3', NULL, '192.175.111.240', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJ4SjlMTXFweDVZWjJwUXVGRGs1dGxVbkR6N3MwOFJ0NFplMHZRWU52IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL3d3dy5sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788105402),
-('GQo15rQIQJoDkyb6QnWwDkPNKpZdGTkMMblumTpD', NULL, '192.175.111.251', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJ3SDFQY3ZLTkFXYVhCaGVlUEJDU2p2WnlFNTdzZDRQNU9HQTJLTmpOIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL3d3dy5sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788105404),
-('muYj1TT21GwPsCoj4cYhTVVos0uwYOfal73x5iwz', NULL, '192.175.111.239', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJKOURXdVc0bEd6bVRNd3BQM3M2Smt4alBvMHZLMnpxU3hiam5YeUZJIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788105401),
-('o4koobs1G0Y2XCsWUz2v96M09WzAgNI5SWCI1GKX', NULL, '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', 'eyJfdG9rZW4iOiIyUVh5Z1JvSlZKYlpka0VGdmtOdWFjZEx4cHBJUkE0bWdNZkhxUHRoIiwidXJsIjp7ImludGVuZGVkIjoiaHR0cHM6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tXC9hZG1pblwvcGxhbnNcLzExIn0sIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwczpcL1wvbGFuZHBheS5tb2hhdmVkZWFscy5jb21cL2FkbWluXC9wbGFuc1wvMTEiLCJyb3V0ZSI6ImFkbWluLnBsYW5zLnNob3cifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1788110154),
-('ph39mFUbT0JdXHI0AbANdRwE8g5Jd2lLHROBqXYj', NULL, '192.175.111.246', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJTREUxS0JNOHp4bUswVHJIOHZKd290cDVIMngzOEhEdnBOaUxBYWhNIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC93d3cubGFuZHBheS5tb2hhdmVkZWFscy5jb20iLCJyb3V0ZSI6ImhvbWUifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1788105403),
-('s4oiXC6Hk2D3UuCf0eEYdxIJQk4CuNfZZbbM0gjN', NULL, '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', 'eyJfdG9rZW4iOiJQQVpNSWFUcUZFQzUwenh0d0NnWTRGUmZCVUpnN0hrY0VkNmlUR0lzIiwidXJsIjp7ImludGVuZGVkIjoiaHR0cHM6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tXC9hZG1pblwvaW52b2ljZXNcLzEwIn0sIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwczpcL1wvbGFuZHBheS5tb2hhdmVkZWFscy5jb21cL2FkbWluXC9pbnZvaWNlc1wvMTAiLCJyb3V0ZSI6ImFkbWluLmludm9pY2VzLnNob3cifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1788107396),
-('vdPo0t97UOMJUtsjbcw9BTBliEr0ceQPaOaAq9wz', 1, '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', 'eyJfdG9rZW4iOiI3UXdWQ0hobFFpMDBBUjRwV2o3TUg4eTh6aHZpVVdmTjBSOXBhNjAyIiwibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiOjEsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwczpcL1wvbGFuZHBheS5tb2hhdmVkZWFscy5jb21cL2FkbWluXC9kYXNoYm9hcmRcL3N0YXR1cyIsInJvdXRlIjoiYWRtaW4uZGFzaGJvYXJkLnN0YXR1cyJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788126348),
-('Wz5kK0VQLG603R8rwhxEOprVUX1cu4PrsEe5BCbS', NULL, '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', 'eyJfdG9rZW4iOiJLTlZobktsV1NBVXhYS09uUWtxMUIwUTVEMUxrS3k2N3lOZFY3a0tpIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbVwvYWRtaW5cL2xvZ2luIiwicm91dGUiOiJhZG1pbi5sb2dpbiJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788107397);
+('bosVZEMLBkdZOovbxHp2uAgqqdhaFIUZPkSSd4dk', NULL, '168.144.120.239', 'Mozilla/5.0 (X11; Linux x86_64; rv:142.0) Gecko/20100101 Firefox/142.0', 'eyJfdG9rZW4iOiI4bmpxRG1LaGFqdlhGb2xsaW13QWI4VUFDTkFoZVdCdzZ1SGxpSWt0IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788162918),
+('EnKEcRI9OMeS9c9n9kWS0xM6NK74NntFA3zLTIbu', NULL, '188.166.82.50', 'Mozilla/5.0 (compatible; ForestEngine/1.0; +https://forestengine.net/)', 'eyJfdG9rZW4iOiJDSHlzME5TMFRwRnRTTXB4aHZ6UzVPYnNHenhaWk5TYmQ0SlE4TlEzIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788174253),
+('eSCFLOFwDytpeL0fkrpFNbP9fs7n7E78PzGxUVoL', 1, '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', 'eyJfdG9rZW4iOiJNelNqMjdnbGdZY041V2R6Vkk4VFBWaFNyWEw0YVViYkpxMTN6OEd4IiwidXJsIjp7ImludGVuZGVkIjoiaHR0cHM6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tXC9wb3J0YWxcL2ludm9pY2VzXC8xMCJ9LCJfcHJldmlvdXMiOnsidXJsIjoiaHR0cHM6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tXC9hZG1pblwvZGFzaGJvYXJkXC9zdGF0dXMiLCJyb3V0ZSI6ImFkbWluLmRhc2hib2FyZC5zdGF0dXMifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119LCJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MX0=', 1788213501),
+('IWb0mAl2XnlDLk3MUXVQS4l3Z9YNMwfOlPBPT21F', NULL, '188.166.36.145', 'Mozilla/5.0 (compatible; ForestEngine/1.0; +https://forestengine.net/)', 'eyJfdG9rZW4iOiJsNnJWUXpNa2Foc25HeG9JQ3dSU0FiTE9FYmxYRDAxaXVReEpmVUp3IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC93d3cubGFuZHBheS5tb2hhdmVkZWFscy5jb20iLCJyb3V0ZSI6ImhvbWUifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1788197596),
+('O2VOGNk5lcJRPBSj0h5LRZ5TVVBmNcNFC2AF6E57', NULL, '157.173.126.12', 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:8.0) Gecko/20100101 Firefox/8.0', 'eyJfdG9rZW4iOiJNS3hNa1REbkFMcWwyeTZhS2ttbUNaeERQTnJTYkRBb3ZxRzZUeXNMIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788202054),
+('SVdmWZ59bClfHqjsjqPMaWvGtqe3mysu9ITZXhAb', NULL, '161.97.67.244', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', 'eyJfdG9rZW4iOiJiMENxYzN3SHlZREhtUTJ1eURleXB6R0ZTeHRqcGtpZHRUQTE5VWlWIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC93d3cubGFuZHBheS5tb2hhdmVkZWFscy5jb20iLCJyb3V0ZSI6ImhvbWUifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1788201709),
+('w9aUWhPghUkJynQy4ioxKGZkteHlWvNCxT8xxXTu', 1, '69.24.120.81', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:154.0) Gecko/20100101 Firefox/154.0', 'eyJfdG9rZW4iOiJNWTMxanhUQ1dzZkpUTUhjN1d0UVZQV0JDQ09rY2txVVlKajJPR1NlIiwidXJsIjpbXSwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbVwvcG9ydGFsXC9pbnZvaWNlc1wvMTAiLCJyb3V0ZSI6InBvcnRhbC5pbnZvaWNlcy5zaG93In0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfSwibG9naW5fY2xpZW50XzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiOjF9', 1788204003),
+('ZOqKfgTV6W6Uzk9NBo2vAVzueC9ro5McuZu25Ylr', NULL, '188.166.49.36', 'Mozilla/5.0 (compatible; ForestEngine/1.0; +https://forestengine.net/)', 'eyJfdG9rZW4iOiJIMzFNb2RUMFlHdHY1QWV6Q0IxQVAwOXkwbnhOTDVsOUlZV0M3RXQ5IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC9sYW5kcGF5Lm1vaGF2ZWRlYWxzLmNvbSIsInJvdXRlIjoiaG9tZSJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1788163515),
+('ZxZmnG9rQXnVlh9xv5AmaOm66QagwnwSMgZARepL', NULL, '168.144.120.239', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJFYUoxR2hFeldoTFl5NHZuQksxQzNEdVRKamJFOTdFQUZyazFITzRPIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2xhbmRwYXkubW9oYXZlZGVhbHMuY29tIiwicm91dGUiOiJob21lIn0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfX0=', 1788162916);
 
 -- --------------------------------------------------------
 
@@ -2065,7 +2119,19 @@ INSERT INTO `transaction_effects` (`id`, `financial_transaction_id`, `effect_typ
 (195, 123, 'invoice_due', 3, -1500, 'administrative_fee', 6, NULL, 'Payment applied to Service fee', '2026-08-30 15:13:50'),
 (196, 123, 'invoice_due', 3, -2500, 'late_fee_stage_1', 15, NULL, 'Payment applied to Late Fee added 8/12/26', '2026-08-30 15:13:50'),
 (197, 123, 'invoice_due', 3, -15000, 'scheduled_purchase_payment', 5, NULL, 'Payment applied to Plan Payment', '2026-08-30 15:13:50'),
-(198, 123, 'purchase_balance', NULL, -15000, 'purchase_price_principal', NULL, NULL, 'Scheduled payment applied to principal', '2026-08-30 15:13:50');
+(198, 123, 'purchase_balance', NULL, -15000, 'purchase_price_principal', NULL, NULL, 'Scheduled payment applied to principal', '2026-08-30 15:13:50'),
+(199, 124, 'purchase_balance', NULL, -100, 'purchase_price_principal', NULL, NULL, 'Overpayment applied to principal', '2026-08-30 22:23:13'),
+(200, 125, 'purchase_balance', NULL, -100, 'purchase_price_principal', NULL, NULL, 'Overpayment applied to principal', '2026-08-30 22:27:48'),
+(201, 126, 'invoice_due', 27, 3000, 'scheduled_purchase_payment', 56, NULL, 'Plan payment due', '2026-08-30 23:24:00'),
+(202, 127, 'client_credit', NULL, -3000, 'unapplied_credit', NULL, NULL, 'Account credit applied to invoice M18-260830-MX', '2026-08-30 23:24:00'),
+(203, 127, 'invoice_due', 27, -3000, 'scheduled_purchase_payment', 56, NULL, 'Account credit applied', '2026-08-30 23:24:00'),
+(204, 127, 'purchase_balance', NULL, -3000, 'purchase_price_principal', NULL, NULL, 'Account credit applied to principal', '2026-08-30 23:24:00'),
+(205, 128, 'client_credit', NULL, 3000, 'unapplied_credit', NULL, NULL, 'Reversal: Account credit applied to invoice M18-260830-MX', '2026-08-31 00:28:43'),
+(206, 128, 'invoice_due', 27, 3000, 'scheduled_purchase_payment', 56, NULL, 'Reversal: Account credit applied', '2026-08-31 00:28:43'),
+(207, 128, 'purchase_balance', NULL, 3000, 'purchase_price_principal', NULL, NULL, 'Reversal: Account credit applied to principal', '2026-08-31 00:28:43'),
+(208, 129, 'invoice_due', 27, -3000, 'other', NULL, NULL, 'Invoice obligation removed', '2026-08-31 00:28:43'),
+(209, 130, 'invoice_due', 28, 10000, 'scheduled_purchase_payment', 57, NULL, 'Scheduled purchase payment due', '2026-08-31 10:00:02'),
+(210, 131, 'invoice_due', 28, 1500, 'monthly_service_fee', 58, NULL, 'Monthly service fee due', '2026-08-31 10:00:02');
 
 -- --------------------------------------------------------
 
@@ -2105,13 +2171,15 @@ INSERT INTO `users` (`id`, `uuid`, `name`, `email`, `email_verified_at`, `passwo
 --
 ALTER TABLE `admin_notices`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `admin_notices_provider_event_id_unique` (`provider_event_id`),
   ADD KEY `admin_notices_client_id_foreign` (`client_id`),
   ADD KEY `admin_notices_client_change_request_id_foreign` (`client_change_request_id`),
   ADD KEY `admin_notices_dismissed_by_user_id_foreign` (`dismissed_by_user_id`),
   ADD KEY `admin_notices_type_index` (`type`),
   ADD KEY `admin_notices_dismissed_at_index` (`dismissed_at`),
   ADD KEY `admin_notices_client_payment_intent_id_foreign` (`client_payment_intent_id`),
-  ADD KEY `admin_notices_secure_message_thread_id_foreign` (`secure_message_thread_id`);
+  ADD KEY `admin_notices_secure_message_thread_id_foreign` (`secure_message_thread_id`),
+  ADD KEY `admin_notices_invoice_id_foreign` (`invoice_id`);
 
 --
 -- Indexes for table `app_settings`
@@ -2278,7 +2346,8 @@ ALTER TABLE `invoices`
   ADD KEY `invoices_payment_plan_id_due_date_index` (`payment_plan_id`,`due_date`),
   ADD KEY `invoices_payment_plan_id_status_due_date_index` (`payment_plan_id`,`status`,`due_date`),
   ADD KEY `invoices_generation_source_index` (`generation_source`),
-  ADD KEY `invoices_payment_plan_billing_term_id_foreign` (`payment_plan_billing_term_id`);
+  ADD KEY `invoices_payment_plan_billing_term_id_foreign` (`payment_plan_billing_term_id`),
+  ADD KEY `invoices_first_viewed_at_index` (`first_viewed_at`);
 
 --
 -- Indexes for table `invoice_items`
@@ -2524,19 +2593,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `admin_notices`
 --
 ALTER TABLE `admin_notices`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `app_settings`
 --
 ALTER TABLE `app_settings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=102;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
 
 --
 -- AUTO_INCREMENT for table `billing_defaults`
@@ -2566,7 +2635,7 @@ ALTER TABLE `client_contacts`
 -- AUTO_INCREMENT for table `client_payment_intents`
 --
 ALTER TABLE `client_payment_intents`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `contract_status_events`
@@ -2578,7 +2647,7 @@ ALTER TABLE `contract_status_events`
 -- AUTO_INCREMENT for table `email_deliveries`
 --
 ALTER TABLE `email_deliveries`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `email_templates`
@@ -2602,25 +2671,25 @@ ALTER TABLE `fee_assessments`
 -- AUTO_INCREMENT for table `financial_transactions`
 --
 ALTER TABLE `financial_transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=124;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=132;
 
 --
 -- AUTO_INCREMENT for table `invoices`
 --
 ALTER TABLE `invoices`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `invoice_items`
 --
 ALTER TABLE `invoice_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- AUTO_INCREMENT for table `invoice_reminders`
 --
 ALTER TABLE `invoice_reminders`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `jobs`
@@ -2632,7 +2701,7 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT for table `monthly_service_fee_satisfactions`
@@ -2644,13 +2713,13 @@ ALTER TABLE `monthly_service_fee_satisfactions`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `payment_allocations`
 --
 ALTER TABLE `payment_allocations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `payment_plans`
@@ -2728,7 +2797,7 @@ ALTER TABLE `shared_documents`
 -- AUTO_INCREMENT for table `transaction_effects`
 --
 ALTER TABLE `transaction_effects`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=199;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=211;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -2748,6 +2817,7 @@ ALTER TABLE `admin_notices`
   ADD CONSTRAINT `admin_notices_client_id_foreign` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`),
   ADD CONSTRAINT `admin_notices_client_payment_intent_id_foreign` FOREIGN KEY (`client_payment_intent_id`) REFERENCES `client_payment_intents` (`id`),
   ADD CONSTRAINT `admin_notices_dismissed_by_user_id_foreign` FOREIGN KEY (`dismissed_by_user_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `admin_notices_invoice_id_foreign` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
   ADD CONSTRAINT `admin_notices_secure_message_thread_id_foreign` FOREIGN KEY (`secure_message_thread_id`) REFERENCES `secure_message_threads` (`id`);
 
 --

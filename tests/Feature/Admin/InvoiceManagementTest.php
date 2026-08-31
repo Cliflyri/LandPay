@@ -36,6 +36,24 @@ class InvoiceManagementTest extends TestCase
         $this->post(route('admin.invoices.reminders.store', 1))->assertRedirect(route('admin.login'));
     }
 
+    public function test_monthly_invoice_form_suggests_first_eligible_scheduled_month(): void
+    {
+        Carbon::setTestNow('2026-08-31 10:00:00');
+
+        try {
+            [$user, $plan] = $this->activePlan();
+            $plan->update(['plan_start_date' => '2026-08-10', 'first_due_date' => null]);
+            $plan->billingTerms()->update(['invoice_day' => 3]);
+
+            $this->actingAs($user)
+                ->get(route('admin.plans.invoices.create', $plan))
+                ->assertOk()
+                ->assertSee('value="2026-09"', false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_administrator_previews_and_issues_one_invoice_per_billing_month(): void
     {
         Mail::fake();

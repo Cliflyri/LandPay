@@ -13,7 +13,7 @@
     <title>@yield('title', config('app.name', 'LandPay'))</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ asset('assets/css/landpay.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/landpay.css') }}?v={{ filemtime(public_path('assets/css/landpay.css')) }}">
     @stack('styles')
 </head>
 <body class="@yield('body_class') {{ request()->routeIs('portal.*', 'secure-invoice.*') ? 'portal-page' : '' }}">
