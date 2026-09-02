@@ -71,7 +71,6 @@ class PaymentService
             ];
         }
 
-
         $remaining = $amount;
         $allocations = [];
         if ($serviceFeeAmount > 0) {
@@ -268,8 +267,8 @@ class PaymentService
                             FinancialEffectComponent::DocumentationFeePrincipal,
                             description: 'Documentation fee payment applied',
                         );
-                } elseif (in_array($allocation['type'], [PaymentAllocationType::ServiceFee, PaymentAllocationType::ProcessingFee], true)) {
                     }
+                } elseif (in_array($allocation['type'], [PaymentAllocationType::ServiceFee, PaymentAllocationType::ProcessingFee], true)) {
                     // Collected directly as a non-principal fee; no receivable or principal balance changes.
                 } elseif ($allocation['type'] === PaymentAllocationType::PurchaseBalance) {
                     $effects[] = new PostingEffect(FinancialEffectType::PurchaseBalance, -$allocation['amount'], $allocation['component'], description: $allocation['label']);
