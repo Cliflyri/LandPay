@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\AuditLog;
+use App\Models\BillingDefault;
 use App\Models\EmailTemplate;
 use App\Models\User;
 use App\Services\EmailTemplateService;
-use App\Services\SmtpConfigurationService;
 use App\Services\ReminderAutomationService;
+use App\Services\SmtpConfigurationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +38,7 @@ class SettingsController extends Controller
                 'reply_to_email' => AppSetting::valueFor('reply_to_email', ''),
                 'email_footer' => AppSetting::valueFor('email_footer', 'Thank you for choosing LandPay.'),
             ],
+            'billingDefaults' => BillingDefault::query()->latest('id')->first(),
             'templates' => $this->templates->all(),
             'templateVariables' => EmailTemplateService::TEMPLATE_VARIABLES,
             'smtp' => $this->smtp->values(),
@@ -64,6 +66,7 @@ class SettingsController extends Controller
             'email_footer' => ['nullable', 'string', 'max:1000'],
         ]);
         AppSetting::putMany($data);
+
         return back()->with('success', 'Company and email settings saved.');
     }
 
@@ -120,9 +123,9 @@ class SettingsController extends Controller
         ]);
         $this->templates->validateVariables($data['subject'].' '.$data['body_html']);
         $template->update($data);
+
         return redirect()->route('admin.settings.index', ['section' => 'templates', 'template' => $template->id])->with('success', $template->name.' template saved.');
     }
-
 
     public function updateSmtp(Request $request): RedirectResponse
     {
@@ -146,6 +149,7 @@ class SettingsController extends Controller
             AppSetting::putEncrypted('smtp_password', $password);
         }
         $this->smtp->apply();
+
         return back()->with('success', 'SMTP settings saved. Use Send test email to verify delivery.');
     }
 
@@ -161,6 +165,7 @@ class SettingsController extends Controller
             report($exception);
             throw ValidationException::withMessages(['smtp' => 'SMTP test failed: '.str($exception->getMessage())->limit(300)]);
         }
+
         return back()->with('success', 'Test email sent to '.$data['test_email'].'.');
     }
 
@@ -218,6 +223,7 @@ class SettingsController extends Controller
             'reminders_after_interval' => (string) $data['after_interval'],
             'reminders_after_max' => (string) $data['after_max'],
         ]);
+
         return back()->with('success', 'Automated reminder rules saved.');
     }
 
@@ -226,6 +232,7 @@ class SettingsController extends Controller
         $default = $this->templates->defaults()[$template->slug] ?? null;
         abort_if($default === null, 404);
         $template->update($default + ['active' => true]);
+
         return redirect()->route('admin.settings.index', ['section' => 'templates', 'template' => $template->id])->with('success', $template->name.' restored to its default.');
     }
 }

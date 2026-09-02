@@ -4,9 +4,9 @@
 @section('content')
 @php
 $defaultType = $billingDefaults?->stage_one_fee_type?->value ?? 'fixed';
-$defaultStageOneValue = $defaultType === 'percentage' ? ($billingDefaults?->stage_one_percentage_rate ?? '0.0000') : number_format(($billingDefaults?->stage_one_fixed_amount ?? 0) / 100, 2, '.', '');
+$defaultStageOneValue = $defaultType === 'percentage' ? ($billingDefaults?->stage_one_percentage_rate ?? '0.0000') : number_format(($billingDefaults?->stage_one_fixed_amount ?? 2500) / 100, 2, '.', '');
 $defaultStageTwoType = $billingDefaults?->stage_two_fee_type?->value ?? 'fixed';
-$defaultStageTwoValue = $defaultStageTwoType === 'percentage' ? ($billingDefaults?->stage_two_percentage_rate ?? '0.0000') : number_format(($billingDefaults?->stage_two_fixed_amount ?? 0) / 100, 2, '.', '');
+$defaultStageTwoValue = $defaultStageTwoType === 'percentage' ? ($billingDefaults?->stage_two_percentage_rate ?? '0.0000') : number_format(($billingDefaults?->stage_two_fixed_amount ?? 5000) / 100, 2, '.', '');
 $clientOptions = $clients->map(fn ($client) => ['id' => $client->id, 'label' => $client->organization_name ?: trim($client->first_name.' '.$client->last_name), 'email' => $client->email, 'phone' => $client->primary_phone])->values();
 $oldCoClientIds = array_map('strval', old('co_client_ids', []));
 @endphp
@@ -60,7 +60,7 @@ $oldCoClientIds = array_map('strval', old('co_client_ids', []));
 <div class="col-md-4 percentage-minimum"><label class="form-label">Minimum fee amount</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control minimum-input" name="stage_one_minimum_amount" value="{{ old('stage_one_minimum_amount',number_format(($billingDefaults?->stage_one_minimum_amount ?? 0)/100,2,'.','')) }}" inputmode="decimal"></div></div>
 <div class="col-12"><div class="schedule-preview">Stage one will be assessed <strong id="stage-one-description"></strong>.</div></div>
 </div>
-<hr class="my-4"><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="stage_two_enabled" value="1" id="stage_two_enabled" @checked(old('stage_two_enabled',$billingDefaults?->stage_two_enabled ?? false))><label class="form-check-label" for="stage_two_enabled"><strong>Enable a stage-two late fee</strong></label></div>
+<hr class="my-4"><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="stage_two_enabled" value="1" id="stage_two_enabled" @checked(old('stage_two_enabled',$billingDefaults?->stage_two_enabled ?? true))><label class="form-check-label" for="stage_two_enabled"><strong>Enable a stage-two late fee</strong></label></div>
 <div id="stage-two-fields"><h3>Stage-two late fee</h3><div class="row g-3"><div class="col-md-4"><label class="form-label">Assess when invoice is</label><div class="input-group"><input type="number" class="form-control" name="stage_two_days_late" value="{{ old('stage_two_days_late',$billingDefaults?->stage_two_days_late ?? 30) }}" min="1" max="365"><span class="input-group-text">days late</span></div></div>
 <div class="col-md-4"><label class="form-label">Calculation</label><select class="form-select fee-type" name="stage_two_fee_type"><option value="fixed" @selected(old('stage_two_fee_type',$defaultStageTwoType)==='fixed')>Fixed dollar amount</option><option value="percentage" @selected(old('stage_two_fee_type',$defaultStageTwoType)==='percentage')>Percentage of unpaid scheduled payment</option></select></div>
 <div class="col-md-4"><label class="form-label fee-value-label">Fee amount</label><div class="input-group"><span class="input-group-text fee-prefix">$</span><input class="form-control" name="stage_two_fee_value" value="{{ old('stage_two_fee_value',$defaultStageTwoValue) }}" inputmode="decimal"><span class="input-group-text fee-suffix d-none">%</span></div></div>

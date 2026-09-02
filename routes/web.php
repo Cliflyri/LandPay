@@ -1,43 +1,43 @@
 <?php
 
-use App\Http\Controllers\Admin\ContractSetupController;
+use App\Http\Controllers\Admin\AdminNoticeController;
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
+use App\Http\Controllers\Admin\BillingDefaultSettingsController;
+use App\Http\Controllers\Admin\ClientChangeRequestController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPortalAccessController;
+use App\Http\Controllers\Admin\ContractSetupController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InvoiceAccessLinkController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceEmailController;
 use App\Http\Controllers\Admin\InvoiceReminderController;
 use App\Http\Controllers\Admin\PaymentController;
-use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\PaymentReceiptController;
+use App\Http\Controllers\Admin\PaymentMethodSettingsController;
 use App\Http\Controllers\Admin\PaymentPlanController;
 use App\Http\Controllers\Admin\PaymentPlanPauseController;
-use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\AdminNoticeController;
-use App\Http\Controllers\Admin\ClientChangeRequestController;
-use App\Http\Controllers\Portal\AccountController as PortalAccountController;
+use App\Http\Controllers\Admin\PaymentReceiptController;
 use App\Http\Controllers\Admin\PortalInvitationController;
-use App\Http\Controllers\Portal\InvitationController as PortalInvitationAcceptanceController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
+use App\Http\Controllers\Portal\AccountController as PortalAccountController;
 use App\Http\Controllers\Portal\AuthenticatedSessionController as PortalSessionController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
+use App\Http\Controllers\Portal\InvitationController as PortalInvitationAcceptanceController;
 use App\Http\Controllers\Portal\InvoiceController as PortalInvoiceController;
+use App\Http\Controllers\Portal\MakePaymentController;
 use App\Http\Controllers\Portal\PasswordResetController as PortalPasswordResetController;
 use App\Http\Controllers\Portal\PaymentController as PortalPaymentController;
-use App\Http\Controllers\Portal\MakePaymentController;
-use App\Http\Controllers\Admin\PaymentMethodSettingsController;
-use App\Http\Controllers\Admin\ClientPaymentIntentController;
-use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
 use App\Http\Controllers\Portal\SecureMessageController as PortalSecureMessageController;
-use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
 use App\Http\Controllers\Portal\SharedDocumentController as PortalSharedDocumentController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProviderWebhookController;
 use App\Http\Controllers\SecureInvoiceController;
-use App\Http\Controllers\Admin\InvoiceAccessLinkController;
+use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
-Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider',['square','stripe'])->name('webhooks.provider');
+Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider', ['square', 'stripe'])->name('webhooks.provider');
 
 Route::prefix('invoice-access')->name('secure-invoice.')->middleware('secure.invoice')->group(function (): void {
     Route::get('invoice', [SecureInvoiceController::class, 'show'])->name('show');
@@ -97,7 +97,6 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('documents/{document}', [PortalSharedDocumentController::class, 'download'])->name('documents.download');
     Route::get('documents/{document}/preview', [PortalSharedDocumentController::class, 'preview'])->name('documents.preview');
 });
-
 
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
@@ -174,6 +173,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::put('settings/payment-providers/{provider}', [PaymentMethodSettingsController::class, 'updateProvider'])->name('payment-methods.provider.update');
     Route::get('payment-intents/{intent}/receive', [PaymentController::class, 'intentPreview'])->name('payment-intents.receive');
     Route::put('settings/company', [SettingsController::class, 'updateCompany'])->name('settings.company.update');
+    Route::get('settings/billing', fn () => redirect()->route('admin.settings.index', ['section' => 'billing']))->name('settings.billing');
+    Route::put('settings/billing', [BillingDefaultSettingsController::class, 'update'])->name('settings.billing.update');
     Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
     Route::put('settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
     Route::post('settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
