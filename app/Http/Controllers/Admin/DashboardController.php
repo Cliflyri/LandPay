@@ -91,7 +91,7 @@ class DashboardController extends Controller
     private function notices()
     {
         return AdminNotice::query()->whereNull('dismissed_at')
-            ->with(['client', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread', 'invoice'])
+            ->with(['client', 'paymentPlan', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread', 'invoice'])
             ->latest()->get();
     }
 
@@ -115,7 +115,7 @@ class DashboardController extends Controller
             ]);
         $hasFirstPaymentInvoice = $plan->invoices->contains(
             fn (Invoice $invoice) => $invoice->status !== InvoiceStatus::Voided
-                && $invoice->items->contains(fn ($item) => $item->description === 'First payment')
+                && str_starts_with($invoice->invoice_number, 'FP-')
         );
         if (! $hasFirstPaymentInvoice
             && $plan->first_payment_amount !== null

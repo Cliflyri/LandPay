@@ -261,8 +261,15 @@ class PaymentService
                             FinancialEffectComponent::PurchasePricePrincipal,
                             description: 'Scheduled payment applied to principal',
                         );
-                    }
+                    } elseif ($allocation['component'] === FinancialEffectComponent::DocumentationFeePrincipal) {
+                        $effects[] = new PostingEffect(
+                            FinancialEffectType::PurchaseBalance,
+                            -$allocation['amount'],
+                            FinancialEffectComponent::DocumentationFeePrincipal,
+                            description: 'Documentation fee payment applied',
+                        );
                 } elseif (in_array($allocation['type'], [PaymentAllocationType::ServiceFee, PaymentAllocationType::ProcessingFee], true)) {
+                    }
                     // Collected directly as a non-principal fee; no receivable or principal balance changes.
                 } elseif ($allocation['type'] === PaymentAllocationType::PurchaseBalance) {
                     $effects[] = new PostingEffect(FinancialEffectType::PurchaseBalance, -$allocation['amount'], $allocation['component'], description: $allocation['label']);
@@ -367,7 +374,10 @@ class PaymentService
 
     private function componentForItem(InvoiceItem $item): FinancialEffectComponent
     {
-        return FinancialEffectComponent::tryFrom($item->item_type->value) ?? FinancialEffectComponent::Other;
+        return match ($item->item_type) {
+            InvoiceItemType::DocumentationFee => FinancialEffectComponent::DocumentationFeePrincipal,
+            default => FinancialEffectComponent::tryFrom($item->item_type->value) ?? FinancialEffectComponent::Other,
+        };
     }
 
     public function uninvoicedDueFirstPaymentAmount(PaymentPlan $plan): int
@@ -383,7 +393,7 @@ class PaymentService
             && ! Invoice::query()
                 ->where('payment_plan_id', $plan->id)
                 ->where('status', '!=', InvoiceStatus::Voided->value)
-                ->whereHas('items', fn ($query) => $query->where('description', 'First payment'))
+                ->where('invoice_number', 'like', 'FP-%')
                 ->exists();
     }
 

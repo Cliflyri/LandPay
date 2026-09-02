@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 Schedule::command('invoices:generate')->dailyAt('06:00')->timezone(config('app.timezone'))->withoutOverlapping();
 Schedule::command('late-fees:assess')->dailyAt('06:15')->timezone(config('app.timezone'))->withoutOverlapping();
 Schedule::command('reminders:send')->dailyAt('07:00')->timezone(config('app.timezone'))->withoutOverlapping();
+Schedule::command('contracts:purge-expired')->dailyAt('05:30')->timezone(config('app.timezone'))->withoutOverlapping();

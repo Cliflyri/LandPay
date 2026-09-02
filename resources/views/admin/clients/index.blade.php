@@ -6,6 +6,7 @@
 <div class="admin-heading d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
     <div><h1>Clients</h1><span class="eyebrow eyebrow-dark">Administration</span></div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
+        <a class="btn btn-outline-brand" href="{{ route('admin.contract-setups.create') }}">New contract setup</a>
         <a class="btn btn-sun" href="{{ route('admin.clients.create') }}">Add client</a>
     </div>
 </div>

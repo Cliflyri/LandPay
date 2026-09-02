@@ -83,6 +83,10 @@ class ClientPortalTest extends TestCase
         $firstViewedAt=$own->fresh()->first_viewed_at;
         $this->assertNotNull($firstViewedAt);
         $this->assertSame($own->id,AdminNotice::query()->where('type','invoice_first_viewed')->sole()->invoice_id);
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSeeText('Portal OWN')
+            ->assertSeeText('INV-OWN');
         $this->get(route('portal.invoices.show',$own))->assertOk();
         $this->assertTrue($own->fresh()->first_viewed_at->equalTo($firstViewedAt));
         $this->assertSame(1,AdminNotice::query()->where('type','invoice_first_viewed')->count());

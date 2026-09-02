@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ContractSetupController;
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPortalAccessController;
@@ -108,6 +109,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('clients/{client}/archive', [ClientController::class, 'archive'])->name('clients.archive');
     Route::post('clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore');
     Route::resource('clients', ClientController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
+    Route::get('contract-setups/create', [ContractSetupController::class, 'create'])->name('contract-setups.create');
+    Route::post('contract-setups', [ContractSetupController::class, 'store'])->name('contract-setups.store');
+    Route::post('plans/{plan}/contract-setup/activate', [ContractSetupController::class, 'activate'])->name('contract-setups.activate');
+    Route::delete('plans/{plan}/contract-setup', [ContractSetupController::class, 'deleteDraft'])->name('contract-setups.delete-draft');
+    Route::get('contract-documents/{document}', [ContractSetupController::class, 'download'])->name('contract-documents.download');
+    Route::delete('contract-documents/{document}', [ContractSetupController::class, 'destroy'])->name('contract-documents.destroy');
     Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('plans/{plan}/pause', [PaymentPlanPauseController::class, 'pause'])->name('plans.pause');
     Route::post('plans/{plan}/resume', [PaymentPlanPauseController::class, 'resume'])->name('plans.resume');

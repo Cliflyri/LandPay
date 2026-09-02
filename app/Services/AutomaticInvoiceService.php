@@ -23,116 +23,152 @@ class AutomaticInvoiceService
                 try {
                     $terms = $this->termsFor($plan, $date);
                     $actor = $plan->updatedBy ?? $plan->createdBy;
-                    if ($terms === null || $actor === null) continue;
-                    if ($this->invoices->uninvoicedPrincipal($plan) <= 0) continue;
-                    
-$invoiceNumber = $plan->accelerated_testing_mode
-    ? 'INV-'.$plan->id.'-'.$date->format('Ymd')
-    : 'INV-'.$plan->id.'-'.$date->format('Ym');
+                    if ($terms === null || $actor === null) {
+                        continue;
+                    }
+                    if ($this->invoices->uninvoicedPrincipal($plan) <= 0) {
+                        continue;
+                    }
 
-$periodStart = $plan->accelerated_testing_mode
-    ? $date->copy()
-    : $date->copy()->startOfMonth();
+                    $invoiceNumber = $plan->accelerated_testing_mode
+                        ? 'INV-'.$plan->id.'-'.$date->format('Ymd')
+                        : 'INV-'.$plan->id.'-'.$date->format('Ym');
 
-$periodEnd = $plan->accelerated_testing_mode
-    ? $date->copy()
-    : $date->copy()->endOfMonth();
+                    $periodStart = $plan->accelerated_testing_mode
+                        ? $date->copy()
+                        : $date->copy()->startOfMonth();
 
-$invoice = $this->invoices->issue(
-    $plan,
-    $terms,
-    $actor,
-    $invoiceNumber,
-    $periodStart,
-    $periodEnd,
-    $date,
-    0,
-    null,
-    true,
-);
+                    $periodEnd = $plan->accelerated_testing_mode
+                        ? $date->copy()
+                        : $date->copy()->endOfMonth();
+
+                    $invoice = $this->invoices->issue(
+                        $plan,
+                        $terms,
+                        $actor,
+                        $invoiceNumber,
+                        $periodStart,
+                        $periodEnd,
+                        $date,
+                        0,
+                        null,
+                        true,
+                    );
 
                     $result['created']++;
                     if ($plan->scheduled_invoice_email_enabled) {
-                        try { $this->email->send($invoice, $actor, 'inline'); $result['emailed']++; }
-                        catch (Throwable $e) { $this->notice($plan, $invoice, 'Automatic invoice email failed', $e); $result['failed']++; }
+                        try {
+                            $this->email->send($invoice, $actor, 'inline');
+                            $result['emailed']++;
+                        } catch (Throwable $e) {
+                            $this->notice($plan, $invoice, 'Automatic invoice email failed', $e);
+                            $result['failed']++;
+                        }
                     }
-                } catch (Throwable $e) { $this->notice($plan, null, 'Automatic invoice generation failed', $e); $result['failed']++; }
+                } catch (Throwable $e) {
+                    $this->notice($plan, null, 'Automatic invoice generation failed', $e);
+                    $result['failed']++;
+                }
             }
         });
+
         return $result;
     }
 
     public function nextDate(PaymentPlan $plan, ?Carbon $from = null): ?Carbon
     {
-        if ($plan->status !== 'active') return null;
+        if ($plan->status !== 'active') {
+            return null;
+        }
         $from ??= Carbon::today();
         $plan->loadMissing(['billingTerms', 'pauses']);
-
-if ($plan->accelerated_testing_mode) {
-    for (
-        $date = $from->copy()->startOfDay();
-        $date->lte($from->copy()->addYear());
-        $date->addDay()
-    ) {
-        $invoiceNumber = 'INV-'.$plan->id.'-'.$date->format('Ymd');
-
-        if (
-            ! $this->pausedOn($plan, $date)
-            && ! Invoice::query()
-                ->where('payment_plan_id', $plan->id)
-                ->where('invoice_number', $invoiceNumber)
-                ->exists()
-        ) {
-            return $date->copy();
+        if ($plan->first_scheduled_invoice_date?->gt($from)) {
+            $from = $plan->first_scheduled_invoice_date->copy();
         }
-    }
+        $activatedOn = $plan->activated_at?->copy()->startOfDay();
+        if ($activatedOn?->gt($from)) {
+            $from = $activatedOn;
+        }
 
-    return null;
-}
+        if ($plan->accelerated_testing_mode) {
+            for (
+                $date = $from->copy()->startOfDay();
+                $date->lte($from->copy()->addYear());
+                $date->addDay()
+            ) {
+                $invoiceNumber = 'INV-'.$plan->id.'-'.$date->format('Ymd');
 
+                if (
+                    ! $this->pausedOn($plan, $date)
+                    && ! Invoice::query()
+                        ->where('payment_plan_id', $plan->id)
+                        ->where('invoice_number', $invoiceNumber)
+                        ->exists()
+                ) {
+                    return $date->copy();
+                }
+            }
+
+            return null;
+        }
 
         for ($month = $from->copy()->startOfMonth(); $month->lte($from->copy()->addMonths(24)->startOfMonth()); $month->addMonth()) {
             $date = $this->dateForMonth($plan, $month);
-            if ($date && $date->gte($from) && ! $this->pausedOn($plan, $date)) return $date;
+            if ($date && $date->gte($from) && ! $this->pausedOn($plan, $date)) {
+                return $date;
+            }
         }
+
         return null;
     }
 
     private function missingDates(PaymentPlan $plan, Carbon $through): Collection
     {
-        $anchor = ($plan->first_due_date ?? $plan->plan_start_date)?->copy()->startOfDay();
-        if ($anchor === null) return collect();
+        $legacyAnchor = ($plan->first_due_date ?? $plan->plan_start_date)?->copy()->startOfDay();
+        if ($legacyAnchor === null) {
+            return collect();
+        }
+        $notBefore = $plan->first_scheduled_invoice_date?->copy()->startOfDay()
+            ?? $legacyAnchor->copy()->addDay();
+        $activatedOn = $plan->activated_at?->copy()->startOfDay();
+        if ($activatedOn?->gt($notBefore)) {
+            $notBefore = $activatedOn;
+        }
 
-if ($plan->accelerated_testing_mode) {
-    $date = $through->copy()->startOfDay();
-    $invoiceNumber = 'INV-'.$plan->id.'-'.$date->format('Ymd');
+        if ($plan->accelerated_testing_mode) {
+            $date = $through->copy()->startOfDay();
+            $invoiceNumber = 'INV-'.$plan->id.'-'.$date->format('Ymd');
 
-    if (
-        $date->lte($anchor)
-        || $this->pausedOn($plan, $date)
-        || Invoice::query()
-            ->where('payment_plan_id', $plan->id)
-            ->where('invoice_number', $invoiceNumber)
-            ->exists()
-    ) {
-        return collect();
-    }
+            if (
+                $date->lt($notBefore)
+                || $this->pausedOn($plan, $date)
+                || Invoice::query()
+                    ->where('payment_plan_id', $plan->id)
+                    ->where('invoice_number', $invoiceNumber)
+                    ->exists()
+            ) {
+                return collect();
+            }
 
-    return collect([$date]);
-}
+            return collect([$date]);
+        }
 
         $existing = Invoice::query()->where('payment_plan_id', $plan->id)->pluck('invoice_number')->flip();
         $dates = collect();
-        for ($month = $anchor->copy()->startOfMonth(); $month->lte($through->copy()->startOfMonth()); $month->addMonth()) {
+        for ($month = $notBefore->copy()->startOfMonth(); $month->lte($through->copy()->startOfMonth()); $month->addMonth()) {
             $date = $this->dateForMonth($plan, $month);
-            if ($date && $date->gt($anchor) && $date->lte($through) && ! $this->pausedOn($plan, $date) && ! $existing->has('INV-'.$plan->id.'-'.$date->format('Ym'))) $dates->push($date);
+            if ($date && $date->gte($notBefore) && $date->lte($through) && ! $this->pausedOn($plan, $date) && ! $existing->has('INV-'.$plan->id.'-'.$date->format('Ym'))) {
+                $dates->push($date);
+            }
         }
+
         return $dates;
     }
 
     private function dateForMonth(PaymentPlan $plan, Carbon $month): ?Carbon
     {
         $terms = $this->termsFor($plan, $month->copy()->endOfMonth());
+
         return $terms ? $month->copy()->day(min((int) $terms->invoice_day, $month->daysInMonth)) : null;
     }
 

@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Client;
+use App\Enums\FinancialActorType;
+use App\Enums\FinancialEffectComponent;
+use App\Enums\FinancialEffectType;
+use App\Enums\FinancialTransactionType;
+use App\Financial\PostingEffect;
 use App\Models\AuditLog;
+use App\Models\Client;
 use App\Models\FinancialTransaction;
 use App\Models\Invoice;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
 use App\Models\User;
 use App\Services\FinancialBalanceService;
+use App\Services\FinancialPostingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -94,6 +100,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             ->assertSee(route('admin.clients.edit', $client), false);
         $this->assertGreaterThanOrEqual(2, substr_count($response->getContent(), 'Maya Ortiz'));
     }
+
     public function test_quick_client_creation_returns_a_selectable_client(): void
     {
         $user = User::factory()->create();
@@ -111,7 +118,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->actingAs($user)->get(route('admin.plans.create'))
             ->assertOk()
             ->assertSee('Opening contract balance')
-            ->assertSee('Plan beginning and first payment')
+            ->assertSee('Plan beginning and down/first payment')
             ->assertSee('Recurring monthly invoices')
             ->assertSee('Stage-two late fee');
     }
@@ -127,7 +134,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $data = $this->validPlanData($primary) + ['co_client_ids' => [$coClient->id]];
         $this->actingAs($user)->post(route('admin.plans.store'), $data)->assertSessionHasNoErrors();
         $plan = PaymentPlan::query()->sole();
-        app(\App\Services\FinancialPostingService::class)->post($plan, \App\Enums\FinancialTransactionType::Payment, 1_234, '2026-08-15', \App\Enums\FinancialActorType::Administrator, [new \App\Financial\PostingEffect(\App\Enums\FinancialEffectType::ClientCredit, 1_234, \App\Enums\FinancialEffectComponent::UnappliedCredit)], actor: $user, description: 'Dashboard credit fixture');
+        app(FinancialPostingService::class)->post($plan, FinancialTransactionType::Payment, 1_234, '2026-08-15', FinancialActorType::Administrator, [new PostingEffect(FinancialEffectType::ClientCredit, 1_234, FinancialEffectComponent::UnappliedCredit)], actor: $user, description: 'Dashboard credit fixture');
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
@@ -236,6 +243,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             ->assertSee('$600.00')
             ->assertSee($user->name);
     }
+
     public function test_plan_can_start_without_first_payment_details(): void
     {
         $user = User::factory()->create();
@@ -266,7 +274,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $client = $this->client($user);
         $data = $this->validPlanData($client) + [
             'first_payment_amount' => '1000.00',
-            'first_payment_due_date' => '2026-08-15',
+            'first_payment_due_date' => today()->addDays(3)->toDateString(),
             'create_first_payment_invoice' => '1',
         ];
         $this->actingAs($user)->post(route('admin.plans.store'), $data)->assertSessionHasNoErrors();
@@ -274,9 +282,9 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $plan = PaymentPlan::query()->sole();
         $invoice = Invoice::query()->with('items')->sole();
         $this->assertSame(100_000, $plan->first_payment_amount);
-        $this->assertSame('2026-08-15', $plan->first_due_date->format('Y-m-d'));
-        $this->assertSame(100_000, $invoice->items->sole()->amount);
-        $this->assertSame('First payment', $invoice->items->sole()->description);
+        $this->assertSame(today()->addDays(3)->toDateString(), $plan->first_due_date->format('Y-m-d'));
+        $this->assertSame(100_000, $invoice->items->firstWhere('description', 'Down payment')->amount);
+        $this->assertSame(20_000, $invoice->items->firstWhere('description', 'Documentation fee')->amount);
         $contractBalance = app(FinancialBalanceService::class)->contractBalance($plan);
         $this->assertSame(1_020_000, $contractBalance);
 
@@ -294,7 +302,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->assertStringStartsWith('FP-'.$plan->plan_number.'-', $newInvoice->invoice_number);
         $this->assertStringNotContainsString('-R', $newInvoice->invoice_number);
         $this->assertSame('issued', $newInvoice->status->value);
-        $this->assertSame(100_000, app(FinancialBalanceService::class)->invoiceBalance($newInvoice));
+        $this->assertSame(120_000, app(FinancialBalanceService::class)->invoiceBalance($newInvoice));
         $this->assertSame(0, app(FinancialBalanceService::class)->invoiceBalance($invoice));
         $this->assertSame($contractBalance, app(FinancialBalanceService::class)->contractBalance($plan));
         $this->get(route('admin.invoices.show', $newInvoice))->assertOk()
@@ -325,10 +333,10 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->actingAs($user)->from(route('admin.plans.create'))->post(route('admin.plans.store'), [
             'primary_client_id' => $primary->id, 'co_client_ids' => [$coClient->id],
             'contract_start_date' => '2026-08-01', 'first_payment_amount' => '500.00',
-            'first_payment_due_date' => '2026-08-15',
+            'first_payment_due_date' => today()->addDays(3)->toDateString(),
         ])->assertRedirect(route('admin.plans.create'))
             ->assertSessionHasInput('contract_start_date', '2026-08-01')
-            ->assertSessionHasInput('first_payment_due_date', '2026-08-15')
+            ->assertSessionHasInput('first_payment_due_date', today()->addDays(3)->toDateString())
             ->assertSessionHasInput('co_client_ids', [$coClient->id]);
     }
 
@@ -346,7 +354,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             'plan_number' => '123-45-678', 'title' => 'North parcel', 'primary_client_id' => $client->id,
             'purchase_price' => '10000.00', 'documentation_fee_standard' => '250.00', 'documentation_fee_waived' => '50.00',
             'documentation_fee_waiver_reason' => 'Promotional allowance', 'scheduled_payment_amount' => '500.00', 'monthly_service_fee' => '25.00',
-            'invoice_day' => 1, 'due_days_after_issue' => 5, 'grace_days' => 2, 'contract_start_date' => '2026-08-01',
+            'first_scheduled_invoice_date' => '2026-08-01', 'due_days_after_issue' => 5, 'grace_days' => 2, 'contract_start_date' => '2026-08-01',
             'stage_one_fee_type' => 'fixed', 'stage_one_fee_value' => '15.00', 'stage_one_minimum_amount' => '99.00',
             'default_eligibility_days' => 60, 'contact_risk_acknowledged' => '1',
         ];

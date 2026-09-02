@@ -120,6 +120,7 @@ class ClientController extends Controller
     public function show(Client $client): View
     {
         $client->load(['memberships.paymentPlan', 'contacts', 'portalAccount', 'portalInvitations']);
+        $client->setRelation('memberships', $client->memberships->filter->paymentPlan->values());
 
         return view('admin.clients.show', compact('client'));
     }

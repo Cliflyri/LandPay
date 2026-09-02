@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\BillingDefault;
 use App\Models\AuditLog;
+use App\Models\BillingDefault;
 use App\Models\Client;
 use App\Models\FinancialTransaction;
 use App\Models\Payment;
@@ -17,13 +17,14 @@ use App\Services\ContractOpeningService;
 use App\Services\CurrentPayoffService;
 use App\Services\FinancialBalanceService;
 use App\Services\FirstPaymentInvoiceService;
+use App\Services\InvoiceEmailService;
 use App\Services\OpeningPrincipalCreditService;
 use App\Services\PaymentPlanMembershipService;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -36,47 +37,48 @@ class PaymentPlanController extends Controller
         private readonly FinancialBalanceService $balances,
         private readonly CurrentPayoffService $payoffs,
         private readonly FirstPaymentInvoiceService $firstPaymentInvoices,
+        private readonly InvoiceEmailService $invoiceEmails,
         private readonly ContractAmountAmendmentService $contractAmounts,
         private readonly OpeningPrincipalCreditService $openingPrincipalCredit,
         private readonly AutomaticInvoiceService $automaticInvoices,
         private readonly AccountCreditApplicationService $accountCredits,
     ) {}
 
-public function index(Request $request): View
-{
-    $planStatus = PaymentPlan::normalizeAdminStatusFilter($request->string('status')->value());
-    $planSearch = trim($request->string('search')->value());
+    public function index(Request $request): View
+    {
+        $planStatus = PaymentPlan::normalizeAdminStatusFilter($request->string('status')->value());
+        $planSearch = trim($request->string('search')->value());
 
-    $plans = PaymentPlan::query()
-        ->forAdminListing($planStatus, $planSearch)
-        ->with([
-            'memberships.client.portalAccount',
-            'currentBillingTerms',
-            'invoices.items',
-            'invoices.emailDeliveries',
-        ])
-        ->latest()
-        ->paginate(25)
-        ->withQueryString();
+        $plans = PaymentPlan::query()
+            ->forAdminListing($planStatus, $planSearch)
+            ->with([
+                'memberships.client.portalAccount',
+                'currentBillingTerms',
+                'invoices.items',
+                'invoices.emailDeliveries',
+            ])
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
 
-    $plans->getCollection()->each(function (PaymentPlan $plan): void {
-        $outstandingInvoiceBalance = $plan->invoices->sum(
-            fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice))
-        );
+        $plans->getCollection()->each(function (PaymentPlan $plan): void {
+            $outstandingInvoiceBalance = $plan->invoices->sum(
+                fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice))
+            );
 
-        $plan->setAttribute(
-            'ready_to_close',
-            in_array($plan->status, ['active', 'paused'], true)
-                && $this->balances->contractBalance($plan) <= 0
-                && $outstandingInvoiceBalance <= 0
-        );
-    });
-    $plans->setCollection($plans->getCollection()->sortByDesc(
-        fn (PaymentPlan $plan) => ((int) $plan->ready_to_close * 2) + (int) $plan->accelerated_testing_mode
-    )->values());
+            $plan->setAttribute(
+                'ready_to_close',
+                in_array($plan->status, ['active', 'paused'], true)
+                    && $this->balances->contractBalance($plan) <= 0
+                    && $outstandingInvoiceBalance <= 0
+            );
+        });
+        $plans->setCollection($plans->getCollection()->sortByDesc(
+            fn (PaymentPlan $plan) => ((int) $plan->ready_to_close * 2) + (int) $plan->accelerated_testing_mode
+        )->values());
 
-    return view('admin.plans.index', compact('plans', 'planStatus', 'planSearch'));
-}
+        return view('admin.plans.index', compact('plans', 'planStatus', 'planSearch'));
+    }
 
     public function create(): View
     {
@@ -89,7 +91,7 @@ public function index(Request $request): View
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'plan_number' => ['required', 'string', 'max:40', 'unique:payment_plans,plan_number'],
+            'plan_number' => ['required', 'string', 'max:40', Rule::unique('payment_plans', 'plan_number')->where(fn ($query) => $query->whereIn('status', ['draft', 'active', 'paused']))],
             'title' => ['required', 'string', 'max:180'],
             'asset_description' => ['nullable', 'string'],
             'primary_client_id' => ['required', 'exists:clients,id'],
@@ -101,11 +103,12 @@ public function index(Request $request): View
             'documentation_fee_waiver_reason' => ['nullable', 'string', 'max:500'],
             'previous_principal_paid' => ['nullable', 'decimal:0,2', 'min:0'],
             'first_payment_amount' => ['nullable', 'required_with:first_payment_due_date,create_first_payment_invoice', 'decimal:0,2', 'gt:0'],
-            'first_payment_due_date' => ['nullable', 'required_with:first_payment_amount,create_first_payment_invoice', 'date', 'after_or_equal:contract_start_date'],
+            'first_payment_due_date' => ['nullable', 'date'],
             'create_first_payment_invoice' => ['sometimes', 'accepted'],
+            'email_first_payment_invoice' => ['nullable', 'boolean', 'prohibited_unless:create_first_payment_invoice,1'],
+            'first_scheduled_invoice_date' => ['required', 'date', 'after_or_equal:contract_start_date'],
             'scheduled_payment_amount' => ['required', 'decimal:0,2', 'gt:0'],
             'monthly_service_fee' => ['required', 'decimal:0,2'],
-            'invoice_day' => ['required', 'integer', 'between:1,31'],
             'due_days_after_issue' => ['required', 'integer', 'between:0,60'],
             'grace_days' => ['required', 'integer', 'between:0,60'],
             'contract_start_date' => ['required', 'date'],
@@ -121,6 +124,9 @@ public function index(Request $request): View
             'contact_risk_acknowledged' => ['accepted'],
         ]);
 
+        if ($request->boolean('create_first_payment_invoice') && filled($data['first_payment_due_date'] ?? null) && Carbon::parse($data['first_payment_due_date'])->lt(today()->addDays(3))) {
+            throw ValidationException::withMessages(['first_payment_due_date' => 'The down/first payment invoice due date must be at least three days after creation.']);
+        }
         $docStandard = Money::toCents($data['documentation_fee_standard']);
         $docWaived = Money::toCents($data['documentation_fee_waived']);
         if ($docWaived > $docStandard) {
@@ -141,11 +147,14 @@ public function index(Request $request): View
         }
 
         $actor = $request->user();
-        $plan = DB::transaction(function () use ($data, $actor, $docStandard, $docWaived, $previousPaid, $stageOneDaysLate): PaymentPlan {
+        $firstScheduled = Carbon::parse($data['first_scheduled_invoice_date']);
+        $invoiceDay = $firstScheduled->day;
+        $plan = DB::transaction(function () use ($data, $actor, $docStandard, $docWaived, $previousPaid, $stageOneDaysLate, $firstScheduled, $invoiceDay): PaymentPlan {
             $purchase = Money::toCents($data['purchase_price']);
             $scheduled = Money::toCents($data['scheduled_payment_amount']);
             $monthlyFee = Money::toCents($data['monthly_service_fee']);
             $firstPayment = filled($data['first_payment_amount'] ?? null) ? Money::toCents($data['first_payment_amount']) : null;
+            $firstDue = $firstPayment === null ? null : Carbon::parse($data['first_payment_due_date'] ?? today()->addDays(max(3, (int) $data['due_days_after_issue'])));
 
             $plan = PaymentPlan::query()->create([
                 'plan_number' => trim($data['plan_number']),
@@ -154,10 +163,13 @@ public function index(Request $request): View
                 'asset_description' => $data['asset_description'] ?? null,
                 'original_purchase_balance' => 1,
                 'first_payment_amount' => $firstPayment,
+                'first_payment_invoice_on_activation' => (bool) ($data['create_first_payment_invoice'] ?? false),
+                'first_payment_invoice_email_on_activation' => (bool) ($data['email_first_payment_invoice'] ?? false),
                 'customary_monthly_payment' => $scheduled,
                 'monthly_service_fee' => $monthlyFee,
-                'monthly_due_day' => $data['invoice_day'],
-                'first_due_date' => $data['first_payment_due_date'] ?? null,
+                'monthly_due_day' => $invoiceDay,
+                'first_due_date' => $firstDue,
+                'first_scheduled_invoice_date' => $firstScheduled,
                 'plan_start_date' => $data['contract_start_date'],
                 'grace_period_days' => $data['grace_days'],
                 'status' => 'draft',
@@ -173,7 +185,7 @@ public function index(Request $request): View
             PaymentPlanBillingTerm::query()->create([
                 'payment_plan_id' => $plan->id,
                 'frequency' => 'monthly',
-                'invoice_day' => $data['invoice_day'],
+                'invoice_day' => $invoiceDay,
                 'due_days_after_issue' => $data['due_days_after_issue'],
                 'grace_days' => $data['grace_days'],
                 'scheduled_payment_amount' => $scheduled,
@@ -191,7 +203,7 @@ public function index(Request $request): View
                 'stage_two_minimum_amount' => ($data['stage_two_enabled'] ?? false) && $data['stage_two_fee_type'] === 'percentage' ? Money::toCents($data['stage_two_minimum_amount']) : 0,
                 'stage_two_days_late' => ($data['stage_two_enabled'] ?? false) ? $data['stage_two_days_late'] : null,
                 'default_eligibility_days' => $data['default_eligibility_days'],
-                'effective_from' => $data['contract_start_date'],
+                'effective_from' => $firstScheduled->copy()->startOfMonth(),
                 'created_by_user_id' => $actor->id,
             ]);
 
@@ -200,18 +212,29 @@ public function index(Request $request): View
             $plan->update(['status' => 'active', 'activated_at' => now()]);
 
             if ($data['create_first_payment_invoice'] ?? false) {
-                $this->firstPaymentInvoices->issue($plan, $actor, $firstPayment, $data['contract_start_date'], $data['first_payment_due_date']);
+                $this->firstPaymentInvoices->issue($plan, $actor, $firstPayment, today(), $firstDue, $docStandard - $docWaived);
             }
 
             return $plan;
         }, 3);
 
-        return redirect()->route('admin.plans.show', $plan)->with('success', 'Payment plan activated successfully.');
+        $redirect = redirect()->route('admin.plans.show', $plan)->with('success', 'Payment plan activated successfully.');
+        if (($data['email_first_payment_invoice'] ?? false) && ($invoice = $plan->invoices()->where('invoice_number', 'like', 'FP-%')->latest('id')->first())) {
+            try {
+                $delivery = $this->invoiceEmails->send($invoice, $actor, 'inline');
+                $redirect->with('success_details', ['Down/first payment invoice emailed to '.$delivery->recipient_email.'.']);
+            } catch (\Throwable $exception) {
+                report($exception);
+                $redirect->with('warning', 'The plan and invoice were saved, but the invoice email could not be delivered. Review the failed delivery and resend it.');
+            }
+        }
+
+        return $redirect;
     }
 
     public function show(PaymentPlan $plan): View
     {
-        $plan->load(['memberships.client', 'currentBillingTerms', 'billingTerms.createdBy', 'invoices.items', 'invoices.emailDeliveries']);
+        $plan->load(['memberships.client', 'currentBillingTerms', 'billingTerms.createdBy', 'contractDocuments.createdBy', 'invoices.items', 'invoices.emailDeliveries']);
         $contractBalance = $this->balances->contractBalance($plan);
         $openInvoiceBalance = (int) $plan->invoices->sum(fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice)));
         $monthlyPrincipal = (int) ($plan->currentBillingTerms?->scheduled_payment_amount ?? $plan->customary_monthly_payment ?? 0);
@@ -245,7 +268,9 @@ public function index(Request $request): View
                     ->sum('amount_delta');
                 $runningContractBalance += $purchaseDelta;
 
-                if (in_array($transaction->type->value, ['opening_purchase_balance', 'opening_principal_credit'], true)) return;
+                if (in_array($transaction->type->value, ['opening_purchase_balance', 'opening_principal_credit'], true)) {
+                    return;
+                }
 
                 $payment = $transaction->payment ?? $transaction->reversalOf?->payment;
                 $allocations = $payment?->allocations ?? collect();
@@ -262,7 +287,9 @@ public function index(Request $request): View
                 $fee = $effectFee + $directFee;
 
                 if ($purchaseDelta === 0 && $creditDelta === 0 && $fee === 0
-                    && ! in_array($transaction->type->value, ['payment', 'reversal', 'refund'], true)) return;
+                    && ! in_array($transaction->type->value, ['payment', 'reversal', 'refund'], true)) {
+                    return;
+                }
 
                 $invoices = collect([$transaction->invoice])
                     ->merge($allocations->whereNotNull('invoice_id')->pluck('invoice'))
@@ -309,8 +336,10 @@ public function index(Request $request): View
     public function applyAccountCredit(Request $request, PaymentPlan $plan): RedirectResponse
     {
         $applied = $this->accountCredits->applyToOpenInvoices($plan, $request->user());
+
         return back()->with('success', $applied > 0 ? Money::format($applied).' account credit applied to open invoices.' : 'No account credit could be applied.');
     }
+
     public function edit(PaymentPlan $plan): View
     {
         $plan->load(['currentBillingTerms', 'memberships.client']);
@@ -322,7 +351,7 @@ public function index(Request $request): View
     {
         $terms = $plan->currentBillingTerms()->firstOrFail();
         $data = $request->validate([
-            'plan_number' => ['required', 'string', 'max:40', Rule::unique('payment_plans')->ignore($plan->id)],
+            'plan_number' => ['required', 'string', 'max:40', Rule::unique('payment_plans', 'plan_number')->where(fn ($query) => $query->whereIn('status', ['draft', 'active', 'paused']))->ignore($plan->id)],
             'title' => ['required', 'string', 'max:180'],
             'asset_description' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],

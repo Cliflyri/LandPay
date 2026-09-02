@@ -18,6 +18,13 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
             {{ $primaryClientName }}
         </a>
     @else
+    @if($plan->status === 'draft')
+    <span class="dashboard-status status-due ms-2"
+          style="font-size:1rem; letter-spacing:.05em; padding:.5rem 1rem; border:2px solid currentColor;"
+          title="This plan has not been activated">
+        DRAFT - NOT ACTIVE
+    </span>
+    @endif
         No primary client
     @endif
 
@@ -39,13 +46,24 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 </h1>
         <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }}</p>
 
-        
     </div>
     <div class="d-flex flex-wrap gap-2">
         @if($primaryClient)<a class="btn btn-outline-brand" href="{{ route('admin.messages.create',['client'=>$primaryClient->id,'plan'=>$plan->id]) }}">Secure message</a>@endif
+        @if($plan->status === 'draft')
+        <form method="post" action="{{route('admin.contract-setups.activate',$plan)}}" onsubmit="return confirm('Activate this plan? The down/first payment invoice may be created and emailed immediately. Recurring invoicing begins on the configured first recurring invoice date.');">@csrf
+            @if($plan->first_scheduled_invoice_date?->lt(today()))
+                <div class="alert alert-warning py-2 mb-2"><strong>The first recurring invoice date has passed.</strong> Activation will skip missed recurring invoices; create any catch-up invoice manually.
+                    <div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="acknowledge_skipped_recurring_invoice" value="1" id="acknowledge-skipped-recurring" required><label class="form-check-label" for="acknowledge-skipped-recurring">I understand and want to activate without creating missed invoices.</label></div>
+                </div>
+            @endif
+            <button class="btn btn-brand">Activate plan</button>
+        </form>
+        <form method="post" action="{{route('admin.contract-setups.delete-draft',$plan)}}" onsubmit="return confirm('Permanently delete this draft plan and its temporary contracts? Client records will be kept.');">@csrf @method('DELETE')<button class="btn btn-outline-danger">Delete draft</button></form>
+        @else
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.create',$plan) }}">Review next invoice</a>
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.manual.create',$plan) }}">Create invoice</a>
         <a class="btn btn-brand" href="{{ route('admin.plans.payments.create',$plan) }}">Record payment</a>
+        @endif
         <a class="btn btn-brand" href="{{ route('admin.plans.edit',$plan) }}">Edit plan</a>
         <a class="btn btn-outline-brand" href="{{ route('admin.dashboard') }}">Back to dashboard</a>
     </div>
@@ -209,15 +227,35 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         </dd>
         @endif
         <dt class="col-sm-4 col-lg-3">Contract start</dt><dd class="col-sm-8 col-lg-9">{{ $plan->plan_start_date?->format('M j, Y') }}</dd>
+        @if($plan->first_scheduled_invoice_date)<dt class="col-sm-4 col-lg-3">First recurring invoice date</dt><dd class="col-sm-8 col-lg-9">{{$plan->first_scheduled_invoice_date->format('M j, Y')}}</dd>@endif
         <dt class="col-sm-4 col-lg-3">Notes</dt><dd class="col-sm-8 col-lg-9">{{ $plan->notes ?: 'None' }}</dd>
         <dt class="col-sm-4 col-lg-3">Estimated payoff</dt><dd class="col-sm-8 col-lg-9"><strong>{{ $estimatedPayoff }}</strong><span class="d-block text-muted small">Based on the current principal balance and payment schedule.</span></dd>
 
     </dl>
 </div>
 
+@php $contractDocuments=$plan->contractDocuments->whereNull('deleted_at')->sortByDesc('created_at'); @endphp
+@if($contractDocuments->isNotEmpty())
+<div class="admin-next-card mt-4">
+    <div class="d-flex flex-wrap justify-content-between gap-2"><div><h2 class="mb-1">Generated contracts</h2><p class="text-muted mb-0">Private temporary files. Download and store them securely; LandPay deletes them after 30 days.</p></div><span class="dashboard-status status-draft">Temporary</span></div>
+    <div class="table-responsive mt-3"><table class="table align-middle mb-0"><thead><tr><th>Contract</th><th>Created</th><th>Expires</th><th>Downloaded</th><th class="text-end">Actions</th></tr></thead><tbody>
+    @foreach($contractDocuments as $document)
+    <tr>
+        <td>{{$document->name}}<span class="d-block small text-muted">Template: {{$document->template_name}}</span></td>
+        <td>{{$document->created_at->format('M j, Y g:i A')}}</td>
+        <td>{{$document->expires_at->format('M j, Y g:i A')}}</td>
+        <td>{{$document->downloaded_at?->format('M j, Y g:i A') ?: 'Not yet'}}</td>
+        <td class="text-end"><div class="d-inline-flex gap-2"><a class="btn btn-sm btn-outline-brand" href="{{route('admin.contract-documents.download',$document)}}">Download</a><form method="post" action="{{route('admin.contract-documents.destroy',$document)}}" onsubmit="return confirm('Delete this generated contract now?');">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Delete</button></form></div></td>
+    </tr>
+    @endforeach
+    </tbody></table></div>
+</div>
+@endif
+
 <div class="admin-next-card mt-4">
     <h2>Clients</h2>
     <div class="mt-3">
+
     @forelse($plan->memberships as $membership)
         <p class="mb-2"><a class="dashboard-client-link" href="{{ route('admin.clients.show',$membership->client) }}">{{ $membership->client->organization_name ?: trim($membership->client->first_name.' '.$membership->client->last_name) }}</a> <span class="text-muted">&mdash; {{ str($membership->role)->replace('_',' ')->title() }}</span></p>
     @empty
