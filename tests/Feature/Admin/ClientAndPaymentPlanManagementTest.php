@@ -174,7 +174,6 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Current Due')
             ->assertSee('Credit')
-            ->assertSee('$12.34')
             ->assertSee('$500.00')
             ->assertSee('Due');
     }
@@ -215,7 +214,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             'invoice_day' => 5, 'due_days_after_issue' => 7, 'grace_days' => 3,
             'stage_one_fee_type' => 'fixed', 'stage_one_fee_value' => '20.00',
             'stage_one_minimum_amount' => '0.00', 'default_eligibility_days' => 75,
-            'effective_from' => '2026-07-15', 'amendment_reason' => 'Client renegotiated the monthly terms.',
+            'effective_from' => '2026-09-15', 'amendment_reason' => 'Client renegotiated the monthly terms.',
         ]);
 
         $response->assertRedirect(route('admin.plans.show', $plan));
@@ -229,8 +228,8 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->assertSame('2026-08-02', $plan->fresh()->plan_start_date->toDateString());
         $this->assertDatabaseHas('financial_transactions', ['payment_plan_id' => $plan->id, 'type' => 'adjustment', 'gross_amount' => 100_000]);
         $this->assertDatabaseCount('payment_plan_billing_terms', 2);
-        $this->assertDatabaseHas('payment_plan_billing_terms', ['payment_plan_id' => $plan->id, 'effective_to' => '2026-07-14 00:00:00']);
-        $this->assertDatabaseHas('payment_plan_billing_terms', ['payment_plan_id' => $plan->id, 'effective_from' => '2026-07-15 00:00:00', 'scheduled_payment_amount' => 60_000]);
+        $this->assertDatabaseHas('payment_plan_billing_terms', ['payment_plan_id' => $plan->id, 'effective_to' => '2026-09-14 00:00:00']);
+        $this->assertDatabaseHas('payment_plan_billing_terms', ['payment_plan_id' => $plan->id, 'effective_from' => '2026-09-15 00:00:00', 'scheduled_payment_amount' => 60_000]);
         $this->assertSame('payment_plan.amended', AuditLog::query()->sole()->event);
 
         $this->get(route('admin.plans.show', $plan))

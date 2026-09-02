@@ -206,7 +206,7 @@ class InvoiceManagementTest extends TestCase
         $response = $this->post(route('admin.plans.invoices.manual.store', $plan), $data);
         $invoice = Invoice::query()->sole();
         $response->assertRedirect(route('admin.invoices.show', $invoice));
-        $this->assertStringStartsWith('MINV-'.$plan->id.'-', $invoice->invoice_number);
+        $this->assertMatchesRegularExpression('/^M'.$plan->id.'-260815-[A-Z]{2}$/', $invoice->invoice_number);
         $this->assertSame('manual', $invoice->generation_source);
         $this->assertNull($invoice->period_start);
         $this->assertNull($invoice->period_end);
@@ -299,7 +299,7 @@ class InvoiceManagementTest extends TestCase
         $invoices = Invoice::query()->orderBy('due_date')->get();
         $response = $this->get(route('admin.dashboard'));
         $response->assertOk()
-            ->assertSee('Current balance')
+            ->assertSee('Current Due')
             ->assertSee('$2,100.00')
             ->assertSee('$525.00 due 8/6')
             ->assertSee('$525.00 due 9/6')
@@ -508,7 +508,7 @@ class InvoiceManagementTest extends TestCase
         ]);
         app(PaymentPlanMembershipService::class)->add($plan, $client, $user, 'primary', '2026-08-01', contactRiskAcknowledgmentMethod: 'admin_contract_acceptance');
         app(ContractOpeningService::class)->open($plan, $user, 2_000_000, 50_000, 0, '2026-08-01');
-        $plan->update(['status' => 'active', 'activated_at' => now()]);
+        $plan->update(['status' => 'active', 'activated_at' => '2026-08-01']);
         PaymentPlanBillingTerm::query()->create([
             'payment_plan_id' => $plan->id, 'frequency' => 'monthly', 'invoice_day' => 1, 'due_days_after_issue' => 5,
             'grace_days' => 2, 'scheduled_payment_amount' => 50_000, 'monthly_service_fee' => 2_500,

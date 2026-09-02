@@ -18,6 +18,7 @@
                 </p>
                 <p class="mb-0">{{$notice->message}}</p>
             @else
+                <p class="mb-0">{{$notice->message}}</p>
             @endif
             @if($notice->paymentIntent?->overpayment_disposition)<p class="mb-0 mt-1"><strong>Client overpayment instruction:</strong> {{$notice->paymentIntent->overpayment_disposition === 'next_invoice_credit' ? 'Keep extra as account credit.' : 'Apply extra to principal.'}}</p>@endif
         </div><div class="d-flex align-items-start gap-2 flex-shrink-0">

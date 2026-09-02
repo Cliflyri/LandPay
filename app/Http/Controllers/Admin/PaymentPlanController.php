@@ -387,6 +387,11 @@ class PaymentPlanController extends Controller
         ]);
 
         $stageOneDaysLate = (int) $data['grace_days'] + 1;
+        if (Carbon::parse($data['effective_from'])->lt($terms->effective_from)) {
+            throw ValidationException::withMessages([
+                'effective_from' => 'The amendment effective date cannot be earlier than the current billing terms.',
+            ]);
+        }
         if (($data['stage_two_enabled'] ?? false) && (int) $data['stage_two_days_late'] <= $stageOneDaysLate) {
             throw ValidationException::withMessages(['stage_two_days_late' => 'Stage two must occur after the stage-one late fee.']);
         }

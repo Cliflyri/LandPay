@@ -22,11 +22,11 @@ class ClientPortalTest extends TestCase
     {
         Mail::fake();
         [$admin,$client,$plan]=$this->records('ONE');
-        $this->actingAs($admin)->post(route('admin.clients.portal-invitations.store',$client))->assertSessionHas('success');
+        $this->actingAs($admin, 'web')->post(route('admin.clients.portal-invitations.store',$client))->assertSessionHas('success');
         $invitation=PortalInvitation::query()->sole();
         $this->assertTrue($invitation->expires_at->isAfter(now()->addHours(47)));
         $this->assertNotNull($invitation->encrypted_token);
-        $this->actingAs($admin)->get(route('admin.clients.show',$client))
+        $this->actingAs($admin, 'web')->get(route('admin.clients.show',$client))
             ->assertOk()
             ->assertSee('Copy invitation link');
         $link=null;
@@ -69,7 +69,7 @@ class ClientPortalTest extends TestCase
         $this->get(route('admin.dashboard'))->assertRedirect(route('admin.login'));
         $this->assertGuest('web');
 
-        $this->actingAs($admin)->get(route('admin.login'))->assertRedirect(route('admin.dashboard'));
+        $this->actingAs($admin, 'web')->get(route('admin.login'))->assertRedirect(route('admin.dashboard'));
     }
     public function test_portal_documents_are_limited_to_active_memberships(): void
     {
@@ -83,7 +83,7 @@ class ClientPortalTest extends TestCase
         $firstViewedAt=$own->fresh()->first_viewed_at;
         $this->assertNotNull($firstViewedAt);
         $this->assertSame($own->id,AdminNotice::query()->where('type','invoice_first_viewed')->sole()->invoice_id);
-        $this->actingAs($admin)->get(route('admin.dashboard'))
+        $this->actingAs($admin, 'web')->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSeeText('Portal OWN')
             ->assertSeeText('INV-OWN');
@@ -112,7 +112,7 @@ class ClientPortalTest extends TestCase
         $change=ClientChangeRequest::query()->sole();
         $this->assertSame('pending',$change->status);
         $notice=AdminNotice::query()->where('client_change_request_id',$change->id)->sole();
-        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Client contact update requested');
+        $this->actingAs($admin, 'web')->get(route('admin.dashboard'))->assertOk()->assertSee('Client contact update requested');
         $this->post(route('admin.client-change-requests.apply',$change))->assertRedirect(route('admin.clients.show',$client));
         $this->assertSame('updated@example.com',$client->fresh()->email);
         $this->assertSame('updated@example.com',$account->fresh()->email);
@@ -163,7 +163,7 @@ class ClientPortalTest extends TestCase
             'last_login_at' => $lastLogin,
         ]);
 
-        $this->actingAs($admin)->post(route('admin.portal-access.store', $client))
+        $this->actingAs($admin, 'web')->post(route('admin.portal-access.store', $client))
             ->assertRedirect(route('portal.dashboard'))
             ->assertSessionHas('portal_impersonation.client_id', $client->id);
         $this->assertAuthenticatedAs($admin, 'web');
