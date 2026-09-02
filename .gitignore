@@ -68,3 +68,6 @@ Desktop.ini
 # Temporary local web-root redirect
 /index.php
 landpay-vendor.zip
+
+# Local production database backups
+/Production Backups/
