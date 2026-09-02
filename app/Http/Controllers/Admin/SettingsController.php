@@ -41,6 +41,7 @@ class SettingsController extends Controller
             'billingDefaults' => BillingDefault::query()->latest('id')->first(),
             'templates' => $this->templates->all(),
             'templateVariables' => EmailTemplateService::TEMPLATE_VARIABLES,
+            'templateVariableDescriptions' => EmailTemplateService::VARIABLE_DESCRIPTIONS,
             'smtp' => $this->smtp->values(),
             'reminderSettings' => $this->automation->settings(),
             'upcomingReminders' => $this->automation->eligible(now()->startOfDay(), true)->take(10),

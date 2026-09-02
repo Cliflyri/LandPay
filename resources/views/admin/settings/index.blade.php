@@ -148,7 +148,7 @@
 <div class="tab-pane fade @if($loop->first) show active @endif" id="template-{{$template->id}}" role="tabpanel" tabindex="0">
 <form method="post" action="{{route('admin.settings.templates.update',$template)}}" class="mt-4">@csrf @method('put')
 <div><h3 class="h4 mb-1">{{$template->name}}</h3><small class="text-muted">{{$template->slug}}</small></div>
-<div class="mt-3"><span class="form-label d-block">Allowed variables</span><div class="template-variable-list">@foreach($templateVariables[$template->slug] ?? [] as $variable)<code>&#123;&#123; {{ $variable }} &#125;&#125;</code>@endforeach</div></div>
+<div class="mt-3"><span class="form-label d-block">Allowed variables</span><div class="template-variable-list">@foreach($templateVariables[$template->slug] ?? [] as $variable)<button type="button" class="template-variable-button" data-insert-variable="{{$variable}}" title="{{$templateVariableDescriptions[$variable] ?? 'Insert this value into the template.'}}">&#123;&#123; {{$variable}} &#125;&#125;</button>@endforeach</div></div>
 <div class="mt-3"><label class="form-label" for="subject-{{$template->id}}">Subject</label><input class="form-control" id="subject-{{$template->id}}" name="subject" value="{{$template->subject}}" required></div>
 <div class="mt-3"><label class="form-label" for="body-{{$template->id}}">Message body (basic HTML supported)</label><textarea class="form-control font-monospace" id="body-{{$template->id}}" name="body_html" rows="8" required>{{$template->body_html}}</textarea></div>
 <div class="d-flex flex-wrap gap-2 mt-3"><button class="btn btn-brand">Save HTML template</button></form><button class="btn btn-outline-brand" type="button" data-template-preview="preview-{{$template->id}}">Preview HTML</button><form method="post" action="{{route('admin.settings.templates.restore',$template)}}" onsubmit="return confirm('Restore the default {{$template->name}} template?');">@csrf<button class="btn btn-outline-brand">Restore default</button></form></div>
@@ -265,6 +265,25 @@ if (settingsParams.get('section') === 'templates' && window.bootstrap) {
     if (mainTab) window.bootstrap.Tab.getOrCreateInstance(mainTab).show();
     if (templateTab) window.bootstrap.Tab.getOrCreateInstance(templateTab).show();
 }
+
+let activeTemplateField = null;
+document.addEventListener('focusin', event => {
+    if (event.target.matches('input[name="subject"], textarea[name="body_html"]')) activeTemplateField = event.target;
+});
+document.addEventListener('click', event => {
+    const button = event.target.closest('[data-insert-variable]');
+    if (!button) return;
+    const pane = button.closest('.tab-pane');
+    const field = activeTemplateField && pane?.contains(activeTemplateField)
+        ? activeTemplateField
+        : pane?.querySelector('textarea[name="body_html"]');
+    if (!field) return;
+    const placeholder = '{'+'{ '+button.dataset.insertVariable+' }'+'}';
+    const start = field.selectionStart ?? field.value.length;
+    const end = field.selectionEnd ?? start;
+    field.setRangeText(placeholder, start, end, 'end');
+    field.focus();
+});
 
 document.addEventListener('click', function (event) {
     const button = event.target.closest('[data-template-preview]');
