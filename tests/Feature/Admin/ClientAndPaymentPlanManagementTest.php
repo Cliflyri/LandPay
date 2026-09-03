@@ -309,6 +309,27 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_first_invoice_can_contain_only_the_documentation_fee(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create();
+        $client = $this->client($user);
+        $data = $this->validPlanData($client) + [
+            'first_payment_amount' => '0.00',
+            'create_first_payment_invoice' => '1',
+        ];
+
+        $this->actingAs($user)->post(route('admin.plans.store'), $data)->assertSessionHasNoErrors();
+
+        $plan = PaymentPlan::query()->sole();
+        $invoice = Invoice::query()->with('items')->sole();
+        $this->assertSame(0, $plan->first_payment_amount);
+        $this->assertCount(1, $invoice->items);
+        $this->assertSame('Documentation fee', $invoice->items->sole()->description);
+        $this->assertSame(20_000, $invoice->items->sole()->amount);
+        $this->assertSame(20_000, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+    }
+
     public function test_stage_two_must_follow_the_calculated_stage_one_threshold(): void
     {
         $user = User::factory()->create();

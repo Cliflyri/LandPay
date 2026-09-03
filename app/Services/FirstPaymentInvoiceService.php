@@ -26,8 +26,8 @@ class FirstPaymentInvoiceService
 
     public function issue(PaymentPlan $plan, User $actor, int $amount, DateTimeInterface|string $issueDate, DateTimeInterface|string $dueDate, int $documentationFee = 0): Invoice
     {
-        if ($amount <= 0) {
-            throw ValidationException::withMessages(['first_payment_amount' => 'The first payment amount must be greater than zero.']);
+        if ($amount < 0 || $amount + max(0, $documentationFee) <= 0) {
+            throw ValidationException::withMessages(['first_payment_amount' => 'The first invoice must include a down payment or documentation fee.']);
         }
 
         return DB::transaction(function () use ($plan, $actor, $amount, $issueDate, $dueDate, $documentationFee): Invoice {
@@ -82,25 +82,27 @@ class FirstPaymentInvoiceService
                 $issue,
                 FinancialActorType::Administrator,
                 function (FinancialTransaction $transaction) use ($invoice, $amount, $documentationFee): array {
-                    $item = InvoiceItem::query()->create([
-                        'invoice_id' => $invoice->id,
-                        'source_transaction_id' => $transaction->id,
-                        'item_type' => InvoiceItemType::ScheduledPurchasePayment,
-                        'description' => 'Down payment',
-                        'standard_amount' => $amount,
-                        'amount' => $amount,
-                        'waived_amount' => 0,
-                        'display_order' => 1,
-                    ]);
-
-                    $effects = [new PostingEffect(
-                        FinancialEffectType::InvoiceDue,
-                        $amount,
-                        FinancialEffectComponent::ScheduledPurchasePayment,
-                        invoiceId: $invoice->id,
-                        invoiceItemId: $item->id,
-                        description: 'Down payment due',
-                    )];
+                    $effects = [];
+                    if ($amount > 0) {
+                        $item = InvoiceItem::query()->create([
+                            'invoice_id' => $invoice->id,
+                            'source_transaction_id' => $transaction->id,
+                            'item_type' => InvoiceItemType::ScheduledPurchasePayment,
+                            'description' => 'Down payment',
+                            'standard_amount' => $amount,
+                            'amount' => $amount,
+                            'waived_amount' => 0,
+                            'display_order' => 1,
+                        ]);
+                        $effects[] = new PostingEffect(
+                            FinancialEffectType::InvoiceDue,
+                            $amount,
+                            FinancialEffectComponent::ScheduledPurchasePayment,
+                            invoiceId: $invoice->id,
+                            invoiceItemId: $item->id,
+                            description: 'Down payment due',
+                        );
+                    }
                     if ($documentationFee > 0) {
                         $fee = InvoiceItem::query()->create([
                             'invoice_id' => $invoice->id,

@@ -227,7 +227,8 @@ class ContractSetupController extends Controller
         $result = DB::transaction(function () use ($request, $plan): array {
             $plan->update(['status' => 'active', 'activated_at' => now(), 'updated_by_user_id' => $request->user()->id]);
             $invoice = null;
-            if ($plan->first_payment_invoice_on_activation && $plan->first_payment_amount > 0) {
+            $documentationFee = max(0, (int) $plan->documentation_fee_standard - (int) $plan->documentation_fee_waived);
+            if ($plan->first_payment_invoice_on_activation && ((int) $plan->first_payment_amount > 0 || $documentationFee > 0)) {
                 $issueDate = Carbon::today();
                 $dueDays = max(3, (int) ($plan->currentBillingTerms()->value('due_days_after_issue') ?? 5));
                 $dueDate = $plan->first_due_date?->copy() ?? $issueDate->copy()->addDays($dueDays);
@@ -235,7 +236,7 @@ class ContractSetupController extends Controller
                 $invoice = $this->firstPaymentInvoices->issue(
                     $plan->fresh(), $request->user(), (int) $plan->first_payment_amount,
                     $issueDate, $dueDate,
-                    max(0, (int) $plan->documentation_fee_standard - (int) $plan->documentation_fee_waived),
+                    $documentationFee,
                 );
             }
             AdminNotice::query()->where('type', 'draft_contract_setup')->where('payment_plan_id', $plan->id)

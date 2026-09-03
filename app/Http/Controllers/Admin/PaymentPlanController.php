@@ -102,7 +102,7 @@ class PaymentPlanController extends Controller
             'documentation_fee_waived' => ['required', 'decimal:0,2'],
             'documentation_fee_waiver_reason' => ['nullable', 'string', 'max:500'],
             'previous_principal_paid' => ['nullable', 'decimal:0,2', 'min:0'],
-            'first_payment_amount' => ['nullable', 'required_with:first_payment_due_date,create_first_payment_invoice', 'decimal:0,2', 'gt:0'],
+            'first_payment_amount' => ['nullable', 'decimal:0,2', 'min:0'],
             'first_payment_due_date' => ['nullable', 'date'],
             'create_first_payment_invoice' => ['sometimes', 'accepted'],
             'email_first_payment_invoice' => ['nullable', 'boolean', 'prohibited_unless:create_first_payment_invoice,1'],
@@ -153,8 +153,9 @@ class PaymentPlanController extends Controller
             $purchase = Money::toCents($data['purchase_price']);
             $scheduled = Money::toCents($data['scheduled_payment_amount']);
             $monthlyFee = Money::toCents($data['monthly_service_fee']);
-            $firstPayment = filled($data['first_payment_amount'] ?? null) ? Money::toCents($data['first_payment_amount']) : null;
-            $firstDue = $firstPayment === null ? null : Carbon::parse($data['first_payment_due_date'] ?? today()->addDays(max(3, (int) $data['due_days_after_issue'])));
+            $createFirstInvoice = (bool) ($data['create_first_payment_invoice'] ?? false);
+            $firstPayment = filled($data['first_payment_amount'] ?? null) ? Money::toCents($data['first_payment_amount']) : ($createFirstInvoice ? 0 : null);
+            $firstDue = $createFirstInvoice ? Carbon::parse($data['first_payment_due_date'] ?? today()->addDays(max(3, (int) $data['due_days_after_issue']))) : null;
 
             $plan = PaymentPlan::query()->create([
                 'plan_number' => trim($data['plan_number']),
@@ -362,8 +363,10 @@ class PaymentPlanController extends Controller
             'previous_principal_paid' => ['nullable', 'decimal:0,2', 'min:0'],
             'status' => ['required', Rule::in(['draft', 'active', 'paused', 'terminated', 'closed'])],
             'contract_start_date' => ['required', 'date'],
-            'first_payment_amount' => ['nullable', 'decimal:0,2', 'gt:0'],
+            'first_payment_amount' => ['nullable', 'decimal:0,2', 'min:0'],
             'first_payment_due_date' => ['nullable', 'date'],
+            'create_first_payment_invoice' => ['nullable', 'boolean'],
+            'email_first_payment_invoice' => ['nullable', 'boolean', 'prohibited_unless:create_first_payment_invoice,1'],
             'scheduled_payment_amount' => ['required', 'decimal:0,2', 'gt:0'],
             'monthly_service_fee' => ['required', 'decimal:0,2'],
             'invoice_day' => ['required', 'integer', 'between:1,31'],
@@ -392,6 +395,10 @@ class PaymentPlanController extends Controller
                 'effective_from' => 'The amendment effective date cannot be earlier than the current billing terms.',
             ]);
         }
+
+        if ($plan->status === 'draft' && $data['status'] !== 'draft') {
+            throw ValidationException::withMessages(['status' => 'Use the Activate Plan action after saving and reviewing the draft.']);
+        }
         if (($data['stage_two_enabled'] ?? false) && (int) $data['stage_two_days_late'] <= $stageOneDaysLate) {
             throw ValidationException::withMessages(['stage_two_days_late' => 'Stage two must occur after the stage-one late fee.']);
         }
@@ -414,7 +421,7 @@ class PaymentPlanController extends Controller
             $this->openingPrincipalCredit->amend($lockedPlan, $request->user(), $previousPaid, $data['effective_from'], $data['amendment_reason']);
             $scheduled = Money::toCents($data['scheduled_payment_amount']);
             $monthlyFee = Money::toCents($data['monthly_service_fee']);
-            $firstPayment = filled($data['first_payment_amount'] ?? null) ? Money::toCents($data['first_payment_amount']) : null;
+            $firstPayment = filled($data['first_payment_amount'] ?? null) ? Money::toCents($data['first_payment_amount']) : ($lockedPlan->status === 'draft' && $request->boolean('create_first_payment_invoice') ? 0 : null);
 
             $lockedPlan->update([
                 'plan_number' => trim($data['plan_number']), 'apn' => trim($data['plan_number']), 'title' => $data['title'],
@@ -429,6 +436,10 @@ class PaymentPlanController extends Controller
                 'automatic_invoice_email_enabled' => $request->boolean('automatic_invoice_email_enabled'),
                 'accelerated_testing_mode' => $request->boolean('accelerated_testing_mode'),
             ]);
+            if ($lockedPlan->status === 'draft') {
+                $lockedPlan->update(['first_payment_invoice_on_activation' => $request->boolean('create_first_payment_invoice'),
+                    'first_payment_invoice_email_on_activation' => $request->boolean('create_first_payment_invoice') && $request->boolean('email_first_payment_invoice')]);
+            }
 
             $effectiveFrom = Carbon::parse($data['effective_from']);
             $lockedTerms->update(['effective_to' => $effectiveFrom->copy()->subDay()->format('Y-m-d')]);

@@ -19,7 +19,11 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 <div class="plan-form-section"><div class="plan-form-number">1</div><div class="plan-form-body"><h2>Plan and property</h2><div class="row g-3">
 <div class="col-md-4"><label class="form-label">APN / Plan #</label><input class="form-control" name="plan_number" value="{{ old('plan_number',$plan->plan_number) }}" required></div>
 <div class="col-md-6"><label class="form-label">Property description</label><input class="form-control" name="title" value="{{ old('title',$plan->title) }}" required></div>
+@if($plan->status === 'draft')
+<div class="col-md-2"><label class="form-label">Status</label><input type="hidden" name="status" value="draft"><div class="form-control bg-light">Draft</div><div class="form-text">Use Activate Plan after review.</div></div>
+@else
 <div class="col-md-2"><label class="form-label" for="plan-status">Status</label><select class="form-select" id="plan-status" name="status">@foreach(['draft'=>'Draft','active'=>'Active','paused'=>'Paused','terminated'=>'Terminated','closed'=>'Closed'] as $value=>$label)<option value="{{ $value }}" @selected(old('status',$plan->status)===$value)>{{ $label }}</option>@endforeach</select></div>
+@endif
 <div class="col-12"><label class="form-label">Additional property details</label><textarea class="form-control" name="asset_description" rows="2">{{ old('asset_description',$plan->asset_description) }}</textarea></div>
 <div class="col-12" id="email-automation"><div class="form-check form-switch"><input type="hidden" name="scheduled_invoice_email_enabled" value="0"><input class="form-check-input" type="checkbox" id="scheduled_invoice_email_enabled" name="scheduled_invoice_email_enabled" value="1" @checked(old('scheduled_invoice_email_enabled',$plan->scheduled_invoice_email_enabled))><label class="form-check-label" for="scheduled_invoice_email_enabled">Automatically email scheduled invoices (inline)</label></div></div>
 <div class="col-12"><div class="form-check form-switch"><input type="hidden" name="automated_reminders_enabled" value="0"><input class="form-check-input" type="checkbox" id="automated_reminders_enabled" name="automated_reminders_enabled" value="1" @checked(old('automated_reminders_enabled',$plan->automated_reminders_enabled))><label class="form-check-label" for="automated_reminders_enabled">Allow automated payment reminders for this plan</label></div></div>
@@ -67,8 +71,18 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 
 <div class="plan-form-section"><div class="plan-form-number">3</div><div class="plan-form-body"><h2>Payment schedule</h2><div class="row g-3">
 <div class="col-md-3"><label class="form-label">Contract start date</label><input type="date" class="form-control" name="contract_start_date" value="{{ old('contract_start_date',$plan->plan_start_date?->format('Y-m-d')) }}" required></div>
+@if($plan->status === 'draft')
+<div class="col-12"><div class="alert alert-warning mb-0"><h3 class="h6 mb-2">Down/first payment invoice on activation</h3>
+<div class="form-check"><input class="form-check-input" type="checkbox" value="1" name="create_first_payment_invoice" id="create_first_payment_invoice" @checked(old('create_first_payment_invoice',$plan->first_payment_invoice_on_activation))><label class="form-check-label" for="create_first_payment_invoice"><strong>Create a down/first payment invoice</strong></label></div>
+<small class="d-block text-muted ms-4">Lists any down payment and the net documentation fee separately. A $0 down payment creates a documentation-fee-only invoice.</small>
+<div class="row g-3 mt-1"><div class="col-md-4"><label class="form-label">Down/first payment</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="first_payment_amount" inputmode="decimal" value="{{ old('first_payment_amount',number_format((int)$plan->first_payment_amount/100,2,'.','')) }}"></div></div>
+<div class="col-md-4"><label class="form-label">Invoice due date <span class="text-muted">(optional)</span></label><input type="date" class="form-control" name="first_payment_due_date" value="{{ old('first_payment_due_date',$plan->first_due_date?->format('Y-m-d')) }}"><div class="form-text">Leave blank to use the standard payment window.</div></div>
+<div class="col-md-4 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" value="1" name="email_first_payment_invoice" id="email_first_payment_invoice" @checked(old('email_first_payment_invoice',$plan->first_payment_invoice_email_on_activation))><label class="form-check-label" for="email_first_payment_invoice"><strong>Email invoice on activation</strong></label></div></div></div>
+</div></div>
+@else
 <div class="col-md-3"><label class="form-label">First payment amount</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="first_payment_amount" value="{{ old('first_payment_amount',$plan->first_payment_amount === null ? '' : number_format($plan->first_payment_amount/100,2,'.','')) }}"></div></div>
 <div class="col-md-3"><label class="form-label">First payment due date</label><input type="date" class="form-control" name="first_payment_due_date" value="{{ old('first_payment_due_date',$plan->first_due_date?->format('Y-m-d')) }}"></div>
+@endif
 <div class="col-md-3"><label class="form-label">Monthly payment</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="scheduled_payment_amount" value="{{ old('scheduled_payment_amount',number_format($terms->scheduled_payment_amount/100,2,'.','')) }}" required></div></div>
 <div class="col-md-3"><label class="form-label">Monthly service fee</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="monthly_service_fee" value="{{ old('monthly_service_fee',number_format($terms->monthly_service_fee/100,2,'.','')) }}" required></div></div>
 <div class="col-md-4"><label class="form-label">Invoice day</label><input type="number" class="form-control" name="invoice_day" min="1" max="31" value="{{ old('invoice_day',$terms->invoice_day) }}" required></div>
@@ -108,6 +122,8 @@ document.addEventListener('DOMContentLoaded',()=>{
  const currency=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100);
  function update(){const projected=current+(cents(inputs.purchase_price.value)-original.purchase_price)+(cents(inputs.documentation_fee_standard.value)-cents(inputs.documentation_fee_waived.value)-(original.documentation_fee_standard-original.documentation_fee_waived))-(cents(inputs.previous_principal_paid.value)-original.previous_principal_paid);output.textContent=currency(projected);const invalid=projected<0;panel.classList.toggle('border-danger',invalid);output.classList.toggle('text-danger',invalid);warning.classList.toggle('d-none',!invalid);}
  names.forEach(name=>inputs[name]?.addEventListener('input',update));update();
+ const createFirst=document.getElementById('create_first_payment_invoice'),emailFirst=document.getElementById('email_first_payment_invoice');
+ if(createFirst&&emailFirst){const syncFirst=()=>{emailFirst.disabled=!createFirst.checked;if(!createFirst.checked)emailFirst.checked=false;};createFirst.addEventListener('change',syncFirst);syncFirst();}
 });
 </script>
 @endpush
