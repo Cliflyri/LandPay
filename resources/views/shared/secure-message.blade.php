@@ -13,7 +13,24 @@
         <strong>{{$senderName}}</strong>
         <span>{{$message->created_at->format('M j, Y g:i A')}}</span>
     </div>
-    <div class="secure-message-body">{{$message->body}}</div>
+    @php
+        $escapedBody = e($message->body);
+        $linkedBody = preg_replace_callback(
+            "~(?<![\\w=\\\"'])(https?://[^\\s<>]+|www\\.[^\\s<>]+)~iu",
+            function (array $match): string {
+                $url = $match[0];
+                $trailing = '';
+                while ($url !== '' && preg_match('/[.,!?;:]$/u', $url)) {
+                    $trailing = mb_substr($url, -1).$trailing;
+                    $url = mb_substr($url, 0, -1);
+                }
+                $href = str_starts_with(mb_strtolower($url), 'www.') ? 'https://'.$url : $url;
+                return '<a href="'.e($href).'" target="_blank" rel="noopener noreferrer">'.$url.'</a>'.$trailing;
+            },
+            $escapedBody
+        ) ?? $escapedBody;
+    @endphp
+    <div class="secure-message-body">{!! nl2br($linkedBody, false) !!}</div>
 
     @if(!$portal && $isAdminMessage)
         @php($latestRevision=$message->revisions->last())
