@@ -93,6 +93,11 @@ class ContractSetupTest extends TestCase
             ->assertSee('Generated contracts')
             ->assertSee('Oct 3, 2026')
             ->assertSee('Activate plan');
+        $this->actingAs($admin)->get(route('admin.plans.edit', $plan))
+            ->assertOk()
+            ->assertSee('name="first_scheduled_invoice_date"', false)
+            ->assertSee('value="2026-10-03"', false)
+            ->assertSee('name="create_first_payment_invoice"', false);
         $this->actingAs($admin)->get(route('admin.plans.index'))
             ->assertOk()
             ->assertSee('Active + Draft')

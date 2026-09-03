@@ -355,6 +355,10 @@ class PaymentPlanController extends Controller
             'plan_number' => ['required', 'string', 'max:40', Rule::unique('payment_plans', 'plan_number')->where(fn ($query) => $query->whereIn('status', ['draft', 'active', 'paused']))->ignore($plan->id)],
             'title' => ['required', 'string', 'max:180'],
             'asset_description' => ['nullable', 'string'],
+            'property_county' => ['nullable', 'string', 'max:100'],
+            'hoa_fee' => ['nullable', 'decimal:0,2', 'min:0'],
+            'hoa_term' => ['nullable', 'string', 'max:50'],
+            'govdeals' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'purchase_price' => ['required', 'decimal:0,2', 'gt:0'],
             'documentation_fee_standard' => ['required', 'decimal:0,2'],
@@ -367,9 +371,10 @@ class PaymentPlanController extends Controller
             'first_payment_due_date' => ['nullable', 'date'],
             'create_first_payment_invoice' => ['nullable', 'boolean'],
             'email_first_payment_invoice' => ['nullable', 'boolean', 'prohibited_unless:create_first_payment_invoice,1'],
+            'first_scheduled_invoice_date' => ['nullable', 'required_if:status,draft', 'date', 'after_or_equal:contract_start_date'],
             'scheduled_payment_amount' => ['required', 'decimal:0,2', 'gt:0'],
             'monthly_service_fee' => ['required', 'decimal:0,2'],
-            'invoice_day' => ['required', 'integer', 'between:1,31'],
+            'invoice_day' => ['nullable', 'required_unless:status,draft', 'integer', 'between:1,31'],
             'due_days_after_issue' => ['required', 'integer', 'between:0,60'],
             'grace_days' => ['required', 'integer', 'between:0,60'],
             'stage_one_fee_type' => ['required', Rule::in(['fixed', 'percentage'])],
@@ -399,6 +404,9 @@ class PaymentPlanController extends Controller
         if ($plan->status === 'draft' && $data['status'] !== 'draft') {
             throw ValidationException::withMessages(['status' => 'Use the Activate Plan action after saving and reviewing the draft.']);
         }
+        if ($plan->status === 'draft') {
+            $data['invoice_day'] = Carbon::parse($data['first_scheduled_invoice_date'])->day;
+        }
         if (($data['stage_two_enabled'] ?? false) && (int) $data['stage_two_days_late'] <= $stageOneDaysLate) {
             throw ValidationException::withMessages(['stage_two_days_late' => 'Stage two must occur after the stage-one late fee.']);
         }
@@ -427,10 +435,14 @@ class PaymentPlanController extends Controller
                 'plan_number' => trim($data['plan_number']), 'apn' => trim($data['plan_number']), 'title' => $data['title'],
                 'asset_description' => $data['asset_description'] ?? null, 'notes' => $data['notes'] ?? null,
                 'plan_start_date' => $data['contract_start_date'],
+                'property_county' => $lockedPlan->status === 'draft' ? ($data['property_county'] ?? null) : $lockedPlan->property_county,
+                'hoa_fee' => $lockedPlan->status === 'draft' ? (filled($data['hoa_fee'] ?? null) ? Money::toCents($data['hoa_fee']) : 0) : $lockedPlan->hoa_fee,
+                'hoa_term' => $lockedPlan->status === 'draft' ? ($data['hoa_term'] ?? null) : $lockedPlan->hoa_term, 'govdeals' => $lockedPlan->status === 'draft' ? $request->boolean('govdeals') : $lockedPlan->govdeals,
                 'status' => $data['status'], 'first_payment_amount' => $firstPayment,
                 'first_due_date' => $data['first_payment_due_date'] ?? null, 'customary_monthly_payment' => $scheduled,
                 'monthly_service_fee' => $monthlyFee, 'monthly_due_day' => $data['invoice_day'],
                 'grace_period_days' => $data['grace_days'], 'updated_by_user_id' => $request->user()->id,
+                'first_scheduled_invoice_date' => $lockedPlan->status === 'draft' ? $data['first_scheduled_invoice_date'] : $lockedPlan->first_scheduled_invoice_date,
                 'scheduled_invoice_email_enabled' => $request->boolean('scheduled_invoice_email_enabled'),
                 'automated_reminders_enabled' => $request->boolean('automated_reminders_enabled'),
                 'automatic_invoice_email_enabled' => $request->boolean('automatic_invoice_email_enabled'),
