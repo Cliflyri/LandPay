@@ -30,7 +30,7 @@
             $escapedBody
         ) ?? $escapedBody;
     @endphp
-    <div class="secure-message-body">{!! nl2br($linkedBody, false) !!}</div>
+    <div class="secure-message-body">{!! $linkedBody !!}</div>
 
     @if(!$portal && $isAdminMessage)
         @php($latestRevision=$message->revisions->last())
