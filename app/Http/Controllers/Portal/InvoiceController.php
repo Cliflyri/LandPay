@@ -68,7 +68,7 @@ public function index(Request $request): View
 public function show(Request $request, Invoice $invoice): View
 {
     $this->authorizeInvoice($request, $invoice);
-    $this->firstViews->record($invoice,$request->user('client'));
+    if (! $request->session()->has('portal_impersonation')) $this->firstViews->record($invoice,$request->user('client'));
 
     $invoice->load([
         'paymentPlan',
