@@ -52,7 +52,7 @@
                             </a>
 
                             <span class="fw-normal">
-                                Issued {{ $row['invoice']->issue_date->format('M j, Y') }}
+                                Dated {{ $row['invoice']->issue_date->format('M j, Y') }}
                                 &middot;
                                 Late after {{ $row['invoice']->due_date->format('M j, Y') }}
                             </span>
