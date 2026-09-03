@@ -204,7 +204,7 @@ class PaymentPlanController extends Controller
                 'stage_two_minimum_amount' => ($data['stage_two_enabled'] ?? false) && $data['stage_two_fee_type'] === 'percentage' ? Money::toCents($data['stage_two_minimum_amount']) : 0,
                 'stage_two_days_late' => ($data['stage_two_enabled'] ?? false) ? $data['stage_two_days_late'] : null,
                 'default_eligibility_days' => $data['default_eligibility_days'],
-                'effective_from' => $firstScheduled->copy()->startOfMonth(),
+                'effective_from' => Carbon::parse($data['contract_start_date']),
                 'created_by_user_id' => $actor->id,
             ]);
 
@@ -390,12 +390,12 @@ class PaymentPlanController extends Controller
             'stage_two_fee_value' => ['nullable', 'required_if:stage_two_enabled,1', 'numeric', 'min:0'],
             'stage_two_minimum_amount' => ['nullable', 'required_if:stage_two_fee_type,percentage', 'decimal:0,2'],
             'default_eligibility_days' => ['required', 'integer', 'between:1,730'],
-            'effective_from' => ['required', 'date'],
-            'amendment_reason' => ['required', 'string', 'max:500'],
+            'effective_from' => ['nullable', 'required_unless:status,draft', 'date'],
+            'amendment_reason' => ['nullable', 'required_unless:status,draft', 'string', 'max:500'],
         ]);
 
         $stageOneDaysLate = (int) $data['grace_days'] + 1;
-        if (Carbon::parse($data['effective_from'])->lt($terms->effective_from)) {
+        if ($plan->status !== 'draft' && Carbon::parse($data['effective_from'])->lt($terms->effective_from)) {
             throw ValidationException::withMessages([
                 'effective_from' => 'The amendment effective date cannot be earlier than the current billing terms.',
             ]);
@@ -406,6 +406,8 @@ class PaymentPlanController extends Controller
         }
         if ($plan->status === 'draft') {
             $data['invoice_day'] = Carbon::parse($data['first_scheduled_invoice_date'])->day;
+            $data['effective_from'] = Carbon::parse($data['contract_start_date'])->toDateString();
+            $data['amendment_reason'] = 'Draft settings updated';
         }
         if (($data['stage_two_enabled'] ?? false) && (int) $data['stage_two_days_late'] <= $stageOneDaysLate) {
             throw ValidationException::withMessages(['stage_two_days_late' => 'Stage two must occur after the stage-one late fee.']);
@@ -472,6 +474,14 @@ class PaymentPlanController extends Controller
                 'default_eligibility_days' => $data['default_eligibility_days'], 'effective_from' => $effectiveFrom->format('Y-m-d'),
                 'reason' => $data['amendment_reason'], 'created_by_user_id' => $request->user()->id,
             ]);
+            if ($lockedPlan->status === 'draft') {
+                $draftTerms = $newTerms->getAttributes();
+                unset($draftTerms['id'], $draftTerms['payment_plan_id'], $draftTerms['created_at'], $draftTerms['updated_at'], $draftTerms['created_by_user_id']);
+                $newTerms->delete();
+                $lockedTerms->update($draftTerms + ['effective_to' => null, 'reason' => null]);
+                $newTerms = $lockedTerms->fresh();
+            }
+
 
             AuditLog::query()->create([
                 'actor_type' => 'administrator', 'actor_user_id' => $request->user()->id, 'event' => 'payment_plan.amended',

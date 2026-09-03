@@ -394,7 +394,7 @@ class ContractSetupController extends Controller
             'stage_two_enabled' => $stageTwo, 'stage_two_fee_type' => $stageTwo ? $data['stage_two_fee_type'] : null,
             'stage_two_fixed_amount' => $stageTwo && $data['stage_two_fee_type'] === 'fixed' ? Money::toCents((string) $data['stage_two_fee_value']) : null,
             'stage_two_percentage_rate' => $stageTwo && $data['stage_two_fee_type'] === 'percentage' ? $data['stage_two_fee_value'] : null, 'stage_two_minimum_amount' => $stageTwo && $data['stage_two_fee_type'] === 'percentage' ? Money::toCents($data['stage_two_minimum_amount']) : 0, 'stage_two_days_late' => $stageTwo ? $data['stage_two_days_late'] : null, 'default_eligibility_days' => $data['default_eligibility_days'],
-            'effective_from' => $first->copy()->startOfMonth(), 'created_by_user_id' => $actorId,
+            'effective_from' => Carbon::parse($data['contract_start_date']), 'created_by_user_id' => $actorId,
         ];
     }
 

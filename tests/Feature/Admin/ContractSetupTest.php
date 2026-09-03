@@ -114,7 +114,7 @@ class ContractSetupTest extends TestCase
         $this->assertDatabaseCount('payment_allocations', 0);
         $this->assertDatabaseHas('payment_plan_billing_terms', [
             'payment_plan_id' => $plan->id,
-            'effective_from' => '2026-10-01',
+            'effective_from' => '2026-08-28',
             'invoice_day' => 3,
             'scheduled_payment_amount' => 12000,
             'monthly_service_fee' => 1500,

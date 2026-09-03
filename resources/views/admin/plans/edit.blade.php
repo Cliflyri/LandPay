@@ -112,11 +112,13 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 <div class="col-md-4"><label class="form-label">Default eligibility</label><div class="input-group"><input type="number" class="form-control" name="default_eligibility_days" min="1" max="730" value="{{ old('default_eligibility_days',$terms->default_eligibility_days) }}" required><span class="input-group-text">days</span></div></div>
 </div></div></div>
 
+@unless($plan->status === 'draft')
 <div class="plan-form-section plan-form-section-advanced"><div class="plan-form-number">5</div><div class="plan-form-body"><h2>Amendment record</h2><p class="text-muted">The new terms begin on this date. Previously issued invoices are not recalculated.</p><div class="row g-3">
 <div class="col-md-4"><label class="form-label">Effective date</label><input type="date" class="form-control" name="effective_from" value="{{ old('effective_from',now()->addDay()->format('Y-m-d')) }}" required></div>
 <div class="col-md-8"><label class="form-label">Reason for amendment</label><input class="form-control" name="amendment_reason" value="{{ old('amendment_reason') }}" maxlength="500" required></div>
 </div></div></div>
-<div class="d-flex gap-2 mt-4"><button class="btn btn-brand btn-lg">Save amendment</button><a class="btn btn-outline-brand btn-lg" href="{{ route('admin.plans.show',$plan) }}">Cancel</a></div>
+@endunless
+<div class="d-flex gap-2 mt-4"><button class="btn btn-brand btn-lg">{{ $plan->status === 'draft' ? 'Save draft' : 'Save amendment' }}</button><a class="btn btn-outline-brand btn-lg" href="{{ route('admin.plans.show',$plan) }}">Cancel</a></div>
 </form></div></section>
 @endsection
 
