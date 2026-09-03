@@ -6,14 +6,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 class HostedPaymentService {
- public function create(ClientPaymentIntent $intent): ClientPaymentIntent {
+ public function create(ClientPaymentIntent $intent, bool $secureAccess = false): ClientPaymentIntent {
   $provider=AppSetting::valueFor('card_provider','disabled');if(!in_array($provider,['square','stripe'],true))throw ValidationException::withMessages(['method'=>'Card payments are not currently enabled.']);
   $secret=AppSetting::encryptedValueFor($provider.'_api_secret');if(blank($secret))throw ValidationException::withMessages(['method'=>ucfirst($provider).' is not connected.']);
-  return $provider==='square'?$this->square($intent,$secret):$this->stripe($intent,$secret);
+  return $provider==='square'?$this->square($intent,$secret,$secureAccess):$this->stripe($intent,$secret,$secureAccess);
  }
- private function square(ClientPaymentIntent $intent,string $secret): ClientPaymentIntent {
+ private function square(ClientPaymentIntent $intent,string $secret,bool $secureAccess): ClientPaymentIntent {
   $sandbox=AppSetting::valueFor('square_environment','sandbox')!=='live';$url=($sandbox?'https://connect.squareupsandbox.com':'https://connect.squareup.com').'/v2/online-checkout/payment-links';
-  $response=Http::withToken($secret)->withHeaders(['Square-Version'=>'2026-07-15'])->post($url,['idempotency_key'=>$intent->uuid,'quick_pay'=>['name'=>'LandPay plan '.$intent->paymentPlan->plan_number,'price_money'=>['amount'=>$intent->amount,'currency'=>'USD'],'location_id'=>AppSetting::valueFor('square_public_id','')],'checkout_options'=>['redirect_url'=>route($intent->invoice_id ? 'secure-invoice.payment.show' : 'portal.make-payment.show',$intent)]]);
+  $response=Http::withToken($secret)->withHeaders(['Square-Version'=>'2026-07-15'])->post($url,['idempotency_key'=>$intent->uuid,'quick_pay'=>['name'=>'LandPay plan '.$intent->paymentPlan->plan_number,'price_money'=>['amount'=>$intent->amount,'currency'=>'USD'],'location_id'=>AppSetting::valueFor('square_public_id','')],'checkout_options'=>['redirect_url'=>route($secureAccess ? 'secure-invoice.payment.show' : 'portal.make-payment.show',$intent)]]);
   if(!$response->successful()||blank($response->json('payment_link.url'))){
    $errors=collect($response->json('errors',[]))->map(fn($error)=>collect($error)->only(['category','code','detail','field'])->all())->values()->all();
    Log::warning('Square checkout could not be started.',['intent_uuid'=>$intent->uuid,'http_status'=>$response->status(),'errors'=>$errors]);
@@ -23,8 +23,8 @@ class HostedPaymentService {
   }
   $intent->update(['status'=>'checkout_pending','provider'=>'square','provider_checkout_id'=>$response->json('payment_link.order_id'),'checkout_url'=>$response->json('payment_link.url'),'expires_at'=>now()->addDay()]);return $intent->fresh();
  }
- private function stripe(ClientPaymentIntent $intent,string $secret): ClientPaymentIntent {
-  $response=Http::withBasicAuth($secret,'')->asForm()->post('https://api.stripe.com/v1/checkout/sessions',['mode'=>'payment','success_url'=>route($intent->invoice_id ? 'secure-invoice.payment.show' : 'portal.make-payment.show',$intent).'?checkout=success','cancel_url'=>$intent->invoice_id ? route('secure-invoice.payment.create') : route('portal.make-payment.create',['plan'=>$intent->payment_plan_id]),'client_reference_id'=>$intent->uuid,'metadata[landpay_intent_uuid]'=>$intent->uuid,'line_items[0][price_data][currency]'=>'usd','line_items[0][price_data][product_data][name]'=>'LandPay plan '.$intent->paymentPlan->plan_number,'line_items[0][price_data][unit_amount]'=>$intent->amount,'line_items[0][quantity]'=>1]);
+ private function stripe(ClientPaymentIntent $intent,string $secret,bool $secureAccess): ClientPaymentIntent {
+  $response=Http::withBasicAuth($secret,'')->asForm()->post('https://api.stripe.com/v1/checkout/sessions',['mode'=>'payment','success_url'=>route($secureAccess ? 'secure-invoice.payment.show' : 'portal.make-payment.show',$intent).'?checkout=success','cancel_url'=>$secureAccess ? route('secure-invoice.payment.create') : route('portal.make-payment.create',['plan'=>$intent->payment_plan_id]),'client_reference_id'=>$intent->uuid,'metadata[landpay_intent_uuid]'=>$intent->uuid,'line_items[0][price_data][currency]'=>'usd','line_items[0][price_data][product_data][name]'=>'LandPay plan '.$intent->paymentPlan->plan_number,'line_items[0][price_data][unit_amount]'=>$intent->amount,'line_items[0][quantity]'=>1]);
   if(!$response->successful()||blank($response->json('url')))throw ValidationException::withMessages(['method'=>'Stripe checkout could not be started.']);
   $intent->update(['status'=>'checkout_pending','provider'=>'stripe','provider_checkout_id'=>$response->json('id'),'checkout_url'=>$response->json('url'),'expires_at'=>now()->addDay()]);return $intent->fresh();
  }

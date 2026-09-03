@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotice;
 use App\Models\ClientPaymentIntent;
+use App\Models\Invoice;
 use App\Models\PaymentPlan;
 use App\Services\FinancialBalanceService;
 use App\Services\HostedPaymentService;
@@ -43,7 +44,7 @@ class MakePaymentController extends Controller
     {
         $data = $this->validateInput($request);
         $plan = $this->plan($request, (int) $data['payment_plan_id']);
-        $invoiceId = $this->secureLink($request)?->invoice_id;
+        $invoiceId = $this->invoiceId($request, $plan, $data['invoice_id'] ?? null);
         $this->validateSecureAmount($request, Money::toCents($data['amount']));
         $preview = $this->payments->preview($plan, Money::toCents($data['amount']), 'regular', $data['overpayment_disposition'] ?? null, invoiceId: $invoiceId);
         return $this->form($request, $preview, $data);
@@ -55,10 +56,11 @@ class MakePaymentController extends Controller
         [$account, $client] = $this->identity($request);
         $plan = $this->plan($request, (int) $data['payment_plan_id']);
         $link = $this->secureLink($request);
+        $invoiceId = $this->invoiceId($request, $plan, $data['invoice_id'] ?? null);
         $this->validateSecureAmount($request, Money::toCents($data['amount']));
         $method = $this->methods->method($data['method']);
         abort_unless($method['enabled'], 422);
-        $this->payments->preview($plan, Money::toCents($data['amount']), 'regular', $data['overpayment_disposition'] ?? null, invoiceId: $link?->invoice_id);
+        $this->payments->preview($plan, Money::toCents($data['amount']), 'regular', $data['overpayment_disposition'] ?? null, invoiceId: $invoiceId);
 
         if ($data['method'] === 'card') {
             $baseAmount = Money::toCents($data['amount']);
@@ -74,7 +76,7 @@ class MakePaymentController extends Controller
                 $fee = 0;
             }
             $intent = ClientPaymentIntent::query()->create([
-                'payment_plan_id' => $plan->id, 'invoice_id' => $link?->invoice_id,
+                'payment_plan_id' => $plan->id, 'invoice_id' => $invoiceId,
                 'client_id' => $client->id, 'portal_account_id' => $account?->id,
                 'method' => 'card', 'amount' => $baseAmount + $fee, 'base_amount' => $baseAmount,
                 'processing_fee_amount' => $fee, 'card_type' => $data['square_card_type'] ?? null,
@@ -87,14 +89,14 @@ class MakePaymentController extends Controller
                 $intent = $this->squareCards->pay($intent, $data['square_source_id']);
                 return redirect()->route($link ? 'secure-invoice.payment.show' : 'portal.make-payment.show', $intent);
             }
-            $intent = $this->hosted->create($intent);
+            $intent = $this->hosted->create($intent, (bool) $link);
             return redirect()->away($intent->checkout_url);
         }
 
-        $intent = DB::transaction(function () use ($account, $client, $plan, $link, $data, $method): ClientPaymentIntent {
+        $intent = DB::transaction(function () use ($account, $client, $plan, $link, $invoiceId, $data, $method): ClientPaymentIntent {
             PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             $created = ClientPaymentIntent::query()->create([
-                'payment_plan_id' => $plan->id, 'invoice_id' => $link?->invoice_id,
+                'payment_plan_id' => $plan->id, 'invoice_id' => $invoiceId,
                 'client_id' => $client->id, 'portal_account_id' => $account?->id,
                 'method' => $data['method'], 'amount' => Money::toCents($data['amount']),
                 'payment_type' => 'regular', 'overpayment_disposition' => $data['overpayment_disposition'] ?? null,
@@ -105,7 +107,7 @@ class MakePaymentController extends Controller
             AdminNotice::query()->create([
                 'type' => 'client_payment_announced', 'client_id' => $client->id,
                 'client_payment_intent_id' => $created->id, 'title' => 'Payment intended',
-                'message' => $name.' intends to pay '.Money::format($created->amount).' by '.$method['name'].' for plan '.$plan->plan_number.'.'.(filled($created->client_note) ? ' Client note: '.$created->client_note : ''),
+                'message' => $name.' intends to pay '.Money::format($created->amount).' by '.$method['name'].' for plan '.$plan->plan_number.'. Intended application: '.($invoiceId ? 'invoice '.Invoice::find($invoiceId)?->invoice_number : 'all open invoices, oldest due first').'.'.(filled($created->client_note) ? ' Client note: '.$created->client_note : ''),
             ]);
             return $created;
         }, 3);
@@ -178,16 +180,19 @@ class MakePaymentController extends Controller
         $balances = $link
             ? collect([$selected->id => max(0, $this->balances->invoiceBalance($link->invoice))])
             : $plans->mapWithKeys(fn (PaymentPlan $plan) => [$plan->id => (int) $plan->invoices->sum(fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice)))]);
+        $invoiceBalances = $plans->flatMap->invoices->mapWithKeys(fn (Invoice $invoice) => [$invoice->id => max(0, $this->balances->invoiceBalance($invoice))]);
+        $requestedInvoice = (int) ($input['invoice_id'] ?? $request->integer('invoice'));
+        $selectedInvoice = $selected->invoices->first(fn (Invoice $invoice) => $invoice->id === $requestedInvoice && ($invoiceBalances[$invoice->id] ?? 0) > 0);
         $requestedAmount = $request->query('amount');
         $amount = is_string($requestedAmount) && preg_match('/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/', $requestedAmount) && Money::toCents($requestedAmount) > 0
             ? number_format(Money::toCents($requestedAmount) / 100, 2, '.', '')
-            : number_format($balances[$selected->id] / 100, 2, '.', '');
+            : number_format(($selectedInvoice ? $invoiceBalances[$selectedInvoice->id] : $balances[$selected->id]) / 100, 2, '.', '');
         $requestedMethod = $request->query('method');
         $methodKeys = collect($methods)->pluck('key');
-        $input += ['payment_plan_id' => $selected->id, 'amount' => $amount, 'method' => $methodKeys->contains($requestedMethod) ? $requestedMethod : ($methods[0]['key'] ?? null)];
+        $input += ['payment_plan_id' => $selected->id, 'invoice_id' => $selectedInvoice?->id, 'amount' => $amount, 'method' => $methodKeys->contains($requestedMethod) ? $requestedMethod : ($methods[0]['key'] ?? null)];
 
         return view('portal.make-payment.simple', [
-            'plans' => $plans, 'planBalances' => $balances, 'selectedPlan' => $selected,
+            'plans' => $plans, 'planBalances' => $balances, 'invoiceBalances' => $invoiceBalances, 'selectedPlan' => $selected,
             'methods' => $methods, 'general' => $this->methods->general(),
             'square' => $this->squareFees->clientConfiguration(), 'squarePostalCode' => $squarePostalCode,
             'activeStates' => [], 'pendingNotifications' => $pendingNotifications, 'input' => $input,
@@ -223,6 +228,16 @@ class MakePaymentController extends Controller
         if ($amount > $balance) throw ValidationException::withMessages(['amount' => 'Payment cannot exceed this invoice’s current balance.']);
     }
 
+    private function invoiceId(Request $request, PaymentPlan $plan, mixed $requested): ?int
+    {
+        if ($link = $this->secureLink($request)) return $link->invoice_id;
+        if (! $requested) return null;
+        $invoice = Invoice::query()->whereKey((int) $requested)->where('payment_plan_id', $plan->id)
+            ->whereIn('status', ['issued', 'partially_paid'])->firstOrFail();
+        abort_unless($this->balances->invoiceBalance($invoice) > 0, 422);
+        return $invoice->id;
+    }
+
     private function authorizeIntent(Request $request, ClientPaymentIntent $intent): void
     {
         if ($link = $this->secureLink($request)) {
@@ -235,7 +250,8 @@ class MakePaymentController extends Controller
     private function validateInput(Request $request): array
     {
         return $request->validate([
-            'payment_plan_id' => ['required', 'integer'], 'amount' => ['required', 'decimal:0,2', 'gt:0'],
+            'payment_plan_id' => ['required', 'integer'], 'invoice_id' => ['nullable', 'integer'],
+            'amount' => ['required', 'decimal:0,2', 'gt:0'],
             'method' => ['required', Rule::in(PaymentMethodConfigurationService::METHODS)],
             'overpayment_disposition' => ['nullable', Rule::in(['principal', 'next_invoice_credit'])],
             'client_note' => ['nullable', 'string', 'max:1000'],

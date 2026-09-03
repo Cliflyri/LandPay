@@ -43,16 +43,18 @@ class PaymentController extends Controller
             'external_reference' => $intent->client_reference,
             'overpayment_disposition' => $intent->overpayment_disposition,
             'client_note' => $intent->client_note,
+            'invoice_id' => $intent->invoice_id,
+            'invoice_label' => $intent->invoice?->invoice_number,
             'idempotency_token' => (string) Str::uuid(),
         ];
-        $preview = $this->payments->preview($plan, $intent->amount, 'regular', $intent->overpayment_disposition);
+        $preview = $this->payments->preview($plan, $intent->amount, 'regular', $intent->overpayment_disposition, invoiceId: $intent->invoice_id);
 
         return $this->form($plan, $preview, $data);
     }
 
     public function create(PaymentPlan $plan): View
     {
-        return $this->form($plan, null, request()->only(['received_date','client_payment_intent_id','amount','payment_method','payer_client_id','external_reference','overpayment_disposition','client_note']));
+        return $this->form($plan, null, request()->only(['received_date','client_payment_intent_id','amount','payment_method','payer_client_id','external_reference','overpayment_disposition','client_note','invoice_id','invoice_label']));
     }
 
     public function preview(Request $request, PaymentPlan $plan): View
@@ -65,6 +67,7 @@ class PaymentController extends Controller
             $data['overpayment_disposition'] ?? null,
             Money::toCents($data['service_fee_amount'] ?? '0'),
             \Illuminate\Support\Carbon::parse($data['received_date'])->startOfMonth()->toDateString(),
+            invoiceId: isset($data['invoice_id']) ? (int) $data['invoice_id'] : null,
         );
 
         return $this->form($plan, $preview, $data);
@@ -86,11 +89,13 @@ class PaymentController extends Controller
             'payment:'.$data['idempotency_token'],
             Money::toCents($data['service_fee_amount'] ?? '0'),
             \Illuminate\Support\Carbon::parse($data['received_date'])->startOfMonth()->toDateString(),
+            invoiceId: isset($data['invoice_id']) ? (int) $data['invoice_id'] : null,
         );
         $payment = isset($data['client_payment_intent_id'])
             ? DB::transaction(function () use ($data, $plan, $request, $post): Payment {
                 $intent = ClientPaymentIntent::query()->lockForUpdate()->findOrFail((int) $data['client_payment_intent_id']);
                 abort_unless($intent->payment_plan_id === $plan->id && $intent->status === 'announced', 409);
+                abort_unless((int) ($data['invoice_id'] ?? 0) === (int) ($intent->invoice_id ?? 0), 409);
                 $payment = $post();
                 $intent->update(['status' => 'received', 'payment_id' => $payment->id, 'received_at' => now()]);
                 \App\Models\AdminNotice::query()
@@ -222,6 +227,7 @@ class PaymentController extends Controller
             'external_reference' => ['nullable', 'string', 'max:150'],
             'overpayment_disposition' => [$posting ? 'nullable' : 'nullable', Rule::enum(OverpaymentDisposition::class)],
             'idempotency_token' => ['required', 'uuid'],
+            'invoice_id' => ['nullable', 'integer', Rule::exists('invoices', 'id')->where(fn ($query) => $query->where('payment_plan_id', $plan->id))],
             'client_payment_intent_id' => ['nullable', 'integer', 'exists:client_payment_intents,id'],
             'client_note' => ['nullable', 'string', 'max:1000'],
         ]);
