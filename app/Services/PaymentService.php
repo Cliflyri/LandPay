@@ -320,6 +320,18 @@ class PaymentService
         }, 3);
     }
 
+    public function postInvoiceInFull(Invoice $invoice, User $actor, PaymentMethod $method, DateTimeInterface|string $receivedDate, ?string $externalReference = null, ?string $idempotencyKey = null): Payment
+    {
+        return DB::transaction(function () use ($invoice, $actor, $method, $receivedDate, $externalReference, $idempotencyKey): Payment {
+            $lockedInvoice = Invoice::query()->lockForUpdate()->findOrFail($invoice->id);
+            $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($lockedInvoice->payment_plan_id);
+            $amount = $this->balances->invoiceBalance($lockedInvoice);
+            if (! in_array($lockedInvoice->status, [InvoiceStatus::Issued, InvoiceStatus::PartiallyPaid], true) || $amount <= 0) {
+                throw ValidationException::withMessages(['invoice' => 'This invoice no longer has a payable balance.']);
+            }
+            return $this->post($lockedPlan, $actor, $amount, 'regular', $method, $receivedDate, externalReference: $externalReference, idempotencyKey: $idempotencyKey, invoiceId: $lockedInvoice->id);
+        }, 3);
+    }
     public function reverse(Payment $payment, User $actor, string $reason): FinancialTransaction
     {
         return DB::transaction(function () use ($payment, $actor, $reason): FinancialTransaction {

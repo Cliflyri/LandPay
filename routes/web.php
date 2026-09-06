@@ -157,6 +157,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('plans/{plan}/invoices/manual/preview', [InvoiceController::class, 'manualPreview'])->name('plans.invoices.manual.preview');
     Route::post('plans/{plan}/invoices/manual', [InvoiceController::class, 'manualStore'])->name('plans.invoices.manual.store');
     Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::post('invoices/{invoice}/pay-in-full', [PaymentController::class, 'payInvoiceInFull'])->name('invoices.pay-in-full');
     Route::get('invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
     Route::put('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
     Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');

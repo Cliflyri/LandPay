@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\ClientPaymentIntent;
+use App\Models\Invoice;
 use App\Models\PaymentPlan;
 use App\Services\PaymentReceiptService;
 use App\Services\FinancialBalanceService;
@@ -115,6 +116,23 @@ class PaymentController extends Controller
         return redirect()->route('admin.payments.show', $payment)->with('success', $message);
     }
 
+    public function payInvoiceInFull(Request $request, Invoice $invoice): RedirectResponse
+    {
+        $data = $request->validate([
+            'received_date' => ['required', 'date'],
+            'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
+            'external_reference' => ['nullable', 'string', 'max:150'],
+            'idempotency_token' => ['required', 'uuid'],
+            'return_to' => ['required', Rule::in(['dashboard', 'plan', 'invoice'])],
+        ]);
+        $payment = $this->payments->postInvoiceInFull($invoice, $request->user(), PaymentMethod::from($data['payment_method']), $data['received_date'], $data['external_reference'] ?? null, 'invoice-full-payment:'.$data['idempotency_token']);
+        $redirect = match ($data['return_to']) {
+            'dashboard' => redirect()->route('admin.dashboard'),
+            'plan' => redirect()->route('admin.plans.show', $invoice->payment_plan_id),
+            default => redirect()->route('admin.invoices.show', $invoice),
+        };
+        return $redirect->with('success', 'Invoice '.$invoice->invoice_number.' paid in full for '.Money::format($payment->gross_amount).'.');
+    }
     public function satisfyServiceFee(Request $request, PaymentPlan $plan): RedirectResponse
     {
         $data = $request->validate([

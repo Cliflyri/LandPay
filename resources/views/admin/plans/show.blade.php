@@ -6,6 +6,7 @@
 $primaryMembership = $plan->memberships->firstWhere('role', 'primary');
 $primaryClient = $primaryMembership?->client;
 $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?->first_name ?? '').' '.($primaryClient?->last_name ?? ''));
+$nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate->status,[\App\Enums\InvoiceStatus::Issued,\App\Enums\InvoiceStatus::PartiallyPaid],true)&&app(\App\Services\FinancialBalanceService::class)->invoiceBalance($candidate)>0)->sortBy(fn($candidate)=>[$candidate->due_date->timestamp,$candidate->issue_date->timestamp,$candidate->id])->first();
 @endphp
 <section class="admin-section"><div class="container-fluid dashboard-container px-2">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
@@ -63,6 +64,7 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.create',$plan) }}">Review next invoice</a>
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.manual.create',$plan) }}">Create invoice</a>
         <a class="btn btn-brand" href="{{ route('admin.plans.payments.create',$plan) }}">Record payment</a>
+        @if($nextPayableInvoice)<button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#pay-invoice-full-{{$nextPayableInvoice->id}}-plan">Pay invoice in full</button>@endif
         @endif
         <a class="btn btn-brand" href="{{ route('admin.plans.edit',$plan) }}">Edit plan</a>
         <a class="btn btn-outline-brand" href="{{ route('admin.dashboard') }}">Back to dashboard</a>
@@ -361,4 +363,5 @@ $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?
 </div>
 @endif
 </div></section>
+@if($nextPayableInvoice)@include('admin.shared.pay-invoice-full-modal',['invoice'=>$nextPayableInvoice,'returnTo'=>'plan'])@endif
 @endsection
