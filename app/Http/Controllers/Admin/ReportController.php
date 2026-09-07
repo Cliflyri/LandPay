@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\InvoiceItemType;
 use App\Enums\PaymentAllocationType;
 use App\Http\Controllers\Controller;
+use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
@@ -20,7 +21,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    private const REPORTS = ['payments', 'receivables', 'contracts', 'fees'];
+    private const REPORTS = ['payments', 'receivables', 'contracts', 'fees', 'client-portals'];
 
     public function __construct(private readonly FinancialBalanceService $balances) {}
 
@@ -61,9 +62,23 @@ class ReportController extends Controller
             'receivables' => $this->receivables($request),
             'contracts' => $this->contracts($request),
             'fees' => $this->fees($request),
+            'client-portals' => $this->clientPortals($request),
         };
     }
 
+    private function clientPortals(Request $request): array
+    {
+        $clients = Client::query()->whereNull('archived_at')->with(['portalAccount', 'portalInvitations' => fn ($q) => $q->with('invitedBy')->latest()])->matchingAdminSearch($request->string('search')->value(), true)->get();
+        $groups = $clients->map(function (Client $client): array {
+            $account = $client->portalAccount;
+            $invitation = $client->portalInvitations->first(fn ($invite) => !$invite->accepted_at && !$invite->revoked_at);
+            $group = $account?->enabled ? 'active' : ($invitation ? 'pending' : 'none');
+            $reason = $account ? 'Portal disabled' : ($client->portalInvitations->isEmpty() ? 'Never invited' : 'No current invitation');
+            return compact('client', 'account', 'invitation', 'group', 'reason');
+        });
+        $status = in_array($request->string('portal_status')->value(), ['pending', 'none', 'active'], true) ? $request->string('portal_status')->value() : 'pending';
+        return ['rows' => $groups->where('group', $status)->values(), 'totals' => ['Pending activation' => $groups->where('group', 'pending')->count(), 'No active portal' => $groups->where('group', 'none')->count(), 'Active portals' => $groups->where('group', 'active')->count()]];
+    }
     private function payments(Request $request): array
     {
         $query = Payment::query()->with([
@@ -240,7 +255,7 @@ class ReportController extends Controller
     {
         return ['from' => $request->string('from')->value(), 'to' => $request->string('to')->value(),
             'search' => trim($request->string('search')->value()), 'status' => $request->string('status')->value() ?: 'all',
-            'aging' => $request->string('aging')->value()];
+            'aging' => $request->string('aging')->value(), 'portal_status' => $request->string('portal_status')->value() ?: 'pending'];
     }
     private function dates($query, Request $request, string $column): void
     {
@@ -265,9 +280,9 @@ class ReportController extends Controller
         if (! $request->filled('search')) return; $term = '%'.trim($request->search).'%';
         $query->where(fn ($q) => $q->where('plan_number', 'like', $term)->orWhere('apn', 'like', $term)->orWhereHas('memberships.client', fn ($c) => $c->where('first_name', 'like', $term)->orWhere('last_name', 'like', $term)->orWhere('organization_name', 'like', $term)));
     }
-    private function primaryClient(PaymentPlan $plan)
+    private function primaryClient(?PaymentPlan $plan)
     {
-        return $plan->memberships->firstWhere('role', 'primary')?->client ?: $plan->memberships->first()?->client;
+        return $plan?->memberships->firstWhere('role', 'primary')?->client ?: $plan?->memberships->first()?->client;
     }
     private function paginate(Collection $rows, Request $request): LengthAwarePaginator
     {
@@ -281,7 +296,7 @@ class ReportController extends Controller
             'payments' => [['Date','Client','Plan','Method','Gross','Fees','Invoices','Principal','Credit','Status','Net','Reference'], fn ($r) => [$r['date']->toDateString(),$this->name($r['client']),$r['plan']?->plan_number,$r['method'],$r['gross']/100,$r['fees']/100,$r['invoice']/100,$r['principal']/100,$r['credit']/100,$r['reversed']?'Reversed':'Posted',$r['net']/100,$r['reference']]],
             'receivables' => [['Client','Plan','Invoice','Issued','Due','Original','Paid/Credited','Balance','Days overdue','Aging'], fn ($r) => [$this->name($r['client']),$r['plan']->plan_number,$r['model']->invoice_number,$r['issue']->toDateString(),$r['due']->toDateString(),$r['amount']/100,$r['paid']/100,$r['balance']/100,$r['days'],$r['bucket']]],
             'contracts' => [['Client','Plan','Purchase price','Documentation fee','Principal paid','Contract balance','Open invoices','Account credit','Next due','Status','Estimated payoff'], fn ($r) => [$this->name($r['client']),$r['model']->plan_number,$r['purchase']/100,$r['documentation']/100,$r['principal_paid']/100,$r['contract']/100,$r['open']/100,$r['credit']/100,$r['next_due']?->toDateString(),$r['status'],$r['payoff']]],
-            'fees' => [['Date','Client','Plan','Invoice','Type','Description','Assessed','Waived','Collected','Outstanding'], fn ($r) => [$r['date']->toDateString(),$this->name($r['client']),$r['plan']->plan_number,$r['source_label'],$r['type'],$r['description'],$r['assessed']/100,$r['waived']/100,$r['collected']/100,$r['outstanding']/100]],
+            'fees' => [['Date','Client','Plan','Invoice','Type','Description','Assessed','Waived','Collected','Outstanding'], fn ($r) => [$r['date']->toDateString(),$this->name($r['client']),$r['plan']?->plan_number,$r['source_label'],$r['type'],$r['description'],$r['assessed']/100,$r['waived']/100,$r['collected']/100,$r['outstanding']/100]],
         };
     }
     private function name($client): string
