@@ -4,7 +4,7 @@
 @section('content')
 <section class="admin-section"><div class="container site-container">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Client portal</span><h1>Messages &amp; documents</h1></div><a class="btn btn-outline-brand" href="{{route('portal.dashboard')}}">Dashboard</a></div>
-<nav class="nav nav-tabs mt-4" aria-label="Messages and documents"><a class="nav-link" href="{{route('portal.messages.index')}}">Messages</a><a class="nav-link active" aria-current="page" href="{{route('portal.documents.index')}}">Documents</a></nav>
+<nav class="nav nav-tabs mt-4" aria-label="Messages, announcements, and documents"><a class="nav-link" href="{{route('portal.messages.index')}}">Messages</a><a class="nav-link" href="{{route('portal.messages.index',['tab'=>'announcements'])}}">Announcements</a><a class="nav-link active" aria-current="page" href="{{route('portal.documents.index')}}">Documents</a></nav>
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
 @if($errors->any())<div class="alert alert-danger mt-4">{{$errors->first()}}</div>@endif
 <div class="admin-next-card h-auto mt-4"><div class="d-flex flex-wrap justify-content-between align-items-center gap-3"><div><h2 class="mb-1">Shared documents</h2>

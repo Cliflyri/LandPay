@@ -18,6 +18,7 @@
                 </p>
             </div>
 
+            <a class="btn btn-outline-brand me-2" href="{{route('admin.announcements.index')}}">Announcements</a>
             <a class="btn btn-sun" href="{{ route('admin.messages.create') }}">
                 New secure message
             </a>

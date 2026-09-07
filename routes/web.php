@@ -85,6 +85,8 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('account/contact', [PortalAccountController::class, 'edit'])->name('account.edit');
     Route::put('account/contact', [PortalAccountController::class, 'update'])->name('account.update');
     Route::put('account/password', [PortalAccountController::class, 'password'])->name('account.password');
+    Route::get('announcements/{announcement}', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'view'])->name('announcements.view');
+    Route::post('announcements/{announcement}/respond', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'act'])->name('announcements.respond');
     Route::get('messages', [PortalSecureMessageController::class, 'index'])->name('messages.index');
     Route::get('messages/create', [PortalSecureMessageController::class, 'create'])->name('messages.create');
     Route::post('messages', [PortalSecureMessageController::class, 'store'])->middleware('throttle:5,1')->name('messages.store');
@@ -131,6 +133,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('dashboard/status', [DashboardController::class, 'status'])->name('dashboard.status');
     Route::get('reports/{report?}', [ReportController::class, 'show'])->name('reports.show');
     Route::get('reports/{report}/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::resource('messages/announcements', \App\Http\Controllers\Admin\ClientAnnouncementController::class)->names('announcements')->except(['destroy']);
+    Route::post('messages/announcements/{announcement}/publish', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'publish'])->name('announcements.publish');
+    Route::post('messages/announcements/{announcement}/deactivate', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'deactivate'])->name('announcements.deactivate');
+    Route::post('messages/announcements/{announcement}/reactivate', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'reactivate'])->name('announcements.reactivate');
+    Route::post('messages/announcements/{announcement}/remove', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'remove'])->name('announcements.remove');
+    Route::delete('messages/announcements/{announcement}', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'destroy'])->name('announcements.destroy');
     Route::get('messages', [AdminSecureMessageController::class, 'index'])->name('messages.index');
     Route::post('messages/email-notifications', [AdminSecureMessageController::class, 'updateEmailNotifications'])->name('messages.email-notifications');
     Route::get('messages/create', [AdminSecureMessageController::class, 'create'])->name('messages.create');
