@@ -8,14 +8,31 @@ use App\Models\Client;
 use App\Models\EmailTemplate;
 use App\Models\Invoice;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 
 class EmailTemplateService
 {
-    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'late_fee_notice', 'payment_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
+    public const VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'late_fee_notice', 'reminder_date', 'days_until_due', 'days_past_due', 'grace_period_end_date', 'next_late_fee_date', 'next_late_fee_amount', 'next_late_fee_description', 'late_fees_assessed', 'past_due_reminder_number', 'payment_portal_url', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'invitation_link', 'invitation_expires', 'company_name', 'company_email', 'company_phone'];
+
+    public const REMINDER_VARIABLES = ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'reminder_date', 'days_until_due', 'days_past_due', 'grace_period_end_date', 'next_late_fee_date', 'next_late_fee_amount', 'next_late_fee_description', 'late_fees_assessed', 'past_due_reminder_number', 'company_name', 'company_email', 'company_phone'];
+
+    public const VARIABLE_DESCRIPTIONS = [
+        'reminder_date' => 'Date this reminder is sent.',
+        'days_until_due' => 'Days remaining before the due date; blank after it is due.',
+        'days_past_due' => 'Days since the due date; blank until it becomes past due.',
+        'grace_period_end_date' => 'Last date in the plan grace period.',
+        'next_late_fee_date' => 'Date the next pending late fee is scheduled.',
+        'next_late_fee_amount' => 'Amount of the next fee; percentage fees are current estimates.',
+        'next_late_fee_description' => 'Ready-to-use sentence describing the next fee, amount, and date.',
+        'late_fees_assessed' => 'Ready-to-use sentence totaling late fees already added.',
+        'past_due_reminder_number' => 'Past-due reminder sequence number; blank for due reminders.',
+    ];
 
     public const TEMPLATE_VARIABLES = [
-        'payment-reminder' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'late_fee_notice', 'company_name', 'company_email', 'company_phone'],
+        'payment-reminder' => self::REMINDER_VARIABLES,
+        'payment-due-reminder' => self::REMINDER_VARIABLES,
+        'payment-past-due-reminder' => self::REMINDER_VARIABLES,
         'invoice-email' => ['client_name', 'invoice_number', 'amount_due', 'due_date', 'issue_date', 'plan_number', 'plan_description', 'client_portal_url', 'invoice_portal_url', 'magic_invoice_link', 'company_name', 'company_email', 'company_phone'],
         'payment-receipt' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
         'payment-reversal' => ['client_name', 'invoice_number', 'payment_amount', 'payment_date', 'payment_method', 'payment_reference', 'remaining_contract_balance', 'plan_number', 'plan_description', 'client_portal_url', 'payment_portal_url', 'company_name', 'company_email', 'company_phone'],
@@ -26,6 +43,16 @@ class EmailTemplateService
     public function defaults(): array
     {
         return [
+            'payment-due-reminder' => [
+                'name' => 'Payment due reminder',
+                'subject' => 'Payment reminder for invoice {{ invoice_number }}',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>This is a reminder that invoice <strong>{{ invoice_number }}</strong> has a balance of <strong>{{ amount_due }}</strong> due on {{ due_date }}.</p><p>{{ next_late_fee_description }}</p><p>{{ magic_invoice_link }}</p><p>If payment has already been sent, please disregard this message.</p>',
+            ],
+            'payment-past-due-reminder' => [
+                'name' => 'Past-due payment reminder',
+                'subject' => 'Past-due invoice {{ invoice_number }}',
+                'body_html' => '<p>Hello {{ client_name }},</p><p>Invoice <strong>{{ invoice_number }}</strong> is <strong>{{ days_past_due }} days past due</strong> with <strong>{{ amount_due }}</strong> remaining.</p><p>{{ late_fees_assessed }}</p><p>{{ next_late_fee_description }}</p><p>{{ magic_invoice_link }}</p><p>Please contact us if you have questions or need to discuss the account.</p>',
+            ],
             'payment-reminder' => [
                 'name' => 'Payment reminder',
                 'subject' => 'Payment reminder for invoice {{ invoice_number }}',
@@ -54,8 +81,8 @@ class EmailTemplateService
         ];
     }
 
-    /** @return \Illuminate\Database\Eloquent\Collection<int, EmailTemplate> */
-    public function all(): \Illuminate\Database\Eloquent\Collection
+    /** @return Collection<int, EmailTemplate> */
+    public function all(): Collection
     {
         foreach ($this->defaults() as $slug => $default) {
             EmailTemplate::query()->firstOrCreate(['slug' => $slug], $default + ['active' => true]);
@@ -73,20 +100,25 @@ class EmailTemplateService
             $reminder->update(['body_html' => $reminder->body_html.'<p>{{ late_fee_notice }}</p>']);
         }
 
-        return EmailTemplate::query()->orderBy('name')->get();
+        $order = ['invoice-email', 'payment-due-reminder', 'payment-past-due-reminder', 'payment-receipt', 'payment-reversal'];
+
+        return EmailTemplate::query()->where('slug', '!=', 'payment-reminder')->get()
+            ->sortBy(fn (EmailTemplate $template) => ($position = array_search($template->slug, $order, true)) === false ? 100 : $position)
+            ->values();
     }
 
     public function find(string $slug): EmailTemplate
     {
         $this->all();
+
         return EmailTemplate::query()->where('slug', $slug)->firstOrFail();
     }
 
     /** @return array{subject:string,body:string,variables:array<string,string>,uses_magic_invoice_link:bool} */
-    public function render(string $slug, Invoice $invoice, Client $client, int $balance, ?string $magicInvoiceUrl = null): array
+    public function render(string $slug, Invoice $invoice, Client $client, int $balance, ?string $magicInvoiceUrl = null, array $context = []): array
     {
         $template = $this->find($slug);
-        $variables = $this->variables($invoice, $client, $balance, $magicInvoiceUrl);
+        $variables = $this->variables($invoice, $client, $balance, $magicInvoiceUrl, $context);
 
         return [
             'subject' => $this->replace($template->subject, $variables),
@@ -101,14 +133,15 @@ class EmailTemplateService
     public function renderVariables(string $slug, array $variables): array
     {
         $template = $this->find($slug);
+
         return ['subject' => $this->replace($template->subject, $variables), 'body' => $this->replace($template->body_html, $variables), 'variables' => $variables];
     }
 
     /** @return array<string, string> */
-    public function variables(Invoice $invoice, Client $client, int $balance, ?string $magicInvoiceUrl = null): array
+    public function variables(Invoice $invoice, Client $client, int $balance, ?string $magicInvoiceUrl = null, array $context = []): array
     {
         $plan = $invoice->paymentPlan;
-        return [
+        $variables = [
             'client_name' => $client->organization_name ?: trim($client->first_name.' '.$client->last_name) ?: 'Client',
             'invoice_number' => $invoice->invoice_number,
             'amount_due' => Money::format($balance),
@@ -124,6 +157,8 @@ class EmailTemplateService
             'company_email' => AppSetting::valueFor('company_email', ''),
             'company_phone' => AppSetting::valueFor('company_phone', ''),
         ];
+
+        return $variables + $context;
     }
 
     /** @param array<string, string> $variables */
@@ -147,6 +182,7 @@ class EmailTemplateService
                 $text,
             );
         }
+
         return $text;
     }
 

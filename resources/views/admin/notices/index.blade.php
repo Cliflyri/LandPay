@@ -38,9 +38,11 @@
     $url = match(true) {
         (bool) $notice->invoice => route('admin.invoices.show',$notice->invoice),
         (bool) $notice->paymentIntent?->payment => route('admin.payments.show',$notice->paymentIntent->payment),
+        'draft_contract_setup' => 'Plan',
         $notice->paymentIntent?->status === 'announced' => route('admin.payment-intents.receive',$notice->paymentIntent),
         (bool) $notice->secureMessageThread => route('admin.messages.show',$notice->secureMessageThread),
         (bool) $notice->changeRequest => route('admin.client-change-requests.show',$notice->changeRequest),
+        (bool) $notice->paymentPlan => route('admin.plans.show',$notice->paymentPlan),
         (bool) $notice->client => route('admin.clients.show',$notice->client),
         default => null,
     };

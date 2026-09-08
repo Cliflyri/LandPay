@@ -94,6 +94,7 @@
                                                 View invoice
                                             </a>
                                         </li>
+                                        <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#pay-invoice-full-{{$row['balance_invoice']->id}}-dashboard">Pay invoice in full</button></li>
                                     @endif
 
                                     <li>
@@ -380,4 +381,5 @@
 
 </section>
 
+@foreach($plans as $row)@if($row['balance_invoice'])@include('admin.shared.pay-invoice-full-modal',['invoice'=>$row['balance_invoice'],'clientName'=>$row['client_name'],'returnTo'=>'dashboard'])@endif @endforeach
 @endsection

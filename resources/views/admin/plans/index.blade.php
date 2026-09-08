@@ -15,10 +15,21 @@
                 </p>
             </div>
 
-            <a class="btn btn-sun" href="{{ route('admin.plans.create') }}">
-                New plan
-            </a>
+            <div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-brand" href="{{ route('admin.contract-setups.create') }}">New contract setup</a><a class="btn btn-sun" href="{{ route('admin.plans.create') }}">New plan</a></div>
         </div>
+
+        @if(session('success'))
+            <div class="alert alert-success mt-4" role="status">
+                <strong>{{session('success')}}</strong>
+                @if(session('success_details'))
+                    <ul class="mb-0 mt-2">
+                        @foreach(session('success_details') as $detail)<li>{{$detail}}</li>@endforeach
+                    </ul>
+                @endif
+            </div>
+        @endif
+        @if(session('warning'))<div class="alert alert-warning mt-3" role="alert">{{session('warning')}}</div>@endif
+
 
         <div class="mt-4">@include('admin.plans.partials.filters')</div>
 

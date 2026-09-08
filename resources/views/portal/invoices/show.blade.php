@@ -38,6 +38,7 @@
                             class="btn btn-sun"
                             href="{{ ($secureAccess ?? false) ? route('secure-invoice.payment.create') : route('portal.make-payment.create', [
                                 'plan' => $invoice->payment_plan_id,
+                                'invoice' => $invoice->id,
                                 'amount' => number_format($balance / 100, 2, '.', ''),
                             ]) }}"
                         >
@@ -131,6 +132,7 @@
                             class="btn btn-sun mt-3"
                             href="{{ ($secureAccess ?? false) ? route('secure-invoice.payment.create') : route('portal.make-payment.create', [
                                 'plan' => $invoice->payment_plan_id,
+                                'invoice' => $invoice->id,
                                 'amount' => number_format($balance / 100, 2, '.', ''),
                             ]) }}"
                         >

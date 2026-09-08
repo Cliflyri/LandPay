@@ -33,16 +33,29 @@
                         <strong>Payment plan</strong>
                     </label>
 
+                    <input type="hidden" id="payment-invoice" name="invoice_id" value="{{ $input['invoice_id'] ?? '' }}">
                     <select class="form-select" id="payment-plan" name="payment_plan_id">
                         @foreach($plans as $plan)
                             <option
                                 value="{{ $plan->id }}"
                                 data-open-cents="{{ $planBalances[$plan->id] }}"
                                 data-open-balance="{{ number_format($planBalances[$plan->id]/100,2,'.','') }}"
+                                data-invoice-id=""
                                 @selected((int)$input['payment_plan_id']===$plan->id)
                             >
                                 {{ $plan->plan_number }} &mdash; {{ $plan->title }} ({{ \App\Support\Money::format($planBalances[$plan->id]) }} open)
                             </option>
+                            @foreach($plan->invoices->filter(fn($invoice) => in_array($invoice->status->value ?? $invoice->status,['issued','partially_paid'],true) && ($invoiceBalances[$invoice->id] ?? 0) > 0)->sortBy([['due_date','asc'],['id','asc']]) as $invoice)
+                                <option
+                                    value="{{ $plan->id }}"
+                                    data-invoice-id="{{ $invoice->id }}"
+                                    data-open-cents="{{ $invoiceBalances[$invoice->id] }}"
+                                    data-open-balance="{{ number_format($invoiceBalances[$invoice->id]/100,2,'.','') }}"
+                                    @selected((int)($input['invoice_id'] ?? 0)===$invoice->id)
+                                >
+                                    &nbsp;&nbsp;&mdash; Invoice {{ $invoice->invoice_number }} &middot; due {{ $invoice->due_date->format('M j, Y') }} ({{ \App\Support\Money::format($invoiceBalances[$invoice->id]) }})
+                                </option>
+                            @endforeach
                         @endforeach
                     </select>
                 </div>
@@ -885,6 +898,7 @@
 
     plan.addEventListener('change', () => {
 
+        document.getElementById('payment-invoice').value = plan.selectedOptions[0].dataset.invoiceId || '';
         amount.value = money(
             Number(plan.selectedOptions[0].dataset.openCents)
         );

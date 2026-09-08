@@ -5,40 +5,46 @@ namespace App\Models;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaymentPlan extends Model
 {
-    use HasPublicUuid;
+    use HasPublicUuid, SoftDeletes;
 
     protected $guarded = ['id', 'uuid'];
 
     protected function casts(): array
     {
         return [
+            'first_scheduled_invoice_date' => 'date',
             'first_due_date' => 'date',
             'plan_start_date' => 'date',
             'maturity_date' => 'date',
             'activated_at' => 'datetime',
             'scheduled_invoice_email_enabled' => 'boolean',
             'automated_reminders_enabled' => 'boolean',
+            'govdeals' => 'boolean',
             'automatic_invoice_email_enabled' => 'boolean',
             'accelerated_testing_mode' => 'boolean',
+            'first_payment_invoice_email_on_activation' => 'boolean',
+            'first_payment_invoice_on_activation' => 'boolean',
             'closed_at' => 'datetime',
         ];
     }
 
     public static function normalizeAdminStatusFilter(?string $status): string
     {
-        return in_array($status, ['active', 'draft', 'terminated', 'closed', 'all'], true) ? $status : 'active';
+        return in_array($status, ['active_draft', 'active', 'draft', 'terminated', 'closed', 'all'], true) ? $status : 'active_draft';
     }
 
-    public function scopeForAdminListing(Builder $query, ?string $status = 'active', ?string $search = null): Builder
+    public function scopeForAdminListing(Builder $query, ?string $status = 'active_draft', ?string $search = null): Builder
     {
         $status = self::normalizeAdminStatusFilter($status);
         $statuses = match ($status) {
+            'active_draft' => ['active', 'paused', 'draft'],
             'active' => ['active', 'paused'],
             'draft' => ['draft'],
             'terminated' => ['terminated'],
@@ -93,6 +99,11 @@ class PaymentPlan extends Model
     public function billingTerms(): HasMany
     {
         return $this->hasMany(PaymentPlanBillingTerm::class);
+    }
+
+    public function contractDocuments(): HasMany
+    {
+        return $this->hasMany(ContractDocument::class);
     }
 
     public function pauses(): HasMany { return $this->hasMany(PaymentPlanPause::class); }

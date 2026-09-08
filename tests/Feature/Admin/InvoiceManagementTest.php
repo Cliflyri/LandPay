@@ -2,9 +2,14 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\FinancialActorType;
+use App\Enums\FinancialEffectComponent;
+use App\Enums\FinancialEffectType;
+use App\Enums\FinancialTransactionType;
+use App\Financial\PostingEffect;
 use App\Mail\InvoiceReminderMail;
-use App\Models\AppSetting;
 use App\Mail\TemplatedInvoiceMail;
+use App\Models\AppSetting;
 use App\Models\Client;
 use App\Models\EmailDelivery;
 use App\Models\EmailTemplate;
@@ -13,12 +18,14 @@ use App\Models\InvoiceReminder;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
 use App\Models\User;
-use App\Services\ReminderAutomationService;
-use Illuminate\Support\Carbon;
+use App\Services\AutomaticInvoiceService;
 use App\Services\ContractOpeningService;
 use App\Services\FinancialBalanceService;
+use App\Services\FinancialPostingService;
 use App\Services\PaymentPlanMembershipService;
+use App\Services\ReminderAutomationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -139,6 +146,7 @@ class InvoiceManagementTest extends TestCase
         $this->assertDatabaseCount('invoices', 1);
         $this->assertDatabaseCount('invoice_items', 2);
     }
+
     public function test_voided_scheduled_invoice_does_not_block_an_independent_invoice_for_the_same_period(): void
     {
         [$user, $plan] = $this->activePlan();
@@ -198,7 +206,7 @@ class InvoiceManagementTest extends TestCase
         $response = $this->post(route('admin.plans.invoices.manual.store', $plan), $data);
         $invoice = Invoice::query()->sole();
         $response->assertRedirect(route('admin.invoices.show', $invoice));
-        $this->assertStringStartsWith('MINV-'.$plan->id.'-', $invoice->invoice_number);
+        $this->assertMatchesRegularExpression('/^M'.$plan->id.'-260815-[A-Z]{2}$/', $invoice->invoice_number);
         $this->assertSame('manual', $invoice->generation_source);
         $this->assertNull($invoice->period_start);
         $this->assertNull($invoice->period_end);
@@ -210,7 +218,7 @@ class InvoiceManagementTest extends TestCase
         $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'item_type' => 'administrative_fee', 'amount' => 2_500]);
         $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'item_type' => 'other', 'amount' => 1_000]);
 
-        app(\App\Services\AutomaticInvoiceService::class)->run(Carbon::parse('2026-09-01'));
+        app(AutomaticInvoiceService::class)->run(Carbon::parse('2026-09-01'));
         $this->assertDatabaseHas('invoices', [
             'payment_plan_id' => $plan->id,
             'invoice_number' => 'INV-'.$plan->id.'-202609',
@@ -220,13 +228,13 @@ class InvoiceManagementTest extends TestCase
     public function test_manual_invoice_automatically_uses_available_account_credit(): void
     {
         [$user, $plan] = $this->activePlan();
-        app(\App\Services\FinancialPostingService::class)->post(
+        app(FinancialPostingService::class)->post(
             $plan,
-            \App\Enums\FinancialTransactionType::Payment,
+            FinancialTransactionType::Payment,
             7_500,
             '2026-08-14',
-            \App\Enums\FinancialActorType::Administrator,
-            [new \App\Financial\PostingEffect(\App\Enums\FinancialEffectType::ClientCredit, 7_500, \App\Enums\FinancialEffectComponent::UnappliedCredit)],
+            FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, 7_500, FinancialEffectComponent::UnappliedCredit)],
             actor: $user,
             description: 'Early payment held for next invoice',
         );
@@ -246,7 +254,7 @@ class InvoiceManagementTest extends TestCase
         $this->assertSame('paid', $invoice->fresh()->status->value);
         $this->assertDatabaseHas('financial_transactions', [
             'invoice_id' => $invoice->id,
-            'type' => \App\Enums\FinancialTransactionType::CreditApplication->value,
+            'type' => FinancialTransactionType::CreditApplication->value,
             'gross_amount' => 3_500,
         ]);
 
@@ -277,6 +285,7 @@ class InvoiceManagementTest extends TestCase
         $this->assertSame($contractBeforeInvoice, app(FinancialBalanceService::class)->contractBalance($plan));
         $this->assertSame(0, app(FinancialBalanceService::class)->invoiceBalance($invoice));
     }
+
     public function test_dashboard_breaks_current_balance_into_linked_invoice_due_dates(): void
     {
         [$user, $plan] = $this->activePlan();
@@ -290,7 +299,7 @@ class InvoiceManagementTest extends TestCase
         $invoices = Invoice::query()->orderBy('due_date')->get();
         $response = $this->get(route('admin.dashboard'));
         $response->assertOk()
-            ->assertSee('Current balance')
+            ->assertSee('Current Due')
             ->assertSee('$2,100.00')
             ->assertSee('$525.00 due 8/6')
             ->assertSee('$525.00 due 9/6')
@@ -302,6 +311,7 @@ class InvoiceManagementTest extends TestCase
             $response->assertSee(route('admin.invoices.show', $invoice), false);
         }
     }
+
     public function test_administrator_can_save_encrypted_smtp_settings_and_send_a_test(): void
     {
         Mail::fake();
@@ -346,7 +356,7 @@ class InvoiceManagementTest extends TestCase
                 'automatic_invoice_email_enabled' => false,
             ]);
 
-            $result = app(\App\Services\AutomaticInvoiceService::class)->run(Carbon::today());
+            $result = app(AutomaticInvoiceService::class)->run(Carbon::today());
 
             $this->assertSame(1, $result['emailed']);
             Mail::assertSent(TemplatedInvoiceMail::class, fn ($mail) => $mail->hasTo('client@example.com'));
@@ -405,7 +415,13 @@ class InvoiceManagementTest extends TestCase
             $this->assertSame('2026-08-03', $reminder->trigger_date->toDateString());
             $this->assertSame(0, app(ReminderAutomationService::class)->run(Carbon::today())['sent']);
             $this->assertDatabaseCount('invoice_reminders', 1);
-            Mail::assertSent(InvoiceReminderMail::class, 1);
+            Mail::assertSent(InvoiceReminderMail::class, fn ($mail) => str_starts_with($mail->renderedSubject, 'Payment reminder'));
+
+            Carbon::setTestNow('2026-08-13 08:00:00');
+            $this->assertSame(1, app(ReminderAutomationService::class)->run(Carbon::today())['sent']);
+            $this->assertDatabaseHas('invoice_reminders', ['trigger_type' => 'past_due_1']);
+            Mail::assertSent(InvoiceReminderMail::class, fn ($mail) => str_starts_with($mail->renderedSubject, 'Past-due invoice')
+                && str_contains($mail->renderedBody, '7 days past due'));
         } finally {
             Carbon::setTestNow();
         }
@@ -475,6 +491,7 @@ class InvoiceManagementTest extends TestCase
             ->assertSee('Balance due')
             ->assertDontSee('Delete invoice</h2>', false);
     }
+
     private function activePlan(): array
     {
         $user = User::factory()->create();
@@ -491,7 +508,7 @@ class InvoiceManagementTest extends TestCase
         ]);
         app(PaymentPlanMembershipService::class)->add($plan, $client, $user, 'primary', '2026-08-01', contactRiskAcknowledgmentMethod: 'admin_contract_acceptance');
         app(ContractOpeningService::class)->open($plan, $user, 2_000_000, 50_000, 0, '2026-08-01');
-        $plan->update(['status' => 'active', 'activated_at' => now()]);
+        $plan->update(['status' => 'active', 'activated_at' => '2026-08-01']);
         PaymentPlanBillingTerm::query()->create([
             'payment_plan_id' => $plan->id, 'frequency' => 'monthly', 'invoice_day' => 1, 'due_days_after_issue' => 5,
             'grace_days' => 2, 'scheduled_payment_amount' => 50_000, 'monthly_service_fee' => 2_500,

@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceReminder;
 use App\Models\PaymentPlanClient;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -18,9 +19,10 @@ class InvoiceReminderService
         private readonly FinancialBalanceService $balances,
         private readonly EmailTemplateService $templates,
         private readonly InvoiceAccessLinkService $links,
+        private readonly ReminderTemplateContextService $context,
     ) {}
 
-    public function send(Invoice $invoice, ?User $actor, bool $automated = false, ?\Illuminate\Support\Carbon $triggerDate = null, ?string $triggerType = null): InvoiceReminder
+    public function send(Invoice $invoice, ?User $actor, bool $automated = false, ?Carbon $triggerDate = null, ?string $triggerType = null): InvoiceReminder
     {
         $invoice->loadMissing('paymentPlan.memberships.client');
         $balance = $this->balances->invoiceBalance($invoice);
@@ -33,7 +35,13 @@ class InvoiceReminderService
             throw ValidationException::withMessages(['recipient' => 'No valid invoice-recipient email is configured for this payment plan.']);
         }
         $secureUrl = $this->links->url($this->links->activeOrCreate($invoice, $client, $actor));
-        $rendered = $this->templates->render('payment-reminder', $invoice, $client, $balance, $secureUrl);
+        $reminderDate = ($triggerDate ?? today())->copy()->startOfDay();
+        $pastDue = $reminderDate->gt($invoice->due_date->copy()->startOfDay());
+        $templateSlug = $pastDue ? 'payment-past-due-reminder' : 'payment-due-reminder';
+        $rendered = $this->templates->render(
+            $templateSlug, $invoice, $client, $balance, $secureUrl,
+            $this->context->for($invoice, $reminderDate, $triggerType),
+        );
         $reminder = InvoiceReminder::query()->create([
             'invoice_id' => $invoice->id,
             'payment_plan_id' => $invoice->payment_plan_id,

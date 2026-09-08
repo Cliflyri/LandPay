@@ -3,11 +3,12 @@
 @section('body_class','admin-page')
 @section('content')
 <section class="admin-section"><div class="container-fluid dashboard-container">
-<div class="admin-heading"><div><span class="eyebrow eyebrow-dark">Administration</span><h1>Settings</h1><p class="mb-0">Manage company identity and reusable customer email templates.</p></div><div><a class="btn btn-brand" href="{{route('admin.payment-methods.index')}}">Payment methods</a> <a class="btn btn-outline-brand" href="{{route('admin.dashboard')}}">Back to dashboard</a></div></div>
+<div class="admin-heading"><div><span class="eyebrow eyebrow-dark">Administration</span><h1>Settings</h1><p class="mb-0">Manage company, billing, notification, email, and security settings.</p></div><div><a class="btn btn-brand" href="{{route('admin.payment-methods.index')}}">Payment methods</a> <a class="btn btn-outline-brand" href="{{route('admin.dashboard')}}">Back to dashboard</a></div></div>
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
 @if($errors->any())<div class="alert alert-danger mt-4">{{$errors->first()}}</div>@endif
 <ul class="nav nav-tabs settings-tabs mt-4" id="settingsTabs" role="tablist">
 <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#company-settings" type="button" role="tab">Company</button></li>
+<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#billing-settings" type="button" role="tab">Billing Defaults</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#smtp-settings" type="button" role="tab">SMTP</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#notification-settings" type="button" role="tab">Notifications</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reminder-settings" type="button" role="tab">Reminders</button></li>
@@ -25,6 +26,7 @@
 <div class="col-12"><label class="form-label" for="email_footer">Email footer</label><textarea class="form-control" id="email_footer" name="email_footer" rows="2">{{old('email_footer',$settings['email_footer'])}}</textarea></div>
 <div class="col-12"><button class="btn btn-brand">Save settings</button></div></form></div>
 </div>
+@include('admin.settings.partials.billing-defaults')
 <div class="tab-pane fade" id="smtp-settings" role="tabpanel" tabindex="0">
 <div class="admin-next-card mt-4"><div class="d-flex flex-wrap justify-content-between gap-3"><div><h2>SMTP delivery</h2><p class="text-muted mb-0">Credentials are stored encrypted. Leave the password blank to keep the saved password.</p></div>
 
@@ -146,7 +148,7 @@
 <div class="tab-pane fade @if($loop->first) show active @endif" id="template-{{$template->id}}" role="tabpanel" tabindex="0">
 <form method="post" action="{{route('admin.settings.templates.update',$template)}}" class="mt-4">@csrf @method('put')
 <div><h3 class="h4 mb-1">{{$template->name}}</h3><small class="text-muted">{{$template->slug}}</small></div>
-<div class="mt-3"><span class="form-label d-block">Allowed variables</span><div class="template-variable-list">@foreach($templateVariables[$template->slug] ?? [] as $variable)<code>&#123;&#123; {{ $variable }} &#125;&#125;</code>@endforeach</div></div>
+<div class="mt-3"><span class="form-label d-block">Allowed variables</span><div class="template-variable-list">@foreach($templateVariables[$template->slug] ?? [] as $variable)<button type="button" class="template-variable-button" data-insert-variable="{{$variable}}" title="{{$templateVariableDescriptions[$variable] ?? 'Insert this value into the template.'}}">&#123;&#123; {{$variable}} &#125;&#125;</button>@endforeach</div></div>
 <div class="mt-3"><label class="form-label" for="subject-{{$template->id}}">Subject</label><input class="form-control" id="subject-{{$template->id}}" name="subject" value="{{$template->subject}}" required></div>
 <div class="mt-3"><label class="form-label" for="body-{{$template->id}}">Message body (basic HTML supported)</label><textarea class="form-control font-monospace" id="body-{{$template->id}}" name="body_html" rows="8" required>{{$template->body_html}}</textarea></div>
 <div class="d-flex flex-wrap gap-2 mt-3"><button class="btn btn-brand">Save HTML template</button></form><button class="btn btn-outline-brand" type="button" data-template-preview="preview-{{$template->id}}">Preview HTML</button><form method="post" action="{{route('admin.settings.templates.restore',$template)}}" onsubmit="return confirm('Restore the default {{$template->name}} template?');">@csrf<button class="btn btn-outline-brand">Restore default</button></form></div>
@@ -246,6 +248,10 @@ if (settingsParams.get('section') === 'notifications' && window.bootstrap) {
     const notificationsTab = document.querySelector('[data-bs-target="#notification-settings"]');
     if (notificationsTab) window.bootstrap.Tab.getOrCreateInstance(notificationsTab).show();
 }
+if (settingsParams.get('section') === 'billing' && window.bootstrap) {
+    const billingTab = document.querySelector('[data-bs-target="#billing-settings"]');
+    if (billingTab) window.bootstrap.Tab.getOrCreateInstance(billingTab).show();
+}
 const secureMessageEmail = document.getElementById('admin_notice_email_secure_messages');
 const secureMessageOptOut = document.getElementById('secure-message-opt-out');
 if (secureMessageEmail && secureMessageOptOut) {
@@ -259,6 +265,25 @@ if (settingsParams.get('section') === 'templates' && window.bootstrap) {
     if (mainTab) window.bootstrap.Tab.getOrCreateInstance(mainTab).show();
     if (templateTab) window.bootstrap.Tab.getOrCreateInstance(templateTab).show();
 }
+
+let activeTemplateField = null;
+document.addEventListener('focusin', event => {
+    if (event.target.matches('input[name="subject"], textarea[name="body_html"]')) activeTemplateField = event.target;
+});
+document.addEventListener('click', event => {
+    const button = event.target.closest('[data-insert-variable]');
+    if (!button) return;
+    const pane = button.closest('.tab-pane');
+    const field = activeTemplateField && pane?.contains(activeTemplateField)
+        ? activeTemplateField
+        : pane?.querySelector('textarea[name="body_html"]');
+    if (!field) return;
+    const placeholder = '{'+'{ '+button.dataset.insertVariable+' }'+'}';
+    const start = field.selectionStart ?? field.value.length;
+    const end = field.selectionEnd ?? start;
+    field.setRangeText(placeholder, start, end, 'end');
+    field.focus();
+});
 
 document.addEventListener('click', function (event) {
     const button = event.target.closest('[data-template-preview]');

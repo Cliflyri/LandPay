@@ -43,6 +43,7 @@
     </nav>
 </header>
 <main id="main-content">
+@include('portal._announcement-banners')
     @yield('content')
 </main>
 <footer class="site-footer" id="help">

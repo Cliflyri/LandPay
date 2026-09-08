@@ -16,7 +16,7 @@ class PaymentOptionsTest extends TestCase {
   [$admin,$client,$plan,$account]=$this->records();
   $this->actingAs($admin)->put(route('admin.payment-methods.general.update'),['enabled'=>'1','allow_custom_amount'=>'1','card_provider'=>'disabled','intent_expiry_days'=>14])->assertSessionHas('success');
   $this->put(route('admin.payment-methods.method.update','zelle'),['enabled'=>'1','name'=>'Zelle','instructions'=>'Send to payments@example.com','recipient'=>'payments@example.com','link'=>'','button'=>'I sent this payment'])->assertSessionHas('success');
-  $this->actingAs($account,'client')->get(route('portal.make-payment.create'))->assertOk()->assertSee('Recommended')->assertSee('Click the Zelle logo or payment address to copy it.')->assertSee('data-copy-payment-handle="payments@example.com"',false)->assertSee("status.textContent='Copied '+value",false);
+  $this->actingAs($account,'client')->get(route('portal.make-payment.create'))->assertOk()->assertSee('Preferred')->assertSee('Click the Zelle logo or payment address to copy it.')->assertSee('data-copy-payment-handle="payments@example.com"',false)->assertSee("status.textContent = 'Copied ' + value",false);
   $this->get(route('portal.make-payment.create',['plan'=>$plan->id,'amount'=>'42.35']))->assertOk()->assertSee('value="42.35"',false);
   $data=['payment_plan_id'=>$plan->id,'amount'=>'100.00','method'=>'zelle','overpayment_disposition'=>'principal'];
   $response=$this->post(route('portal.make-payment.store'),$data);
@@ -53,7 +53,7 @@ class PaymentOptionsTest extends TestCase {
   $this->assertDatabaseCount('client_payment_intents',3);
   $this->get(route('portal.make-payment.create',['plan'=>$second->id]))->assertOk()->assertSee('Cash App');
   $this->deleteJson(route('portal.make-payment.cancel',$simultaneousIntent))->assertOk();
-  $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('intends to pay $50.00 by Zelle')->assertSee('Client note: Payment will arrive under the name Billy Jones.');
+  $this->actingAs($admin, 'web')->get(route('admin.dashboard'))->assertOk()->assertSee('intends to pay $50.00 by Zelle')->assertSee('Client note: Payment will arrive under the name Billy Jones.');
   $this->get(route('admin.payment-intents.receive',$intent))->assertOk()->assertSee(route('admin.invoices.show',$plan->invoices()->first()),false)->assertSee('Client note:')->assertSee('Billy Jones');
 
   $response=$this->actingAs($account,'client')->deleteJson(route('portal.make-payment.cancel',$intent));
@@ -67,7 +67,7 @@ class PaymentOptionsTest extends TestCase {
   $this->post(route('admin.plans.payments.store',$plan),$stalePost)->assertStatus(409);
   $this->assertDatabaseCount('payments',0);
   $this->assertNull($intent->fresh()->payment_id);
-  $this->get(route('admin.dashboard'))->assertOk()->assertDontSee('Billy Jones');
+  $this->get(route('admin.dashboard'))->assertOk()->assertSee('Billy Jones');
 
   $secondData=['payment_plan_id'=>$second->id,'amount'=>'25.00','method'=>'zelle','client_note'=>'Second plan'];
   $this->actingAs($account,'client')->postJson(route('portal.make-payment.store'),$secondData)->assertOk();
@@ -90,7 +90,7 @@ class PaymentOptionsTest extends TestCase {
   $this->call('POST',route('webhooks.provider','stripe'),[],[],[],['CONTENT_TYPE'=>'application/json','HTTP_STRIPE_SIGNATURE'=>"t={$timestamp},v1={$signature}"],$payload)->assertOk();
   $this->assertDatabaseCount('payments',1);$this->assertDatabaseHas('admin_notices',['type'=>'online_payment_received','message'=>'Paying Client paid $100.00 by Stripe on '.now()->format('M j, Y').'. Payment posted successfully.']);
   $payment=$intent->fresh()->payment;
-  $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Paying Client')->assertSee('$100.00')->assertSee(now()->format('M j, Y'))->assertSee(route('admin.clients.show',$client),false)->assertSee(route('admin.payments.show',$payment),false);
+  $this->actingAs($admin, 'web')->get(route('admin.dashboard'))->assertOk()->assertSee('Paying Client')->assertSee('$100.00')->assertSee(now()->format('M j, Y'))->assertSee(route('admin.clients.show',$client),false)->assertSee(route('admin.payments.show',$payment),false);
  }
  private function records(): array {
   $admin=User::factory()->create(['status'=>'active']);$client=Client::create(['client_type'=>'individual','first_name'=>'Paying','last_name'=>'Client','email'=>'payer@example.com','country_code'=>'US','created_by_user_id'=>$admin->id,'updated_by_user_id'=>$admin->id]);

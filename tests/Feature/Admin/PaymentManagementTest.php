@@ -76,7 +76,7 @@ class PaymentManagementTest extends TestCase
             ->assertOk()
             ->assertViewHas('ledgerRows', fn ($rows) => $rows->count() === 1)
             ->assertSee('Account ledger')
-            ->assertSee('Applied to principal')
+            ->assertSee('Applied to contract')
             ->assertSee('Totals / ending balance')
             ->assertSeeText('INV-TEST')
             ->assertSeeText('$525.00')

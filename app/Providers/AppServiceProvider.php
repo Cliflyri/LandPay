@@ -10,6 +10,7 @@ use App\Observers\AdminNoticeObserver;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+        
         app(SmtpConfigurationService::class)->apply();
         AdminNotice::observe(AdminNoticeObserver::class);
         View::composer('layouts.admin', fn ($view) => $view->with([

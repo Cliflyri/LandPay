@@ -181,11 +181,11 @@ $primaryClientName = $primaryClient?->organization_name
             'summary' => compact('subtotal', 'waivers', 'invoiceAmount', 'creditApplied', 'paidToDate', 'adjustments'),
             'canDelete' => $this->voids->canVoid($invoice),
             'canCreateFirstPayment' => $invoice->status === InvoiceStatus::Voided
-                && $invoice->items->contains(fn ($item) => $item->description === 'First payment')
+                && str_starts_with($invoice->invoice_number, 'FP-')
                 && ! Invoice::query()
                     ->where('payment_plan_id', $invoice->payment_plan_id)
                     ->where('status', '!=', InvoiceStatus::Voided->value)
-                    ->whereHas('items', fn ($query) => $query->where('description', 'First payment'))
+                    ->where('invoice_number', 'like', 'FP-%')
                     ->exists(),
             'reminderRecipient' => $this->reminders->recipientMembership($invoice),
         ]);
@@ -233,19 +233,21 @@ $primaryClientName = $primaryClient?->organization_name
     {
         $invoice->load(['items', 'paymentPlan']);
         if ($invoice->status !== InvoiceStatus::Voided
-            || ! $invoice->items->contains(fn ($item) => $item->description === 'First payment')) {
+            || ! str_starts_with($invoice->invoice_number, 'FP-')) {
             throw ValidationException::withMessages([
                 'invoice' => 'Only a voided first-payment invoice can be recreated.',
             ]);
         }
 
-        $amount = (int) $invoice->items->where('description', 'First payment')->sum('amount');
+        $amount = (int) $invoice->items->where('item_type', \App\Enums\InvoiceItemType::ScheduledPurchasePayment)->sum('amount');
+        $documentationFee = (int) $invoice->items->where('item_type', \App\Enums\InvoiceItemType::DocumentationFee)->sum('amount');
         $newInvoice = $this->firstPaymentInvoices->issue(
             $invoice->paymentPlan,
             $request->user(),
             $amount,
             $invoice->issue_date,
             $invoice->due_date,
+            $documentationFee,
         );
 
         $message = 'First-payment invoice created successfully.';

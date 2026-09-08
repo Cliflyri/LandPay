@@ -1,42 +1,43 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminNoticeController;
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
+use App\Http\Controllers\Admin\BillingDefaultSettingsController;
+use App\Http\Controllers\Admin\ClientChangeRequestController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPortalAccessController;
+use App\Http\Controllers\Admin\ContractSetupController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InvoiceAccessLinkController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceEmailController;
 use App\Http\Controllers\Admin\InvoiceReminderController;
 use App\Http\Controllers\Admin\PaymentController;
-use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\PaymentReceiptController;
+use App\Http\Controllers\Admin\PaymentMethodSettingsController;
 use App\Http\Controllers\Admin\PaymentPlanController;
 use App\Http\Controllers\Admin\PaymentPlanPauseController;
-use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\AdminNoticeController;
-use App\Http\Controllers\Admin\ClientChangeRequestController;
-use App\Http\Controllers\Portal\AccountController as PortalAccountController;
+use App\Http\Controllers\Admin\PaymentReceiptController;
 use App\Http\Controllers\Admin\PortalInvitationController;
-use App\Http\Controllers\Portal\InvitationController as PortalInvitationAcceptanceController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
+use App\Http\Controllers\Portal\AccountController as PortalAccountController;
 use App\Http\Controllers\Portal\AuthenticatedSessionController as PortalSessionController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
+use App\Http\Controllers\Portal\InvitationController as PortalInvitationAcceptanceController;
 use App\Http\Controllers\Portal\InvoiceController as PortalInvoiceController;
+use App\Http\Controllers\Portal\MakePaymentController;
 use App\Http\Controllers\Portal\PasswordResetController as PortalPasswordResetController;
 use App\Http\Controllers\Portal\PaymentController as PortalPaymentController;
-use App\Http\Controllers\Portal\MakePaymentController;
-use App\Http\Controllers\Admin\PaymentMethodSettingsController;
-use App\Http\Controllers\Admin\ClientPaymentIntentController;
-use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
 use App\Http\Controllers\Portal\SecureMessageController as PortalSecureMessageController;
-use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
 use App\Http\Controllers\Portal\SharedDocumentController as PortalSharedDocumentController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProviderWebhookController;
 use App\Http\Controllers\SecureInvoiceController;
-use App\Http\Controllers\Admin\InvoiceAccessLinkController;
+use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
-Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider',['square','stripe'])->name('webhooks.provider');
+Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider', ['square', 'stripe'])->name('webhooks.provider');
 
 Route::prefix('invoice-access')->name('secure-invoice.')->middleware('secure.invoice')->group(function (): void {
     Route::get('invoice', [SecureInvoiceController::class, 'show'])->name('show');
@@ -84,6 +85,8 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('account/contact', [PortalAccountController::class, 'edit'])->name('account.edit');
     Route::put('account/contact', [PortalAccountController::class, 'update'])->name('account.update');
     Route::put('account/password', [PortalAccountController::class, 'password'])->name('account.password');
+    Route::get('announcements/{announcement}', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'view'])->name('announcements.view');
+    Route::post('announcements/{announcement}/respond', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'act'])->name('announcements.respond');
     Route::get('messages', [PortalSecureMessageController::class, 'index'])->name('messages.index');
     Route::get('messages/create', [PortalSecureMessageController::class, 'create'])->name('messages.create');
     Route::post('messages', [PortalSecureMessageController::class, 'store'])->middleware('throttle:5,1')->name('messages.store');
@@ -97,7 +100,6 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('documents/{document}/preview', [PortalSharedDocumentController::class, 'preview'])->name('documents.preview');
 });
 
-
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
@@ -108,6 +110,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('clients/{client}/archive', [ClientController::class, 'archive'])->name('clients.archive');
     Route::post('clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore');
     Route::resource('clients', ClientController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
+    Route::get('contract-setups/create', [ContractSetupController::class, 'create'])->name('contract-setups.create');
+    Route::post('contract-setups', [ContractSetupController::class, 'store'])->name('contract-setups.store');
+    Route::post('plans/{plan}/contract-setup/activate', [ContractSetupController::class, 'activate'])->name('contract-setups.activate');
+    Route::delete('plans/{plan}/contract-setup', [ContractSetupController::class, 'deleteDraft'])->name('contract-setups.delete-draft');
+    Route::get('contract-documents/{document}', [ContractSetupController::class, 'download'])->name('contract-documents.download');
+    Route::delete('contract-documents/{document}', [ContractSetupController::class, 'destroy'])->name('contract-documents.destroy');
     Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('plans/{plan}/pause', [PaymentPlanPauseController::class, 'pause'])->name('plans.pause');
     Route::post('plans/{plan}/resume', [PaymentPlanPauseController::class, 'resume'])->name('plans.resume');
@@ -125,6 +133,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('dashboard/status', [DashboardController::class, 'status'])->name('dashboard.status');
     Route::get('reports/{report?}', [ReportController::class, 'show'])->name('reports.show');
     Route::get('reports/{report}/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::resource('messages/announcements', \App\Http\Controllers\Admin\ClientAnnouncementController::class)->names('announcements')->except(['destroy']);
+    Route::post('messages/announcements/{announcement}/publish', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'publish'])->name('announcements.publish');
+    Route::post('messages/announcements/{announcement}/deactivate', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'deactivate'])->name('announcements.deactivate');
+    Route::post('messages/announcements/{announcement}/reactivate', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'reactivate'])->name('announcements.reactivate');
+    Route::post('messages/announcements/{announcement}/remove', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'remove'])->name('announcements.remove');
+    Route::delete('messages/announcements/{announcement}', [\App\Http\Controllers\Admin\ClientAnnouncementController::class, 'destroy'])->name('announcements.destroy');
     Route::get('messages', [AdminSecureMessageController::class, 'index'])->name('messages.index');
     Route::post('messages/email-notifications', [AdminSecureMessageController::class, 'updateEmailNotifications'])->name('messages.email-notifications');
     Route::get('messages/create', [AdminSecureMessageController::class, 'create'])->name('messages.create');
@@ -151,6 +165,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('plans/{plan}/invoices/manual/preview', [InvoiceController::class, 'manualPreview'])->name('plans.invoices.manual.preview');
     Route::post('plans/{plan}/invoices/manual', [InvoiceController::class, 'manualStore'])->name('plans.invoices.manual.store');
     Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::post('invoices/{invoice}/pay-in-full', [PaymentController::class, 'payInvoiceInFull'])->name('invoices.pay-in-full');
     Route::get('invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
     Route::put('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
     Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
@@ -167,6 +182,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::put('settings/payment-providers/{provider}', [PaymentMethodSettingsController::class, 'updateProvider'])->name('payment-methods.provider.update');
     Route::get('payment-intents/{intent}/receive', [PaymentController::class, 'intentPreview'])->name('payment-intents.receive');
     Route::put('settings/company', [SettingsController::class, 'updateCompany'])->name('settings.company.update');
+    Route::get('settings/billing', fn () => redirect()->route('admin.settings.index', ['section' => 'billing']))->name('settings.billing');
+    Route::put('settings/billing', [BillingDefaultSettingsController::class, 'update'])->name('settings.billing.update');
     Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
     Route::put('settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
     Route::post('settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');

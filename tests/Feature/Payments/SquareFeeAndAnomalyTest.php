@@ -47,6 +47,7 @@ class SquareFeeAndAnomalyTest extends TestCase
         $this->assertSame(10_320, $payment->gross_amount);
         $this->assertSame(90_000, app(FinancialBalanceService::class)->contractBalance($plan));
 
+        $this->assertSame(0, app(FinancialBalanceService::class)->clientCredit($plan));
         app(PaymentService::class)->reverse($payment, $admin, 'Square refund reconciled manually.');
         $this->assertSame(100_000, app(FinancialBalanceService::class)->contractBalance($plan));
     }
@@ -76,6 +77,7 @@ class SquareFeeAndAnomalyTest extends TestCase
         $this->assertSame('received', $result->status);
         $this->assertSame([10_000, 320], $result->payment->allocations()->orderBy('display_order')->pluck('amount')->all());
         $this->assertSame(90_000, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertSame(0, app(FinancialBalanceService::class)->clientCredit($plan));
         Http::assertSent(fn ($request) => $request['amount_money']['amount'] === 10_320);
     }
 

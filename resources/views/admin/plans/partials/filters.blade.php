@@ -7,8 +7,8 @@
         'name' => 'status',
         'label' => 'Plan status',
         'value' => $planStatus,
-        'default' => 'active',
-        'options' => ['active' => 'Active', 'draft' => 'Draft', 'terminated' => 'Terminated', 'closed' => 'Closed', 'all' => 'All'],
+        'default' => 'active_draft',
+        'options' => ['active_draft' => 'Active + Draft', 'active' => 'Active', 'draft' => 'Draft', 'terminated' => 'Terminated', 'closed' => 'Closed', 'all' => 'All'],
     ]];
     $filtersChanged = collect($filterSelects)->contains(fn ($filter) => $filter['value'] !== ($filter['default'] ?? ''));
 @endphp
