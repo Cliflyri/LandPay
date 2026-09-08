@@ -26,6 +26,7 @@ class Invoice extends Model
             'first_viewed_at' => 'datetime',
             'operationally_closed_at' => 'datetime',
             'reopened_at' => 'datetime',
+            'property_tax_year' => 'integer',
         ];
     }
 

@@ -10,5 +10,6 @@ enum InvoiceItemType: string
     case LateFeeStageOne = 'late_fee_stage_1';
     case LateFeeStageTwo = 'late_fee_stage_2';
     case AdministrativeFee = 'administrative_fee';
+    case PropertyTax = 'property_tax';
     case Other = 'other';
 }

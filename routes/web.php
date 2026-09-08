@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminNoticeController;
+use App\Http\Controllers\Admin\AdminActionController;
+use App\Http\Controllers\Admin\PropertyTaxBatchController;
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
 use App\Http\Controllers\Admin\BillingDefaultSettingsController;
 use App\Http\Controllers\Admin\ClientChangeRequestController;
@@ -102,6 +104,10 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
 
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('actions', AdminActionController::class)->name('actions.index');
+    Route::post('property-tax-batches/{propertyTaxBatch}/issue', [PropertyTaxBatchController::class, 'issue'])->name('property-tax-batches.issue');
+    Route::post('property-tax-batches/{propertyTaxBatch}/rows/{row}/retry-email', [PropertyTaxBatchController::class, 'retryEmail'])->name('property-tax-batches.retry-email');
+    Route::resource('property-tax-batches', PropertyTaxBatchController::class)->except(['destroy']);
     Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
     Route::post('clients/{client}/portal-access', [ClientPortalAccessController::class, 'store'])->name('portal-access.store');
     Route::post('clients/{client}/portal-access/reset', [ClientPortalAccessController::class, 'reset'])->name('portal-access.reset');

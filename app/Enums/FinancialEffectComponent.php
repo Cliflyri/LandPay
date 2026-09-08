@@ -12,6 +12,7 @@ enum FinancialEffectComponent: string
     case LateFeeStageOne = 'late_fee_stage_1';
     case LateFeeStageTwo = 'late_fee_stage_2';
     case AdministrativeFee = 'administrative_fee';
+    case PropertyTax = 'property_tax';
     case UnappliedCredit = 'unapplied_credit';
     case Refund = 'refund';
     case WriteOff = 'write_off';

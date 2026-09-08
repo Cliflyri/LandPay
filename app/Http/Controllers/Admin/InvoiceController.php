@@ -207,7 +207,7 @@ $primaryClientName = $primaryClient?->organization_name
             'due_date' => ['required', 'date', 'after_or_equal:issue_date'],
             'items' => ['required', 'array', 'min:1', 'max:30'],
             'items.*.id' => ['nullable', 'integer'],
-            'items.*.type' => ['required', 'in:scheduled_purchase_payment,documentation_fee,monthly_service_fee,late_fee_stage_1,late_fee_stage_2,administrative_fee,other'],
+            'items.*.type' => ['required', 'in:scheduled_purchase_payment,documentation_fee,monthly_service_fee,late_fee_stage_1,late_fee_stage_2,administrative_fee,property_tax,other'],
             'items.*.description' => ['required', 'string', 'max:500'],
             'items.*.amount' => ['required', 'decimal:0,2'],
         ]);

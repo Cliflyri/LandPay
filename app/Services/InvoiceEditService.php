@@ -161,6 +161,7 @@ class InvoiceEditService
             InvoiceItemType::LateFeeStageOne => FinancialEffectComponent::LateFeeStageOne,
             InvoiceItemType::LateFeeStageTwo => FinancialEffectComponent::LateFeeStageTwo,
             InvoiceItemType::AdministrativeFee, InvoiceItemType::DocumentationFee => FinancialEffectComponent::AdministrativeFee,
+            InvoiceItemType::PropertyTax => FinancialEffectComponent::PropertyTax,
             default => FinancialEffectComponent::Other,
         };
     }

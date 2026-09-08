@@ -69,6 +69,11 @@
     Payment plans
 </a>
 
+    <a @class(['admin-sidebar-link','active'=>request()->routeIs('admin.actions.*') || request()->routeIs('admin.property-tax-batches.*')]) href={{route('admin.actions.index')}}>
+        <span aria-hidden='true'>&#128295;</span>
+        Admin Actions
+    </a>
+
 {{--
     <a
         class="admin-sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}"
