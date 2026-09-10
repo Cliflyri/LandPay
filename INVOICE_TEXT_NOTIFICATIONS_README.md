@@ -1,205 +1,171 @@
-# Invoice Text Notifications — Future Implementation
+# Invoice SMS Notifications — Approved Implementation Plan
 
-Status: planned only; not implemented.
+Status: approved; not yet implemented.
 
-## Goal
+## Requirements
 
-Add Twilio SMS notifications for clients who explicitly opt in. Automatically generated invoices may send one short `invoice_created` message. Manually created invoices must not send automatically, but their invoice page should offer a manual **Send SMS reminder** action.
+Add two independent, unchecked-by-default portal preferences:
 
-## Required behavior
+- **Send me a text when a new invoice is created.**
+- **Send me a text when an invoice reminder is created.**
 
-- Portal checkbox, unchecked by default: **Send me a text when a new invoice is created.**
-- Client may opt out by unchecking it; Twilio STOP remains supported.
-- Use `clients.primary_phone`; do not add a duplicate phone field.
-- Changing the opted-in phone should disable SMS until the client consents again.
-- Admin can view and change consent on the client record and view opted-in clients in Settings.
-- Consent changes must record enabled state, time, source, phone snapshot, and actor where applicable.
-- Never send more than one `invoice_created` SMS for one invoice.
-- SMS should identify LandPay and contain only invoice number/amount, due date, and a portal-login link or instruction.
-- Manual reminders must honor active consent and Twilio STOP status.
+Use a dedicated immediate-update route, outside the existing contact-change approval workflow. Unchecking immediately opts out of that type. Portal impersonation remains read-only.
 
-## Existing LandPay integration points
+Use `clients.primary_phone`; do not duplicate phone data. Save the exact consented number as `consented_phone_e164` (for example, `(928) 555-0123` becomes `+19285550123`). This is a consent snapshot and Twilio-ready destination, not a replacement for `primary_phone`. A primary-phone change disables both preferences until fresh consent.
 
-### Client and portal
+A send requires: global SMS enabled; applicable preference enabled; no STOP block; a valid current primary phone matching `consented_phone_e164`; and no conflicting idempotent delivery.
 
-- Phone fields: `clients.primary_phone`, `clients.secondary_phone`.
-- Portal account UI: `resources/views/portal/account/show.blade.php`.
-- Portal controller: `app/Http/Controllers/Portal/AccountController.php`.
-- Admin client UI: `resources/views/admin/clients/show.blade.php` and `edit.blade.php`.
-- Admin client controller: `app/Http/Controllers/Admin/ClientController.php`.
+Keep SMS short. Identify the company with `AppSetting::valueFor('company_name', config('app.name', 'LandPay'))`; include only invoice number, amount, due date, and a portal-login link/instruction. Do not include sensitive property details.
 
-Consent should use its own direct portal route instead of the contact-change approval workflow. Portal impersonation is already read-only.
+## Current code and integration
 
-### Automatic invoices
+Portal/client controls belong in `resources/views/portal/account/show.blade.php`, a new `Portal/SmsPreferenceController`, the admin client show/edit views, and `Admin/ClientController`.
 
-Current flow:
+Automatic invoices currently flow:
 
 ```text
-invoices:generate
-  -> GenerateAutomaticInvoices
-  -> AutomaticInvoiceService
-  -> MonthlyInvoiceService::issue()
-  -> optional InvoiceEmailService
+invoices:generate -> GenerateAutomaticInvoices
+ -> AutomaticInvoiceService -> MonthlyInvoiceService::issue()
 ```
 
-Trigger automatic SMS in `AutomaticInvoiceService` immediately after `MonthlyInvoiceService::issue()` returns. At that point the invoice transaction is complete. Use a separate try/catch so SMS failure creates an admin notice without failing or rolling back the invoice.
+Call `InvoiceSmsService` from `AutomaticInvoiceService` after issuance succeeds. Do not call it inside `MonthlyInvoiceService`, which administrators also use. SMS errors create an `AdminNotice` and never roll back invoices.
 
-Do not trigger from `MonthlyInvoiceService`, because it is also used by administrator-created monthly invoices.
-
-### Reminders
-
-Current email flow:
+Reminders currently flow:
 
 ```text
-reminders:send
-  -> ReminderAutomationService
-  -> InvoiceReminderService
-  -> InvoiceReminderMail
+reminders:send -> ReminderAutomationService
+ -> InvoiceReminderService -> InvoiceReminderMail
 ```
 
-Do not add a second SMS schedule. Invoice-created SMS belongs to automatic invoice generation. A manual SMS reminder should be exposed beside the existing email reminder on `resources/views/admin/invoices/show.blade.php`.
+Send opted-in automated SMS from the same reminder candidate already processed by `ReminderAutomationService`. Do not add a scheduler or duplicate selection logic. SMS failure must not undo reminder/email results.
 
-The actual reminder schedule in `routes/console.php` is currently 07:00. Settings-page schedule wording should be reviewed separately because it is inconsistent.
+Add **Send SMS reminder** beside the current **Send reminder** button. It honors all send gates and may intentionally repeat.
 
-## Recommended database changes
+Both administrator invoice paths in `Admin/InvoiceController.php`—monthly and ad-hoc manual—receive an unchecked **Send invoice SMS** checkbox that survives preview. No administrator-created invoice sends SMS unless explicitly checked.
 
-Add current consent state to `clients`:
+## Scheduler finding
 
-```text
-invoice_sms_enabled boolean default false
-invoice_sms_opted_in_at timestamp nullable
-invoice_sms_opt_in_source varchar nullable
-invoice_sms_opted_out_at timestamp nullable
-invoice_sms_opt_out_source varchar nullable
+```php
+Schedule::command('invoices:generate')
+    ->dailyAt('06:00')->timezone(config('app.timezone'))->withoutOverlapping();
+Schedule::command('reminders:send')
+    ->dailyAt('07:00')->timezone(config('app.timezone'))->withoutOverlapping();
 ```
 
-Add append-only `client_sms_consent_events`:
+The Settings page incorrectly says reminders run at 08:00. Decide separately whether reminders should run at 06:05 or remain at 07:00, then align code and UI. SMS needs no new command.
+
+## Data model
+
+Create `client_sms_preferences`:
 
 ```text
-id
-client_id
-enabled
-source                 portal, admin, twilio_stop
-phone_snapshot
-changed_by_user_id nullable
-portal_account_id nullable
-created_at
-```
-
-Add `sms_deliveries`:
-
-```text
-id
-invoice_id
-payment_plan_id
-recipient_client_id
-message_type           invoice_created, manual_reminder
-recipient_phone
-message_snapshot
-idempotency_key unique
-twilio_message_sid nullable unique
-status                 pending, sent, failed, delivered, undelivered
-sent_by_user_id nullable
-sent_at nullable
-failed_at nullable
-failure_message nullable
+id, client_id
+notification_type        invoice_created | invoice_reminder
+enabled, consented_phone_e164
+opted_in_at, opt_in_source
+opted_out_at, opt_out_source
+stopped_at, stop_source
 timestamps
+unique(client_id, notification_type)
 ```
 
-## Idempotency
-
-Use this unique key for automatic delivery:
+Create append-only `client_sms_consent_events`:
 
 ```text
-invoice-created:{invoice UUID}
+id, client_id, notification_type, enabled
+source                   portal | admin | twilio_stop | phone_changed
+phone_snapshot
+changed_by_user_id nullable, portal_account_id nullable
+ip_address nullable, user_agent nullable, created_at
 ```
 
-`InvoiceSmsService` should create or retrieve that delivery row before contacting Twilio. It must not send when the row is already `pending` or `sent`. A failed delivery may retry by updating the same row, never by inserting another automatic-delivery record.
+Every portal/admin change, STOP, and phone invalidation appends an event.
 
-Manual reminders use a different type/key and may be sent more than once.
+Create `sms_deliveries`:
 
-## Twilio settings
+```text
+id, invoice_id, invoice_reminder_id nullable, payment_plan_id
+recipient_client_id, recipient_phone
+message_type             invoice_created | automated_reminder | manual_reminder
+message_snapshot, idempotency_key unique
+twilio_message_sid nullable unique
+status                   pending | sent | delivered | failed | undelivered
+sent_by_user_id nullable
+sent_at, delivered_at, failed_at nullable
+failure_message nullable, timestamps
+```
 
-Reuse `app_settings` and `AppSetting`:
+Create the delivery before contacting Twilio. Existing `pending`, `sent`, or `delivered` automatic records do not send again. Retry failures by updating the same row.
+
+```text
+invoice-created:{invoice_uuid}
+invoice-reminder:{invoice_uuid}:{trigger_type}:{trigger_date}
+manual-reminder:{generated_uuid}
+```
+
+The first unique key guarantees no more than one `invoice_created` SMS per invoice.
+
+## SMS Reminders settings
+
+Reuse `app_settings`:
 
 ```text
 twilio_sms_enabled
 twilio_account_sid
-twilio_auth_token              encrypted
+twilio_auth_token                 encrypted
 twilio_messaging_service_sid
+twilio_disabled_client_notice
 ```
 
-Add an **SMS** tab to `resources/views/admin/settings/index.blade.php`. Store the auth token with `AppSetting::putEncrypted()` and never display it after saving. Prefer a Twilio Messaging Service SID over a hard-coded sender number.
+Add an **SMS Reminders** Settings tab with the global switch, Account SID, Auth Token password input, Messaging Service SID, editable disable notice, configuration status/test action, and opt-in report. Save the Auth Token using `AppSetting::putEncrypted()` and never redisplay it. Prefer a Messaging Service SID to a hard-coded sender.
 
-The Settings tab should contain connection settings, a global enable/disable switch, and an opted-in client table linking to client records.
+Activation requires all credentials and a nonblank notice. Twilio also requires an SMS-capable Messaging Service/sender, applicable A2P/carrier registration, and the inbound webhook.
 
-## Twilio webhook
+## Global disable notice
 
-Add a dedicated public endpoint:
+When the global switch changes from enabled to disabled:
 
-```text
-POST /webhooks/twilio/messaging
-```
+1. Preserve preferences but block sending.
+2. Snapshot clients with either preference enabled.
+3. Create an informational announcement targeted only to them.
+4. Send the existing announcement email.
+5. Show the existing dismissible portal banner until dismissed.
 
-Create `TwilioMessagingWebhookController`; do not add Twilio to the Square/Stripe `ProviderWebhookController`.
+Use `twilio_disabled_client_notice`. Suggested default:
 
-The controller must:
+> SMS messages are currently disabled by the administrator. Please ensure you are receiving email notices from LandPay.
 
-- Validate `X-Twilio-Signature` using the Twilio SDK, the exact webhook URL, request fields, and saved auth token.
-- Read `From` and `OptOutType`.
-- Normalize the sender to E.164 and match `clients.primary_phone`.
-- Disable consent and append a `twilio_stop` consent event for STOP.
-- Return a successful response for valid events it does not otherwise process.
+`ClientAnnouncementRecipient` supports this, but `ClientAnnouncementService::activate()` broadcasts. Add a targeted-recipient method; do not use broadcast activation unchanged. Never notify non-opted-in clients.
 
-`bootstrap/app.php` already excludes `webhooks/*` from CSRF protection.
+If a client attempts opt-in while globally disabled, keep it off and show this notice inline. Do not create another announcement.
 
-## Expected code changes
+## Admin report and controls
 
-Modify:
+Show clients with either preference enabled, including client link, primary and consent phones, both preferences, opt-in/out dates and sources, and STOP state. Allow selective disable/override in the report and client record.
 
-- `composer.json`
-- `routes/web.php`
-- `app/Models/Client.php`
-- `app/Models/Invoice.php`
-- `app/Http/Controllers/Portal/AccountController.php`
-- `app/Http/Controllers/Admin/ClientController.php`
-- `app/Http/Controllers/Admin/SettingsController.php`
-- `app/Services/AutomaticInvoiceService.php`
-- `resources/views/portal/account/show.blade.php`
-- `resources/views/admin/clients/show.blade.php`
-- `resources/views/admin/clients/edit.blade.php`
-- `resources/views/admin/settings/index.blade.php`
-- `resources/views/admin/invoices/show.blade.php`
+Admin changes append audit events. STOP overrides portal/admin settings. Re-enabling after STOP requires confirmation that fresh consent was obtained.
 
-Create:
+## STOP webhook
 
-- `app/Models/SmsDelivery.php`
-- `app/Models/ClientSmsConsentEvent.php`
-- `app/Services/TwilioConfigurationService.php`
-- `app/Services/InvoiceSmsService.php`
-- `app/Http/Controllers/TwilioMessagingWebhookController.php`
-- `app/Http/Controllers/Admin/InvoiceSmsController.php`
-- A small portal consent controller, or focused consent methods in `Portal/AccountController`
-- Migrations for client consent state, consent events, and SMS deliveries
-- Focused feature tests for consent, STOP, manual reminders, automatic delivery, and idempotency
+Add `POST /webhooks/twilio/messaging` and a dedicated `TwilioMessagingWebhookController`; do not mix it with Square/Stripe webhooks. The existing `webhooks/*` CSRF exclusion applies.
 
-## Implementation cautions
+Validate `X-Twilio-Signature` with the SDK, exact URL, request fields, and saved Auth Token. Normalize `From`, process Twilio's opt-out event, disable both preferences, set local STOP state, and append audit events. Retain Twilio's carrier-level STOP enforcement as the compliance backstop.
 
-- Normalize and validate the primary phone as E.164 before enabling consent.
-- STOP must override both portal and admin settings. Admin re-enabling should require confirmation that fresh consent was obtained.
-- A phone-number change invalidates prior consent.
-- Keep message content minimal; do not include sensitive property details.
-- Existing portal invoice routes require authentication, which is preferred over a public invoice link.
-- Automatic SMS must only run for system-generated invoices. Manual invoices only receive the manual reminder button.
-- Queue tables exist, but production queue-worker availability is not established. The lean first version should send synchronously inside `invoices:generate`, consistent with current automatic email behavior. Queue later only after a reliable worker is deployed.
-- Twilio sender/A2P registration and Messaging Service configuration are operational prerequisites.
+## Implementation and tests
 
-## Suggested implementation order
+Install `twilio/sdk`. Add preference/audit/delivery models and migrations, `TwilioConfigurationService`, `InvoiceSmsService`, portal/admin SMS controllers, webhook controller, Settings/client/invoice UI, targeted announcements, workflow integration, and focused tests.
 
-1. Add Twilio SDK and encrypted settings UI.
-2. Add consent state/history and portal/admin controls.
-3. Add delivery records and `InvoiceSmsService` with idempotency.
-4. Trigger it from `AutomaticInvoiceService` only.
-5. Add the manual invoice SMS-reminder action.
-6. Add and validate the Twilio STOP webhook.
-7. Test duplicate command runs, failed retries, phone changes, portal opt-out, admin override, STOP, and manual invoices.
+Tests must cover: independent unchecked defaults; immediate portal/admin opt-in/out audit; invalid phones; phone-change invalidation; global-disable targeting and blocked opt-in; automatic invoice/reminder idempotency; explicit manual-invoice sends; repeatable manual reminders; failure isolation; webhook validation/STOP; and admin reporting/history.
+
+Implementation order:
+
+1. SDK and encrypted configuration.
+2. Preference, audit, and delivery schema/models.
+3. Immediate portal route and admin client controls.
+4. Settings tab and report.
+5. SMS service, eligibility, content, and idempotency.
+6. Automatic invoice/reminder integration.
+7. Manual invoice/reminder controls.
+8. Targeted disable announcement/email.
+9. STOP webhook.
+10. Tests and scheduler wording reconciliation.
