@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Services\FinancialBalanceService;
 use App\Services\CurrentPayoffService;
+use App\Services\ClientSmsPreferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class ClientController extends Controller
     public function __construct(
         private readonly FinancialBalanceService $balances,
         private readonly CurrentPayoffService $payoffs,
+        private readonly ClientSmsPreferenceService $smsPreferences,
     ) {}
 
     public function index(Request $request): View
@@ -120,6 +122,7 @@ class ClientController extends Controller
     public function show(Client $client): View
     {
         $client->load(['memberships.paymentPlan', 'contacts', 'portalAccount', 'portalInvitations']);
+        $client->load(['smsPreference','smsConsentEvents']);
         $client->setRelation('memberships', $client->memberships->filter->paymentPlan->values());
 
         return view('admin.clients.show', compact('client'));
@@ -127,15 +130,21 @@ class ClientController extends Controller
 
     public function edit(Client $client): View
     {
+        $client->load('smsPreference');
         return view('admin.clients.edit', compact('client'));
     }
 
     public function update(Request $request, Client $client): RedirectResponse
     {
         $data = $this->validatedClient($request);
+        $client->load('smsPreference');$smsEnabled=$request->boolean('sms_enabled');
+        $wasEnabled=(bool)$client->smsPreference?->enabled;
+        $phoneChanged=trim((string)$client->primary_phone)!==trim((string)($data['primary_phone']??''));
+        if($phoneChanged&&$wasEnabled&&$smsEnabled)$request->validate(['sms_continue_new_phone'=>['accepted']]);
         $data['updated_by_user_id'] = $request->user()->id;
         $client->update($data);
 
+        if($smsEnabled!==$wasEnabled||($smsEnabled&&$phoneChanged))$this->smsPreferences->set($client,$smsEnabled,'admin',$request,$request->user());
         return redirect()->route('admin.clients.show', $client)->with('success', 'Client updated successfully.');
     }
 

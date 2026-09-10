@@ -40,6 +40,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider', ['square', 'stripe'])->name('webhooks.provider');
+Route::post('/webhooks/twilio/messaging', \App\Http\Controllers\TwilioMessagingWebhookController::class)->middleware('throttle:60,1')->name('webhooks.twilio.messaging');
 
 Route::prefix('invoice-access')->name('secure-invoice.')->middleware('secure.invoice')->group(function (): void {
     Route::get('invoice', [SecureInvoiceController::class, 'show'])->name('show');
@@ -87,6 +88,7 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('account/contact', [PortalAccountController::class, 'edit'])->name('account.edit');
     Route::put('account/contact', [PortalAccountController::class, 'update'])->name('account.update');
     Route::put('account/password', [PortalAccountController::class, 'password'])->name('account.password');
+    Route::put('account/sms-preference', [\App\Http\Controllers\Portal\SmsPreferenceController::class, 'update'])->name('account.sms-preference.update');
     Route::get('announcements/{announcement}', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'view'])->name('announcements.view');
     Route::post('announcements/{announcement}/respond', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'act'])->name('announcements.respond');
     Route::get('messages', [PortalSecureMessageController::class, 'index'])->name('messages.index');
@@ -181,6 +183,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('invoices/{invoice}/secure-link/regenerate', [InvoiceAccessLinkController::class, 'regenerate'])->name('invoices.secure-link.regenerate');
     Route::delete('invoices/{invoice}/secure-link', [InvoiceAccessLinkController::class, 'destroy'])->name('invoices.secure-link.destroy');
     Route::post('invoices/{invoice}/reminders', [InvoiceReminderController::class, 'store'])->name('invoices.reminders.store');
+    Route::post('invoices/{invoice}/sms-reminder', [\App\Http\Controllers\Admin\InvoiceSmsController::class, 'store'])->name('invoices.sms-reminder.store');
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/payment-methods', [PaymentMethodSettingsController::class, 'index'])->name('payment-methods.index');
     Route::put('settings/payment-methods/general', [PaymentMethodSettingsController::class, 'updateGeneral'])->name('payment-methods.general.update');
@@ -193,6 +196,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
     Route::put('settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
     Route::post('settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+    Route::put('settings/sms', [SettingsController::class, 'updateSms'])->name('settings.sms.update');
+    Route::post('settings/sms/test', [SettingsController::class, 'testSms'])->middleware('throttle:3,1')->name('settings.sms.test');
     Route::post('settings/security/logout-all', [SettingsController::class, 'logoutAllDevices'])->name('settings.security.logout-all');
     Route::put('settings/templates/{template}', [SettingsController::class, 'updateTemplate'])->name('settings.templates.update');
     Route::put('settings/reminders', [SettingsController::class, 'updateReminders'])->name('settings.reminders.update');

@@ -67,5 +67,8 @@ class Client extends Model
     {
         return $this->hasMany(PortalInvitation::class);
     }
+    public function smsPreference(): HasOne { return $this->hasOne(ClientSmsPreference::class); }
+    public function smsConsentEvents(): HasMany { return $this->hasMany(ClientSmsConsentEvent::class)->latest(); }
+    public function smsDeliveries(): HasMany { return $this->hasMany(SmsDelivery::class, 'recipient_client_id'); }
     public function sharedDocuments(): HasMany { return $this->hasMany(SharedDocument::class); }
 }

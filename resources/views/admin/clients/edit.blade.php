@@ -14,6 +14,9 @@
 @endforeach
 <div class="col-md-2"><label class="form-label">Country</label><input class="form-control" name="country_code" maxlength="2" value="{{ old('country_code',$client->country_code) }}"></div>
 <div class="col-12"><label class="form-label">Internal notes</label><textarea class="form-control" name="notes" rows="4">{{ old('notes',$client->notes) }}</textarea></div>
+<div class="col-12"><input type="hidden" name="sms_enabled" value="0"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="sms_enabled" name="sms_enabled" value="1" @checked(old('sms_enabled',$client->smsPreference?->enabled))><label class="form-check-label" for="sms_enabled">Invoice, reminder, and account-related SMS enabled</label></div></div>
+@if($client->smsPreference?->enabled)<div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="sms_continue_new_phone" name="sms_continue_new_phone" value="1"><label class="form-check-label" for="sms_continue_new_phone">If I changed the primary phone, continue SMS at the new number with confirmed consent.</label></div></div>@endif
+
 </div><div class="d-flex gap-2 mt-4"><button class="btn btn-brand">Save changes</button><a class="btn btn-outline-brand" href="{{ route('admin.clients.show',$client) }}">Cancel</a></div></form>
 </div></section>
 @endsection

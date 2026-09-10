@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    private const REPORTS = ['payments', 'receivables', 'contracts', 'fees', 'client-portals'];
+    private const REPORTS = ['payments', 'receivables', 'contracts', 'fees', 'client-portals', 'client-sms'];
 
     public function __construct(private readonly FinancialBalanceService $balances) {}
 
@@ -63,7 +63,15 @@ class ReportController extends Controller
             'contracts' => $this->contracts($request),
             'fees' => $this->fees($request),
             'client-portals' => $this->clientPortals($request),
+            'client-sms' => $this->clientSms($request),
         };
+    }
+
+    private function clientSms(Request $request): array
+    {
+        $clients = Client::query()->whereNull('archived_at')->with(['smsPreference', 'smsDeliveries'])->matchingAdminSearch($request->string('search')->value(), true)->orderBy('last_name')->orderBy('first_name')->get();
+        $rows = $clients->map(fn (Client $client): array => ['client' => $client, 'preference' => $client->smsPreference, 'sent' => $client->smsDeliveries->where('status', 'sent')->count(), 'failed' => $client->smsDeliveries->where('status', 'failed')->count()]);
+        return ['rows' => $rows, 'totals' => ['Opted in' => $rows->filter(fn ($row) => (bool) $row['preference']?->enabled)->count(), 'STOP blocked' => $rows->filter(fn ($row) => (bool) $row['preference']?->stopped_at)->count(), 'Failed messages' => $rows->sum('failed')]];
     }
 
     private function clientPortals(Request $request): array
@@ -297,6 +305,7 @@ class ReportController extends Controller
             'receivables' => [['Client','Plan','Invoice','Issued','Due','Original','Paid/Credited','Balance','Days overdue','Aging'], fn ($r) => [$this->name($r['client']),$r['plan']->plan_number,$r['model']->invoice_number,$r['issue']->toDateString(),$r['due']->toDateString(),$r['amount']/100,$r['paid']/100,$r['balance']/100,$r['days'],$r['bucket']]],
             'contracts' => [['Client','Plan','Purchase price','Documentation fee','Principal paid','Contract balance','Open invoices','Account credit','Next due','Status','Estimated payoff'], fn ($r) => [$this->name($r['client']),$r['model']->plan_number,$r['purchase']/100,$r['documentation']/100,$r['principal_paid']/100,$r['contract']/100,$r['open']/100,$r['credit']/100,$r['next_due']?->toDateString(),$r['status'],$r['payoff']]],
             'fees' => [['Date','Client','Plan','Invoice','Type','Description','Assessed','Waived','Collected','Outstanding'], fn ($r) => [$r['date']->toDateString(),$this->name($r['client']),$r['plan']?->plan_number,$r['source_label'],$r['type'],$r['description'],$r['assessed']/100,$r['waived']/100,$r['collected']/100,$r['outstanding']/100]],
+            'client-sms' => [['Client','Phone','SMS phone','Enabled','Opt-in time','Opt-in source','Opt-out time','Opt-out source','STOP time','Sent','Failed'], fn ($r) => [$this->name($r['client']),$r['client']->primary_phone,$r['preference']?->sms_phone_e164,$r['preference']?->enabled?'Yes':'No',$r['preference']?->opted_in_at?->toDateTimeString(),$r['preference']?->opt_in_source,$r['preference']?->opted_out_at?->toDateTimeString(),$r['preference']?->opt_out_source,$r['preference']?->stopped_at?->toDateTimeString(),$r['sent'],$r['failed']]],
         };
     }
     private function name($client): string

@@ -8,6 +8,8 @@ use App\Models\AuditLog;
 use App\Models\BillingDefault;
 use App\Models\EmailTemplate;
 use App\Models\User;
+use App\Models\ClientSmsPreference;
+use App\Services\{ClientAnnouncementService,PhoneNumberService,SmsDeliveryService,TwilioConfigurationService};
 use App\Services\EmailTemplateService;
 use App\Services\ReminderAutomationService;
 use App\Services\SmtpConfigurationService;
@@ -26,6 +28,10 @@ class SettingsController extends Controller
         private readonly EmailTemplateService $templates,
         private readonly SmtpConfigurationService $smtp,
         private readonly ReminderAutomationService $automation,
+        private readonly TwilioConfigurationService $twilio,
+        private readonly PhoneNumberService $phones,
+        private readonly SmsDeliveryService $smsDeliveries,
+        private readonly ClientAnnouncementService $announcements,
     ) {}
 
     public function index(): View
@@ -45,6 +51,8 @@ class SettingsController extends Controller
             'smtp' => $this->smtp->values(),
             'reminderSettings' => $this->automation->settings(),
             'upcomingReminders' => $this->automation->eligible(now()->startOfDay(), true)->take(10),
+            'twilio' => $this->twilio->values(),
+            'reminderSendTime' => config('landpay.reminders_send_time'),
             'notificationSettings' => [
                 'invoice_view_notice' => AppSetting::valueFor('invoice_view_admin_notice_enabled', '0') === '1',
                 'invoice' => AppSetting::valueFor('admin_notice_email_invoice', '0') === '1',
@@ -226,6 +234,32 @@ class SettingsController extends Controller
         ]);
 
         return back()->with('success', 'Automated reminder rules saved.');
+    }
+
+    public function updateSms(Request $request): RedirectResponse
+    {
+        $data=$request->validate(['twilio_sms_enabled'=>['nullable','boolean'],'twilio_account_sid'=>['nullable','string','max:64'],'twilio_auth_token'=>['nullable','string','max:255'],'twilio_messaging_service_sid'=>['nullable','string','max:64'],'twilio_disabled_client_notice'=>['required','string','max:1000']]);
+        $enabled=$request->boolean('twilio_sms_enabled');$wasEnabled=$this->twilio->values()['enabled'];
+        $token=$data['twilio_auth_token']??null;unset($data['twilio_auth_token']);
+        if($enabled&&blank($data['twilio_account_sid']??null))throw ValidationException::withMessages(['twilio_account_sid'=>'Account SID is required to enable SMS.']);
+        if($enabled&&blank($data['twilio_messaging_service_sid']??null))throw ValidationException::withMessages(['twilio_messaging_service_sid'=>'Messaging Service SID is required to enable SMS.']);
+        if($enabled&&blank($token)&&!$this->twilio->values()['auth_token_set'])throw ValidationException::withMessages(['twilio_auth_token'=>'Auth Token is required to enable SMS.']);
+        AppSetting::putMany($data+['twilio_sms_enabled'=>$enabled?'1':'0']);
+        if(filled($token))AppSetting::putEncrypted('twilio_auth_token',$token);
+        if($wasEnabled&&!$enabled){$ids=ClientSmsPreference::query()->where('enabled',true)->pluck('client_id')->all();if($ids)$this->announcements->smsDisabled($ids,$data['twilio_disabled_client_notice'],$request->user()->id);}
+        return redirect()->route('admin.settings.index',['section'=>'sms'])->with('success','SMS settings saved.');
+    }
+
+    public function testSms(Request $request): RedirectResponse
+    {
+        $data=$request->validate(['test_phone'=>['required','string','max:32'],'test_message'=>['required','string','max:300'],'confirm_test'=>['accepted']]);
+        if(!$this->twilio->configured())throw ValidationException::withMessages(['test_phone'=>'Save complete Twilio credentials before sending a test.']);
+        $phone=$this->phones->requiredE164($data['test_phone']);
+        $company=AppSetting::valueFor('company_name',config('app.name','LandPay'));
+        $body=trim($data['test_message']);
+        if(!str_starts_with(mb_strtolower($body),mb_strtolower($company)))$body=$company.': '.$body;$body=(string)str($body)->limit(300,'');
+        $delivery=$this->smsDeliveries->send($phone,$body,'system_test','system-test:'.str()->uuid(),$request->user());
+        return redirect()->route('admin.settings.index',['section'=>'sms'])->with('success','Test SMS sent to '.$delivery->recipient_phone.'.');
     }
 
     public function restoreTemplate(EmailTemplate $template): RedirectResponse

@@ -14,6 +14,7 @@ use App\Services\FirstPaymentInvoiceService;
 use App\Services\InvoiceEditService;
 use App\Services\InvoiceEmailService;
 use App\Services\InvoiceReminderService;
+use App\Services\InvoiceSmsService;
 use App\Services\InvoiceVoidService;
 use App\Services\ManualInvoiceService;
 use App\Services\MonthlyInvoiceService;
@@ -38,6 +39,7 @@ class InvoiceController extends Controller
         private readonly InvoiceEditService $invoiceEdits,
         private readonly InvoiceEmailService $invoiceEmails,
         private readonly AutomaticInvoiceService $automaticInvoices,
+        private readonly InvoiceSmsService $invoiceSms,
     ) {}
 
     public function create(PaymentPlan $plan): View
@@ -69,6 +71,7 @@ class InvoiceController extends Controller
         );
 
         $message = 'Monthly invoice issued successfully.';
+        if ($request->boolean('send_sms')) { $delivery = $this->invoiceSms->sendInvoiceCreated($invoice, $request->user()); $message .= ' SMS sent to '.$delivery->recipient_phone.'.'; }
         if ($plan->automatic_invoice_email_enabled) {
             $delivery = $this->invoiceEmails->send($invoice, $request->user(), 'inline');
             $message .= ' Invoice emailed to '.$delivery->recipient_email.'.';
@@ -96,6 +99,7 @@ class InvoiceController extends Controller
         $invoice = $this->manualInvoices->issue($plan, $request->user(), $data['issue_date'], $preview['items']);
 
         $message = 'Invoice issued successfully.';
+        if ($request->boolean('send_sms')) { $delivery = $this->invoiceSms->sendInvoiceCreated($invoice, $request->user()); $message .= ' SMS sent to '.$delivery->recipient_phone.'.'; }
         if ($plan->automatic_invoice_email_enabled) {
             $delivery = $this->invoiceEmails->send($invoice, $request->user(), 'inline');
             $message .= ' Invoice emailed to '.$delivery->recipient_email.'.';
@@ -149,6 +153,7 @@ $primaryClientName = $primaryClient?->organization_name
     {
         return $request->validate([
             'issue_date' => ['required', 'date'],
+            'send_sms' => ['nullable', 'boolean'],
             'items' => ['required', 'array', 'min:1', 'max:20'],
             'items.*.type' => ['required', 'in:principal,fee,other'],
             'items.*.description' => ['required', 'string', 'max:500'],
@@ -159,6 +164,7 @@ $primaryClientName = $primaryClient?->organization_name
     public function show(Invoice $invoice): View
     {
         $invoice->load(['paymentPlan.memberships.client', 'items', 'emailDeliveries', 'accessLink']);
+        $smsEligible = $this->invoiceSms->eligible($this->invoiceSms->recipient($invoice));
         $balance = $this->balances->invoiceBalance($invoice);
         $subtotal = (int) $invoice->items->sum('standard_amount');
         $waivers = (int) $invoice->items->sum('waived_amount');
@@ -187,6 +193,7 @@ $primaryClientName = $primaryClient?->organization_name
                     ->where('status', '!=', InvoiceStatus::Voided->value)
                     ->where('invoice_number', 'like', 'FP-%')
                     ->exists(),
+            'smsEligible' => $smsEligible,
             'reminderRecipient' => $this->reminders->recipientMembership($invoice),
         ]);
     }
@@ -286,6 +293,7 @@ $primaryClientName = $primaryClient?->organization_name
     {
         return $request->validate([
             'billing_month' => ['required', 'date_format:Y-m'],
+            'send_sms' => ['nullable', 'boolean'],
             'monthly_fee_waiver' => ['nullable', 'decimal:0,2', 'min:0'],
             'waiver_reason' => ['nullable', 'string', 'max:500'],
         ]);

@@ -58,6 +58,7 @@
 </div></div>
 @endforeach
 </div>
+<div class="form-check mt-3"><input type="hidden" name="send_sms" value="0"><input class="form-check-input" type="checkbox" name="send_sms" value="1" id="send-sms" @checked(old('send_sms',$input['send_sms']??false))><label class="form-check-label" for="send-sms">Send invoice text notification (only if the client has opted in)</label></div>
 <div class="d-flex flex-wrap gap-2 mt-4"><button class="btn btn-outline-brand" type="submit">{{ $preview ? 'Refresh preview' : 'Preview invoice' }}</button>@if($preview)<button class="btn btn-brand" type="submit" formaction="{{ route('admin.plans.invoices.manual.store',$plan) }}">Issue invoice</button>@endif</div>
 </form></div>
 <div class="col-lg-4"><div class="admin-next-card"><h2>Invoice preview</h2>

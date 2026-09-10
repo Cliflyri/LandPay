@@ -12,7 +12,7 @@ use Throwable;
 
 class AutomaticInvoiceService
 {
-    public function __construct(private readonly MonthlyInvoiceService $invoices, private readonly InvoiceEmailService $email) {}
+    public function __construct(private readonly MonthlyInvoiceService $invoices, private readonly InvoiceEmailService $email, private readonly InvoiceSmsService $sms) {}
 
     public function run(?Carbon $through = null): array
     {
@@ -56,6 +56,7 @@ class AutomaticInvoiceService
                     );
 
                     $result['created']++;
+                    try { $this->sms->sendInvoiceCreated($invoice); } catch (Throwable $e) { $this->notice($plan, $invoice, 'Automatic invoice SMS failed', $e); }
                     if ($plan->scheduled_invoice_email_enabled) {
                         try {
                             $this->email->send($invoice, $actor, 'inline');

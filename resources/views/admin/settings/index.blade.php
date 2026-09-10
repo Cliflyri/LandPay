@@ -12,6 +12,7 @@
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#smtp-settings" type="button" role="tab">SMTP</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#notification-settings" type="button" role="tab">Notifications</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reminder-settings" type="button" role="tab">Reminders</button></li>
+<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#sms-settings" type="button" role="tab">SMS Reminders</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#template-settings" type="button" role="tab">Email templates</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cron-settings" type="button" role="tab">Cron Instructions</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#security-settings" type="button" role="tab">Security</button></li>
@@ -68,7 +69,7 @@
     <div class="d-flex flex-wrap justify-content-between gap-3">
         <div>
             <h2>Automated reminders</h2>
-            <p class="text-muted mb-0">The scheduler runs daily at 8:00 AM in the application timezone. Duplicate sends are blocked.</p>
+            <p class="text-muted mb-0">The scheduler runs daily at {{\Illuminate\Support\Carbon::createFromFormat('H:i',$reminderSendTime)->format('g:i A')}} {{config('app.timezone')}}. Duplicate sends are blocked.</p>
         </div>
 
         <span class="dashboard-status d-inline-flex align-items-center justify-content-center {{ $reminderSettings['enabled'] ? 'status-current' : 'status-draft' }}">
@@ -136,6 +137,33 @@
 
 @if($upcomingReminders->isNotEmpty())<hr class="my-4"><h3 class="h5">Upcoming reminder preview</h3><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Send date</th><th>Invoice</th><th>Rule</th><th>Recipient</th></tr></thead><tbody>@foreach($upcomingReminders as $candidate)<tr><td>{{$candidate['send_date']->format('M j, Y')}}</td><td><a href="{{route('admin.invoices.show',$candidate['invoice'])}}">{{$candidate['invoice']->invoice_number}}</a></td><td>{{str($candidate['trigger_type'])->replace('_',' ')->title()}}</td><td>{{$candidate['invoice']->paymentPlan->memberships->firstWhere('receives_invoices',true)?->client?->email ?? 'No recipient'}}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
+<div class="tab-pane fade" id="sms-settings" role="tabpanel" tabindex="0">
+<div class="admin-next-card mt-4"><div class="d-flex justify-content-between"><div><h2>SMS reminders</h2><p class="text-muted">Twilio credentials are stored in LandPay settings. The Auth Token is encrypted and never displayed.</p></div>
+
+<span class="dashboard-status d-inline-flex align-items-center justify-content-center {{$twilio['enabled']?'status-current':'status-draft'}}">
+    {{$twilio['enabled']?'Enabled':'Disabled'}}
+</span>
+
+
+
+</div>
+<form method="post" action="{{route('admin.settings.sms.update')}}" class="row g-3">@csrf @method('put')
+<div class="col-12"><input type="hidden" name="twilio_sms_enabled" value="0"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="twilio_sms_enabled" name="twilio_sms_enabled" value="1" @checked($twilio['enabled'])><label class="form-check-label" for="twilio_sms_enabled">Enable SMS reminders</label></div></div>
+<div class="col-md-6"><label class="form-label">Twilio Account SID</label><input class="form-control" name="twilio_account_sid" value="{{old('twilio_account_sid',$twilio['account_sid'])}}"></div>
+<div class="col-md-6"><label class="form-label">Messaging Service SID</label><input class="form-control" name="twilio_messaging_service_sid" value="{{old('twilio_messaging_service_sid',$twilio['messaging_service_sid'])}}"></div>
+<div class="col-md-6"><label class="form-label">Twilio Auth Token</label><input class="form-control" type="password" autocomplete="new-password" name="twilio_auth_token" placeholder="{{$twilio['auth_token_set']?'Saved - leave blank to keep':'Enter Auth Token'}}"></div>
+<div class="col-12"><label class="form-label">Notice shown to opted-in clients when SMS is disabled</label><textarea class="form-control" name="twilio_disabled_client_notice" rows="3" required>{{old('twilio_disabled_client_notice',$twilio['disabled_notice'])}}</textarea></div>
+<div class="col-12"><button class="btn btn-brand">Save SMS settings</button> <a class="btn btn-outline-brand" href="{{route('admin.reports.show',['report'=>'client-sms'])}}">Client SMS opt-in report</a></div></form>
+<hr class="my-4"><h3 class="h5">Send configuration test</h3><p class="text-muted">This sends one real message using saved credentials, even while client SMS is disabled.</p>
+<form method="post" action="{{route('admin.settings.sms.test')}}" class="row g-3">@csrf
+<div class="col-md-5"><label class="form-label">Test phone</label><input class="form-control" name="test_phone" value="{{old('test_phone')}}" placeholder="+19285550123" required></div>
+<div class="col-md-7"><label class="form-label">Test message</label><input class="form-control" name="test_message" maxlength="300" value="{{old('test_message','This is a test of our invoice notification service.')}}" required></div>
+<div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="confirm_test" name="confirm_test" value="1" required><label class="form-check-label" for="confirm_test">Send one real SMS; Twilio charges may apply.</label></div></div>
+<div class="col-12"><button class="btn btn-outline-brand">Send test SMS</button></div></form>
+</div></div>
+
+
+
 <div class="tab-pane fade" id="template-settings" role="tabpanel" tabindex="0">
 <div class="admin-next-card mt-4"><h2>Email templates</h2><p class="text-muted mb-3">Choose a template to edit. Each template lists only the variables available to it.</p>
 <ul class="nav nav-tabs settings-tabs" role="tablist">
@@ -248,6 +276,7 @@ if (settingsParams.get('section') === 'notifications' && window.bootstrap) {
     const notificationsTab = document.querySelector('[data-bs-target="#notification-settings"]');
     if (notificationsTab) window.bootstrap.Tab.getOrCreateInstance(notificationsTab).show();
 }
+if (settingsParams.get('section') === 'sms' && window.bootstrap) {    const smsTab = document.querySelector('[data-bs-target="#sms-settings"]');    if (smsTab) window.bootstrap.Tab.getOrCreateInstance(smsTab).show();}
 if (settingsParams.get('section') === 'billing' && window.bootstrap) {
     const billingTab = document.querySelector('[data-bs-target="#billing-settings"]');
     if (billingTab) window.bootstrap.Tab.getOrCreateInstance(billingTab).show();
