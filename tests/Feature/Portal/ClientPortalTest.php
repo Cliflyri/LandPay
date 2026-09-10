@@ -10,6 +10,7 @@ use App\Models\PortalAccount;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanClient;
 use App\Models\User;
+use App\Services\PortalInvitationService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -24,7 +25,7 @@ class ClientPortalTest extends TestCase
         [$admin,$client,$plan]=$this->records('ONE');
         $this->actingAs($admin, 'web')->post(route('admin.clients.portal-invitations.store',$client))->assertSessionHas('success');
         $invitation=PortalInvitation::query()->sole();
-        $this->assertTrue($invitation->expires_at->isAfter(now()->addHours(47)));
+        $this->assertTrue($invitation->expires_at->isAfter(now()->addHours(PortalInvitationService::EXPIRATION_HOURS - 1)));
         $this->assertNotNull($invitation->encrypted_token);
         $this->actingAs($admin, 'web')->get(route('admin.clients.show',$client))
             ->assertOk()

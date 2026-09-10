@@ -1,4 +1,4 @@
-<section class="pb-5 admin-section pt-0"><div class="container-fluid dashboard-container px-2 mt-4"><div class="admin-next-card"><h2>Client portal access</h2><p>The client creates their own password from a single-use invitation link valid for 48 hours.</p>
+<section class="pb-5 admin-section pt-0"><div class="container-fluid dashboard-container px-2 mt-4"><div class="admin-next-card"><h2>Client portal access</h2><p>The client creates their own password from a single-use invitation link valid for {{ \App\Services\PortalInvitationService::EXPIRATION_HOURS }} hours.</p>
 @if($errors->has('portal_account'))<div class="alert alert-danger">{{$errors->first()}}</div>@endif
 @php($latestInvitation=$client->portalInvitations->sortByDesc('created_at')->first())
 @if(!$client->portalAccount?->enabled)
