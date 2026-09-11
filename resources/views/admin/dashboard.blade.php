@@ -171,7 +171,7 @@
                                     href="{{ route('admin.clients.show', $row['primary_client']) }}"
                                 >
                                     {{ $row['client_name'] }}
-                                </a>
+                                </a> @if($row['primary_client']->excluded_from_reports)<span class="badge text-bg-warning">Test client</span>@endif
                             @else
                                 <span class="muted-value">{{ $row['client_name'] }}</span>
                             @endif
@@ -192,7 +192,7 @@
                                 href="{{ route('admin.plans.show', $row['plan']) }}"
                             >
                                 {{ $row['plan']->plan_number }}
-                            </a>
+                            </a> @if($row['plan']->excluded_from_reports)<span class="badge text-bg-warning">Test plan</span>@endif
                         </td>
 
                         <td>

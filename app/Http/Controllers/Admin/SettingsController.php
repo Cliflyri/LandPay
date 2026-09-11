@@ -9,6 +9,7 @@ use App\Models\BillingDefault;
 use App\Models\EmailTemplate;
 use App\Models\User;
 use App\Models\ClientSmsPreference;
+use App\Models\{Client,PaymentPlan};
 use App\Services\{ClientAnnouncementService,PhoneNumberService,SmsDeliveryService,TwilioConfigurationService};
 use App\Services\EmailTemplateService;
 use App\Services\ReminderAutomationService;
@@ -62,6 +63,10 @@ class SettingsController extends Controller
                 'account_portal' => AppSetting::valueFor('admin_notice_email_account_portal', '0') === '1',
                 'address' => AppSetting::valueFor('admin_notice_email_address', ''),
             ],
+            'testClients'=>Client::where('excluded_from_reports',true)->orderBy('last_name')->get(),
+            'availableTestClients'=>Client::where('excluded_from_reports',false)->whereNull('archived_at')->orderBy('last_name')->get(),
+            'testPlans'=>PaymentPlan::where('excluded_from_reports',true)->orderBy('plan_number')->get(),
+            'availableTestPlans'=>PaymentPlan::where('excluded_from_reports',false)->orderBy('plan_number')->get(),
         ]);
     }
 

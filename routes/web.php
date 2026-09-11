@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\PortalInvitationController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\TestDataController;
 use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
 use App\Http\Controllers\Portal\AccountController as PortalAccountController;
 use App\Http\Controllers\Portal\AuthenticatedSessionController as PortalSessionController;
@@ -202,6 +203,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::put('settings/templates/{template}', [SettingsController::class, 'updateTemplate'])->name('settings.templates.update');
     Route::put('settings/reminders', [SettingsController::class, 'updateReminders'])->name('settings.reminders.update');
     Route::post('settings/templates/{template}/restore', [SettingsController::class, 'restoreTemplate'])->name('settings.templates.restore');
+    Route::post('settings/test-data/clients',[TestDataController::class,'addClient'])->name('settings.test-data.clients.add');
+    Route::delete('settings/test-data/clients/{client}',[TestDataController::class,'removeClient'])->name('settings.test-data.clients.remove');
+    Route::post('settings/test-data/plans',[TestDataController::class,'addPlan'])->name('settings.test-data.plans.add');
+    Route::delete('settings/test-data/plans/{plan}',[TestDataController::class,'removePlan'])->name('settings.test-data.plans.remove');
     Route::post('plans/{plan}/service-fee-satisfaction', [PaymentController::class, 'satisfyServiceFee'])->name('plans.service-fee-satisfaction.store');
     Route::delete('plans/{plan}/service-fee-satisfaction/{satisfaction}', [PaymentController::class, 'revokeServiceFeeSatisfaction'])->name('plans.service-fee-satisfaction.destroy');
     Route::post('plans/{plan}/payments/preview', [PaymentController::class, 'preview'])->name('plans.payments.preview');

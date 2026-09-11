@@ -1,0 +1,10 @@
+<?php
+namespace App\Http\Controllers\Admin;
+use App\Http\Controllers\Controller;use App\Models\{AuditLog,Client,PaymentPlan};use Illuminate\Database\Eloquent\Model;use Illuminate\Http\{RedirectResponse,Request};
+class TestDataController extends Controller{
+public function addClient(Request $r):RedirectResponse{$d=$r->validate(['client_id'=>['required','exists:clients,id']]);$this->set($r,Client::findOrFail($d['client_id']),true);return $this->back('Test client added. Historical financial data is excluded from reports.');}
+public function removeClient(Request $r,Client $client):RedirectResponse{$this->set($r,$client,false);return $this->back('Test client removed. Historical financial data is included again.');}
+public function addPlan(Request $r):RedirectResponse{$d=$r->validate(['payment_plan_id'=>['required','exists:payment_plans,id']]);$this->set($r,PaymentPlan::findOrFail($d['payment_plan_id']),true);return $this->back('Test plan added. Historical financial data is excluded from reports.');}
+public function removePlan(Request $r,PaymentPlan $plan):RedirectResponse{$this->set($r,$plan,false);return $this->back('Test plan removed. Historical financial data is included again.');}
+private function set(Request $r,Model $m,bool $v):void{$before=(bool)$m->excluded_from_reports;if($before===$v)return;$m->update(['excluded_from_reports'=>$v]);AuditLog::create(['actor_type'=>'administrator','actor_user_id'=>$r->user()->id,'event'=>$v?'reporting.test_data_added':'reporting.test_data_removed','auditable_type'=>$m::class,'auditable_id'=>$m->getKey(),'before_values'=>['excluded_from_reports'=>$before],'after_values'=>['excluded_from_reports'=>$v],'ip_address'=>$r->ip(),'user_agent'=>str($r->userAgent())->limit(500)]);}
+private function back(string $m):RedirectResponse{return redirect()->route('admin.settings.index',['section'=>'test-data'])->with('success',$m);}}

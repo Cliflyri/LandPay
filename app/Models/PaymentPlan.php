@@ -29,6 +29,7 @@ class PaymentPlan extends Model
             'govdeals' => 'boolean',
             'automatic_invoice_email_enabled' => 'boolean',
             'accelerated_testing_mode' => 'boolean',
+            'excluded_from_reports' => 'boolean',
             'first_payment_invoice_email_on_activation' => 'boolean',
             'first_payment_invoice_on_activation' => 'boolean',
             'closed_at' => 'datetime',
@@ -38,6 +39,11 @@ class PaymentPlan extends Model
     public static function normalizeAdminStatusFilter(?string $status): string
     {
         return in_array($status, ['active_draft', 'active', 'draft', 'terminated', 'closed', 'all'], true) ? $status : 'active_draft';
+    }
+
+    public function scopeIncludedInReports(Builder $query): Builder
+    {
+        return $query->where('payment_plans.excluded_from_reports', false)->whereDoesntHave('memberships.client', fn (Builder $client) => $client->where('excluded_from_reports', true));
     }
 
     public function scopeForAdminListing(Builder $query, ?string $status = 'active_draft', ?string $search = null): Builder

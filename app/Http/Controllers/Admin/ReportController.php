@@ -93,6 +93,7 @@ class ReportController extends Controller
             'payer', 'financialTransaction.paymentPlan.memberships.client',
             'financialTransaction.reversedBy', 'allocations.invoiceItem', 'allocations.invoice',
         ])->newestFirst();
+        $query->whereHas('financialTransaction.paymentPlan', fn ($q) => $q->includedInReports())->where(fn ($q) => $q->whereNull('payer_client_id')->orWhereHas('payer', fn ($c) => $c->where('excluded_from_reports', false)));
         $this->dates($query, $request, 'received_date');
         $this->paymentSearch($query, $request);
 
@@ -130,7 +131,7 @@ class ReportController extends Controller
 
     private function receivables(Request $request): array
     {
-        $query = Invoice::query()->where('status', '!=', 'voided')
+        $query = Invoice::query()->where('status', '!=', 'voided')->whereHas('paymentPlan', fn ($q) => $q->includedInReports())
             ->with(['paymentPlan.memberships.client', 'items'])->orderBy('due_date');
         $this->dates($query, $request, 'issue_date');
         $this->invoiceSearch($query, $request);
@@ -162,7 +163,7 @@ class ReportController extends Controller
 
     private function contracts(Request $request): array
     {
-        $query = PaymentPlan::query()->with(['memberships.client', 'invoices.items', 'currentBillingTerms'])
+        $query = PaymentPlan::query()->includedInReports()->with(['memberships.client', 'invoices.items', 'currentBillingTerms'])
             ->orderBy('plan_number');
         $this->planSearch($query, $request);
         if ($request->filled('status') && $request->status !== 'all') $query->where('status', $request->status);
@@ -191,7 +192,7 @@ class ReportController extends Controller
     private function fees(Request $request): array
     {
         $query = InvoiceItem::query()->where('item_type', '!=', InvoiceItemType::ScheduledPurchasePayment->value)
-            ->whereNull('retired_at')->with(['invoice.paymentPlan.memberships.client'])->orderByDesc('id');
+            ->whereHas('invoice.paymentPlan', fn ($q) => $q->includedInReports())->whereNull('retired_at')->with(['invoice.paymentPlan.memberships.client'])->orderByDesc('id');
         if ($request->filled('from')) $query->whereHas('invoice', fn ($q) => $q->whereDate('issue_date', '>=', $request->from));
         if ($request->filled('to')) $query->whereHas('invoice', fn ($q) => $q->whereDate('issue_date', '<=', $request->to));
         if ($request->filled('search')) {
@@ -221,7 +222,7 @@ class ReportController extends Controller
         $direct = PaymentAllocation::query()
             ->whereNull('invoice_item_id')
             ->whereIn('allocation_type', [PaymentAllocationType::ServiceFee->value, PaymentAllocationType::ProcessingFee->value])
-            ->with(['payment.payer', 'payment.financialTransaction.paymentPlan.memberships.client', 'payment.financialTransaction.reversedBy'])
+            ->with(['payment.payer', 'payment.financialTransaction.paymentPlan.memberships.client', 'payment.financialTransaction.reversedBy'])->whereHas('payment.financialTransaction.paymentPlan', fn ($q) => $q->includedInReports())->whereHas('payment', fn ($q) => $q->whereNull('payer_client_id')->orWhereHas('payer', fn ($c) => $c->where('excluded_from_reports', false)))
             ->whereHas('payment', function ($query) use ($request): void {
                 if ($request->filled('from')) $query->whereDate('received_date', '>=', $request->from);
                 if ($request->filled('to')) $query->whereDate('received_date', '<=', $request->to);

@@ -17,7 +17,7 @@ class Client extends Model
 
     protected function casts(): array
     {
-        return ['archived_at' => 'datetime'];
+        return ['archived_at' => 'datetime', 'excluded_from_reports' => 'boolean'];
     }
 
     public function scopeMatchingAdminSearch(Builder $query, ?string $search, bool $showAllPlans = false): Builder

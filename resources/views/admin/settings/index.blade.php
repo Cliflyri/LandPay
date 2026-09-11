@@ -13,6 +13,7 @@
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#notification-settings" type="button" role="tab">Notifications</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reminder-settings" type="button" role="tab">Reminders</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#sms-settings" type="button" role="tab">SMS Reminders</button></li>
+<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#test-data-settings" type="button" role="tab">Test Data</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#template-settings" type="button" role="tab">Email templates</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cron-settings" type="button" role="tab">Cron Instructions</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#security-settings" type="button" role="tab">Security</button></li>
@@ -28,6 +29,7 @@
 <div class="col-12"><button class="btn btn-brand">Save settings</button></div></form></div>
 </div>
 @include('admin.settings.partials.billing-defaults')
+@include('admin.settings.partials.test-data')
 <div class="tab-pane fade" id="smtp-settings" role="tabpanel" tabindex="0">
 <div class="admin-next-card mt-4"><div class="d-flex flex-wrap justify-content-between gap-3"><div><h2>SMTP delivery</h2><p class="text-muted mb-0">Credentials are stored encrypted. Leave the password blank to keep the saved password.</p></div>
 
@@ -272,6 +274,10 @@
 @push('scripts')
 <script>
 const settingsParams = new URLSearchParams(window.location.search);
+if (settingsParams.get('section') === 'test-data' && window.bootstrap) {
+    const testDataTab = document.querySelector('[data-bs-target="#test-data-settings"]');
+    if (testDataTab) window.bootstrap.Tab.getOrCreateInstance(testDataTab).show();
+}
 if (settingsParams.get('section') === 'notifications' && window.bootstrap) {
     const notificationsTab = document.querySelector('[data-bs-target="#notification-settings"]');
     if (notificationsTab) window.bootstrap.Tab.getOrCreateInstance(notificationsTab).show();
