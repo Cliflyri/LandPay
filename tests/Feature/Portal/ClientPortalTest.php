@@ -38,7 +38,7 @@ class ClientPortalTest extends TestCase
         $this->assertTrue($account->enabled);
         $notice=AdminNotice::query()->where('type','portal_invitation_accepted')->sole();
         $this->assertSame('Portal ONE - one@example.com activated portal access.',$notice->message);
-        $this->get(route('portal.invitation.show',$token))->assertStatus(410);
+        $this->get(route('portal.invitation.show',$token))->assertOk()->assertSee('Your portal is active');
         $this->post(route('portal.login.store'),['email'=>$client->email,'password'=>'Secure-password-123!'])->assertRedirect(route('portal.dashboard'));
         $this->assertAuthenticatedAs($account,'client');
         $plan->update(['status' => 'paused']);
@@ -50,6 +50,20 @@ class ClientPortalTest extends TestCase
             ->assertDontSee('Payment schedule paused')
             ->assertDontSee('Scheduled invoices and automated reminders');
     }
+    public function test_expired_invitation_can_request_a_replacement(): void
+    {
+        Mail::fake();
+        [$admin,$client]=$this->records('EXPIRED');
+        $this->actingAs($admin, 'web')->post(route('admin.clients.portal-invitations.store',$client));
+        $invitation=PortalInvitation::query()->sole();
+        $token=$invitation->encrypted_token;
+        $invitation->update(['expires_at'=>now()->subMinute()]);
+        $this->get(route('portal.invitation.show',$token))->assertOk()->assertSee('This invitation has expired')->assertSee('Request a new invitation');
+        $this->post(route('portal.invitation.resend',$token))->assertRedirect()->assertSessionHas('status');
+        $this->assertCount(2,PortalInvitation::all());
+        $this->assertTrue(PortalInvitation::latest('id')->first()->isUsable());
+    }
+
     public function test_authentication_redirects_remain_within_the_correct_portal(): void
     {
         [$admin,$client]=$this->records('REDIRECT');

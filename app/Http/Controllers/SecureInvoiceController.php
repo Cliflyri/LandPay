@@ -6,6 +6,8 @@ use App\Models\Invoice;
 use App\Services\FinancialBalanceService;
 use App\Services\InvoiceAccessLinkService;
 use App\Services\InvoiceFirstViewService;
+use App\Services\PortalInvitationService;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +21,7 @@ class SecureInvoiceController extends Controller
         private readonly InvoiceAccessLinkService $links,
         private readonly FinancialBalanceService $balances,
         private readonly InvoiceFirstViewService $firstViews,
+        private readonly PortalInvitationService $invitations,
     ) {}
 
     public function enter(Request $request, string $token): RedirectResponse
@@ -58,7 +61,16 @@ class SecureInvoiceController extends Controller
             'creditApplied' => $creditApplied, 'paidToDate' => $paidToDate,
             'adjustments' => $balance - $invoiceAmount + $paidToDate + $creditApplied,
             'secureAccess' => true,
+            'offerPortalActivation' => ! ($link->client->portalAccount?->enabled) && filter_var($link->client->email, FILTER_VALIDATE_EMAIL) !== false,
         ]);
+    }
+
+    public function requestPortalInvitation(Request $request): RedirectResponse
+    {
+        $link = $request->attributes->get('secureInvoiceLink');
+        if ($link->client->portalAccount?->enabled) return back()->with('status', 'Your portal account is already active. You may sign in.');
+        $this->invitations->invite($link->client, User::query()->findOrFail($link->invoice->created_by_user_id));
+        return back()->with('status', 'A portal invitation has been sent to the email address on file.');
     }
 
     public function download(Request $request): Response

@@ -46,6 +46,7 @@ Route::post('/webhooks/twilio/messaging', \App\Http\Controllers\TwilioMessagingW
 Route::prefix('invoice-access')->name('secure-invoice.')->middleware('secure.invoice')->group(function (): void {
     Route::get('invoice', [SecureInvoiceController::class, 'show'])->name('show');
     Route::get('invoice/download', [SecureInvoiceController::class, 'download'])->name('download');
+    Route::post('portal-invitation', [SecureInvoiceController::class, 'requestPortalInvitation'])->middleware('throttle:3,10')->name('portal-invitation.store');
     Route::get('pay', [MakePaymentController::class, 'create'])->middleware('square.payment-csp')->name('payment.create');
     Route::post('pay/preview', [MakePaymentController::class, 'preview'])->middleware(['square.payment-csp', 'throttle:10,1'])->name('payment.preview');
     Route::post('pay', [MakePaymentController::class, 'store'])->middleware('throttle:10,1')->name('payment.store');
@@ -69,6 +70,7 @@ Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(func
     Route::post('reset-password', [PortalPasswordResetController::class, 'reset'])->name('password.update');
     Route::get('invitation/{token}', [PortalInvitationAcceptanceController::class, 'show'])->name('invitation.show');
     Route::post('invitation/{token}', [PortalInvitationAcceptanceController::class, 'accept'])->name('invitation.accept');
+    Route::post('invitation/{token}/resend', [PortalInvitationAcceptanceController::class, 'resend'])->middleware('throttle:3,10')->name('invitation.resend');
 });
 
 Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.enabled', 'portal.read-only'])->group(function (): void {
