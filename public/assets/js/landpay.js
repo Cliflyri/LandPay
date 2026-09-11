@@ -169,3 +169,41 @@ document.querySelectorAll('.secure-message-history-toggle').forEach((toggle) => 
     target.addEventListener('show.bs.collapse', () => { label.textContent = 'Collapse older messages'; });
     target.addEventListener('hide.bs.collapse', () => { label.textContent = toggle.dataset.showLabel; });
 });
+
+document.querySelectorAll('[data-formatting-editor]').forEach((editor) => {
+    const textarea = editor.querySelector('textarea');
+    const preview = editor.querySelector('[data-formatting-preview]');
+    const wrap = (before, after = before, fallback = 'text') => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selected = textarea.value.slice(start, end) || fallback;
+        textarea.setRangeText(before + selected + after, start, end, 'select');
+        textarea.focus();
+    };
+    editor.querySelectorAll('[data-format]').forEach((button) => button.addEventListener('click', async () => {
+        const action = button.dataset.format;
+        if (action === 'bold') wrap('**');
+        if (action === 'italic') wrap('*');
+        if (action === 'underline') wrap('<u>', '</u>');
+        if (action === 'large') wrap('<span class="text-large">', '</span>');
+        if (action === 'link') wrap('[', '](https://)', 'link text');
+        if (action === 'bullets' || action === 'numbers') {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const lines = (textarea.value.slice(start, end) || 'List item').split('\n');
+            textarea.setRangeText(lines.map((line, index) => (action === 'bullets' ? '- ' : (index + 1) + '. ') + line).join('\n'), start, end, 'select');
+            textarea.focus();
+        }
+        if (action === 'preview') {
+            const response = await fetch(editor.dataset.previewUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || editor.closest('form').querySelector('input[name="_token"]').value},
+                body: JSON.stringify({body: textarea.value})
+            });
+            if (response.ok) preview.innerHTML = (await response.json()).html;
+            preview.classList.toggle('d-none');
+            button.textContent = preview.classList.contains('d-none') ? 'Preview' : 'Hide preview';
+        }
+    }));
+});

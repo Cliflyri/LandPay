@@ -50,6 +50,17 @@ class SecureMessageEditingTest extends TestCase
         $this->assertSame(0, SecureMessageRevision::query()->count());
     }
 
+    public function test_only_admin_messages_render_formatting_and_only_admin_forms_have_toolbar(): void
+    {
+        [$admin, $account, $thread] = $this->records();
+        $thread->messages()->create(['sender_type'=>'admin','sender_user_id'=>$admin->id,'body'=>'**Admin bold** <u>underlined</u>']);
+        $thread->messages()->create(['sender_type'=>'client','sender_client_id'=>$thread->client_id,'body'=>'**Client plain**']);
+
+        $this->actingAs($admin)->get(route('admin.messages.show', $thread))
+            ->assertOk()->assertSee('<strong>Admin bold</strong>', false)->assertSee('data-formatting-editor', false);
+        $this->actingAs($account, 'client')->get(route('portal.messages.show', $thread))
+            ->assertOk()->assertSee('**Client plain**')->assertDontSee('<strong>Client plain</strong>', false)->assertDontSee('data-formatting-editor', false);
+    }
     private function records(): array
     {
         $admin = User::factory()->create();

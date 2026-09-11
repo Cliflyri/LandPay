@@ -24,13 +24,13 @@
                 <strong>{{$a->title}}</strong>
                 @if($isTruncated)
                     <div id="announcement-preview-{{$a->id}}" class="mt-1">
-                        {{\Illuminate\Support\Str::limit($a->body,220)}}
+                        {{\Illuminate\Support\Str::limit(html_entity_decode(strip_tags(\App\Support\FormattedText::admin($a->body))),220)}}
                     </div>
                     <div class="collapse" id="announcement-body-{{$a->id}}" data-announcement-view-url="{{route('portal.announcements.view',$a)}}">
-                        <div class="mt-1" style="white-space: pre-wrap">{{$a->body}}</div>
+                        <div class="mt-1 formatted-text">{!!\App\Support\FormattedText::admin($a->body)!!}</div>
                     </div>
                 @else
-                    <div class="mt-1" style="white-space: pre-wrap">{{$a->body}}</div>
+                    <div class="mt-1 formatted-text">{!!\App\Support\FormattedText::admin($a->body)!!}</div>
                 @endif
                 <div class="d-flex gap-2 mt-3">
                     @if($isTruncated)

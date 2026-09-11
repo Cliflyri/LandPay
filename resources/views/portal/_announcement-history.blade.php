@@ -19,7 +19,7 @@
                     <strong>{{ $announcement->title }}</strong>
                     <span class="small text-muted">{{ ($announcement->starts_at ?? $announcement->published_at)->format('M j, Y') }}</span>
                 </div>
-                <div class="mt-2" style="white-space: pre-wrap">{{ $announcement->body }}</div>
+                <div class="mt-2 formatted-text">{!! \App\Support\FormattedText::admin($announcement->body) !!}</div>
                 <div class="small text-muted mt-2">
                     @if($recipient->acknowledged_at)
                         Acknowledged {{ $recipient->acknowledged_at->format('M j, Y g:i A') }}

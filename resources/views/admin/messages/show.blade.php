@@ -10,7 +10,7 @@
 <div class="admin-next-card h-auto mt-4">
 @include('shared.secure-message-thread', ['portal' => false])
 @include('shared.secure-message-image-modal')
-<form method="post" action="{{route('admin.messages.reply',$thread)}}" enctype="multipart/form-data">@csrf<label class="form-label" for="body">Reply</label><textarea class="form-control" id="body" name="body" rows="4" maxlength="10000" required>{{old('body')}}</textarea>@include('shared.message-file-picker',['pickerId'=>'admin-reply-files','fixedClientId'=>$thread->client_id])<button class="btn btn-brand mt-3" type="submit">Send reply</button></form>
+<form method="post" action="{{route('admin.messages.reply',$thread)}}" enctype="multipart/form-data">@csrf<label class="form-label" for="body">Reply</label><x-formatting-editor :value="old('body')" :rows="4" required />@include('shared.message-file-picker',['pickerId'=>'admin-reply-files','fixedClientId'=>$thread->client_id])<button class="btn btn-brand mt-3" type="submit">Send reply</button></form>
 </div>
 <div class="border rounded p-3 mt-4 d-flex flex-wrap justify-content-between align-items-center gap-3"><div><strong>Email notification</strong><div class="text-muted small">Last sent: {{$thread->notification_last_sent_at?->format('M j, Y g:i A') ?? 'Not sent'}} &middot; Reminders: {{$thread->reminder_count}} &middot; Status: {{str($thread->notification_status ?? 'not sent')->title()}}</div></div><form method="post" action="{{route('admin.messages.remind',$thread)}}" onsubmit="return confirm('Send another email reminder that a secure message is waiting?')">@csrf<button class="btn btn-outline-brand" @disabled(blank($thread->client->email))>Send email reminder</button></form></div>
 </div></section>
