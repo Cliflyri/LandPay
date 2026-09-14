@@ -148,6 +148,22 @@ class ClientController extends Controller
         return redirect()->route('admin.clients.show', $client)->with('success', 'Client updated successfully.');
     }
 
+    public function updateSmsPreference(Request $request, Client $client): RedirectResponse
+    {
+        $client->load('smsPreference');
+        $enabled = $request->boolean('sms_enabled');
+
+        if ($enabled && $client->smsPreference?->stopped_at) {
+            return back()->withErrors(['sms_enabled' => 'This number is STOP blocked. The client must reply START to resume SMS.']);
+        }
+
+        if ($enabled !== (bool) $client->smsPreference?->enabled) {
+            $this->smsPreferences->set($client, $enabled, 'admin', $request, $request->user());
+        }
+
+        return back()->with('success', 'Client SMS notifications '.($enabled ? 'enabled.' : 'disabled.'));
+    }
+
     public function archive(Request $request, Client $client): RedirectResponse
     {
         $hasCurrentPlans = $client->memberships()

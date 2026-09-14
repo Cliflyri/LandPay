@@ -122,6 +122,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::delete('portal-access', [ClientPortalAccessController::class, 'destroy'])->name('portal-access.destroy');
     Route::post('clients/{client}/archive', [ClientController::class, 'archive'])->name('clients.archive');
     Route::post('clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore');
+    Route::put('clients/{client}/sms-preference', [ClientController::class, 'updateSmsPreference'])->name('clients.sms-preference.update');
     Route::resource('clients', ClientController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::get('contract-setups/create', [ContractSetupController::class, 'create'])->name('contract-setups.create');
     Route::post('contract-setups', [ContractSetupController::class, 'store'])->name('contract-setups.store');
