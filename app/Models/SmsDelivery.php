@@ -10,4 +10,6 @@ class SmsDelivery extends Model
     protected $guarded = ['id'];
     protected function casts(): array { return ['sent_at' => 'datetime', 'delivered_at' => 'datetime', 'failed_at' => 'datetime']; }
     public function client(): BelongsTo { return $this->belongsTo(Client::class, 'recipient_client_id'); }
+    public function invoice(): BelongsTo { return $this->belongsTo(Invoice::class); }
+    public function sentBy(): BelongsTo { return $this->belongsTo(User::class, 'sent_by_user_id'); }
 }
