@@ -92,7 +92,7 @@
             </button>
 
             <div class="admin-topbar-context">
-                <span>LandPay</span>
+                <span>{{ \App\Models\AppSetting::valueFor('company_name', config('app.name', 'LandPay')) }}</span>
                 <strong>Administrator</strong>
             </div>
 
