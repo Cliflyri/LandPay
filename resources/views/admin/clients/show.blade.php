@@ -20,7 +20,26 @@
 <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@if($client->email)<a href="mailto:{{$client->email}}">{{$client->email}}</a>@else Not provided @endif</dd><dt class="col-sm-4">Primary phone</dt><dd class="col-sm-8">{{$client->primary_phone ?: 'Not provided'}}</dd><dt class="col-sm-4">Secondary phone</dt><dd class="col-sm-8">{{$client->secondary_phone ?: 'Not provided'}}</dd><dt class="col-sm-4">Address</dt><dd class="col-sm-8">@if($client->address_line_1 || $client->address_line_2 || $cityLine)<address class="mb-0">{{$client->address_line_1}}@if($client->address_line_2)<br>{{$client->address_line_2}}@endif @if($cityLine)<br>{{$cityLine}}@endif @if($client->country_code)<br>{{$client->country_code}}@endif</address>@else Not provided @endif</dd></dl></div></div>
 
 
-<div class="col-lg-6"><div class="admin-next-card h-100"><h2>Record details</h2><dl class="row mb-0 mt-3"><dt class="col-sm-4">Client type</dt><dd class="col-sm-8">{{ucfirst($client->client_type)}}</dd><dt class="col-sm-4">Organization</dt><dd class="col-sm-8">{{$client->organization_name ?: 'Not applicable'}}</dd><dt class="col-sm-4">Internal notes</dt><dd class="col-sm-8" style="white-space:pre-line">{{$client->notes ?: 'None'}}</dd></dl></div></div></div>
+<div class="col-lg-6"><div class="admin-next-card h-100"><h2>Record details</h2><dl class="row mb-0 mt-3"><dt class="col-sm-4">Client type</dt><dd class="col-sm-8">{{ucfirst($client->client_type)}}</dd><dt class="col-sm-4">Organization</dt><dd class="col-sm-8">{{$client->organization_name ?: 'Not applicable'}}</dd><dt class="col-sm-4">Internal notes</dt><dd class="col-sm-8" style="white-space:pre-line">{{$client->notes ?: 'None'}}</dd>
+
+<dt class="col-sm-4">SMS Status</dt>
+<dd class="col-sm-8">
+    @php($smsStopped=(bool)$client->smsPreference?->stopped_at)
+    @php($smsEnabled=(bool)$client->smsPreference?->enabled)
+    <form method="POST" action="{{route('admin.clients.sms-preference.update',$client)}}" class="d-flex align-items-center gap-2">
+        @csrf @method('PUT')
+        <input type="hidden" name="sms_enabled" value="0">
+        <span class="badge {{$smsStopped?'text-bg-danger':($smsEnabled?'text-bg-success':'text-bg-secondary')}}">{{$smsStopped?'STOP blocked':($smsEnabled?'Enabled':'Disabled')}}</span>
+        <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" name="sms_enabled" value="1" @checked($smsEnabled) @disabled($smsStopped) onchange="if(confirm(this.checked?'Confirm the client consented to receive SMS at their primary phone number.':'Disable SMS notifications for this client?')){this.form.submit()}else{this.checked=!this.checked}"></div>
+        @if($smsStopped)<small class="text-danger">Client must reply START to resume.</small>@endif
+    </form>
+    @error('sms_enabled')<div class="text-danger small mt-1">{{$message}}</div>@enderror
+    @error('phone')<div class="text-danger small mt-1">{{$message}}</div>@enderror
+</dd>
+
+</dl></div></div></div>
+<div class="admin-next-card mt-4"><h2>SMS preference</h2><dl class="row mb-0"><dt class="col-sm-4">Status</dt><dd class="col-sm-8">{{$client->smsPreference?->enabled?'Enabled':'Disabled'}} @if($client->smsPreference?->stopped_at)<span class="text-danger">(STOP received)</span>@endif</dd><dt class="col-sm-4">SMS phone</dt><dd class="col-sm-8">{{$client->smsPreference?->sms_phone_e164?:'Not set'}}</dd><dt class="col-sm-4">Opted in</dt><dd class="col-sm-8">{{$client->smsPreference?->opted_in_at?->format('M j, Y g:i A')?:'-'}} {{$client->smsPreference?->opt_in_source?('via '.$client->smsPreference->opt_in_source):''}}</dd><dt class="col-sm-4">Opted out</dt><dd class="col-sm-8">{{$client->smsPreference?->opted_out_at?->format('M j, Y g:i A')?:'-'}} {{$client->smsPreference?->opt_out_source?('via '.$client->smsPreference->opt_out_source):''}}</dd></dl><a class="btn btn-outline-brand mt-3" href="{{route('admin.clients.edit',$client)}}">Change SMS preference</a></div>
+
 <div class="admin-next-card mt-4"><h2>Payment plans</h2>@forelse($client->memberships as $membership)<p><a href="{{route('admin.plans.show',$membership->paymentPlan)}}">{{ $membership->paymentPlan->plan_number }}</a> - <span class="fw-semibold">{{ $membership->paymentPlan->title }}</span> &mdash; {{str($membership->role)->replace('_',' ')->title()}}</p>@empty<p class="mb-0">No payment plans yet.</p>@endforelse</div>
 </div></section>
 @include('admin.clients._portal-account')

@@ -15,6 +15,7 @@ class ReminderAutomationService
     public function __construct(
         private readonly FinancialBalanceService $balances,
         private readonly InvoiceReminderService $reminders,
+        private readonly InvoiceSmsService $sms,
     ) {}
 
     /** @return array{enabled:bool,before_days:int,on_due:bool,after_interval:int,after_max:int} */
@@ -59,8 +60,9 @@ class ReminderAutomationService
         $result = ['sent' => 0, 'failed' => 0, 'skipped' => 0];
         foreach ($this->eligible($date) as $candidate) {
             try {
-                $this->reminders->send($candidate['invoice'], null, true, $candidate['send_date'], $candidate['trigger_type']);
+                $reminder = $this->reminders->send($candidate['invoice'], null, true, $candidate['send_date'], $candidate['trigger_type']);
                 $result['sent']++;
+                try { $this->sms->sendReminder($candidate['invoice'], null, $reminder, 'invoice-reminder:'.$candidate['invoice']->uuid.':'.$candidate['trigger_type'].':'.$candidate['send_date']->toDateString()); } catch (Throwable $exception) { report($exception); }
             } catch (Throwable $exception) {
                 report($exception);
                 $result['failed']++;

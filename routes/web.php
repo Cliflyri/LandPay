@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceAccessLinkController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceEmailController;
+use App\Http\Controllers\Admin\FormattingPreviewController;
 use App\Http\Controllers\Admin\InvoiceReminderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PaymentMethodSettingsController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Admin\PortalInvitationController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SecureMessageController as AdminSecureMessageController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\TestDataController;
 use App\Http\Controllers\Admin\SharedDocumentController as AdminSharedDocumentController;
 use App\Http\Controllers\Portal\AccountController as PortalAccountController;
 use App\Http\Controllers\Portal\AuthenticatedSessionController as PortalSessionController;
@@ -40,10 +42,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider', ['square', 'stripe'])->name('webhooks.provider');
+Route::post('/webhooks/twilio/messaging', \App\Http\Controllers\TwilioMessagingWebhookController::class)->middleware('throttle:60,1')->name('webhooks.twilio.messaging');
 
 Route::prefix('invoice-access')->name('secure-invoice.')->middleware('secure.invoice')->group(function (): void {
     Route::get('invoice', [SecureInvoiceController::class, 'show'])->name('show');
     Route::get('invoice/download', [SecureInvoiceController::class, 'download'])->name('download');
+    Route::post('portal-invitation', [SecureInvoiceController::class, 'requestPortalInvitation'])->middleware('throttle:3,10')->name('portal-invitation.store');
     Route::get('pay', [MakePaymentController::class, 'create'])->middleware('square.payment-csp')->name('payment.create');
     Route::post('pay/preview', [MakePaymentController::class, 'preview'])->middleware(['square.payment-csp', 'throttle:10,1'])->name('payment.preview');
     Route::post('pay', [MakePaymentController::class, 'store'])->middleware('throttle:10,1')->name('payment.store');
@@ -67,6 +71,7 @@ Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(func
     Route::post('reset-password', [PortalPasswordResetController::class, 'reset'])->name('password.update');
     Route::get('invitation/{token}', [PortalInvitationAcceptanceController::class, 'show'])->name('invitation.show');
     Route::post('invitation/{token}', [PortalInvitationAcceptanceController::class, 'accept'])->name('invitation.accept');
+    Route::post('invitation/{token}/resend', [PortalInvitationAcceptanceController::class, 'resend'])->middleware('throttle:3,10')->name('invitation.resend');
 });
 
 Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.enabled', 'portal.read-only'])->group(function (): void {
@@ -87,6 +92,7 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
     Route::get('account/contact', [PortalAccountController::class, 'edit'])->name('account.edit');
     Route::put('account/contact', [PortalAccountController::class, 'update'])->name('account.update');
     Route::put('account/password', [PortalAccountController::class, 'password'])->name('account.password');
+    Route::put('account/sms-preference', [\App\Http\Controllers\Portal\SmsPreferenceController::class, 'update'])->name('account.sms-preference.update');
     Route::get('announcements/{announcement}', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'view'])->name('announcements.view');
     Route::post('announcements/{announcement}/respond', [\App\Http\Controllers\Portal\ClientAnnouncementController::class, 'act'])->name('announcements.respond');
     Route::get('messages', [PortalSecureMessageController::class, 'index'])->name('messages.index');
@@ -104,6 +110,7 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
 
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::post('formatting-preview', FormattingPreviewController::class)->name('formatting-preview');
     Route::get('actions', AdminActionController::class)->name('actions.index');
     Route::post('property-tax-batches/{propertyTaxBatch}/issue', [PropertyTaxBatchController::class, 'issue'])->name('property-tax-batches.issue');
     Route::post('property-tax-batches/{propertyTaxBatch}/rows/{row}/retry-email', [PropertyTaxBatchController::class, 'retryEmail'])->name('property-tax-batches.retry-email');
@@ -115,6 +122,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::delete('portal-access', [ClientPortalAccessController::class, 'destroy'])->name('portal-access.destroy');
     Route::post('clients/{client}/archive', [ClientController::class, 'archive'])->name('clients.archive');
     Route::post('clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore');
+    Route::put('clients/{client}/sms-preference', [ClientController::class, 'updateSmsPreference'])->name('clients.sms-preference.update');
     Route::resource('clients', ClientController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::get('contract-setups/create', [ContractSetupController::class, 'create'])->name('contract-setups.create');
     Route::post('contract-setups', [ContractSetupController::class, 'store'])->name('contract-setups.store');
@@ -181,6 +189,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('invoices/{invoice}/secure-link/regenerate', [InvoiceAccessLinkController::class, 'regenerate'])->name('invoices.secure-link.regenerate');
     Route::delete('invoices/{invoice}/secure-link', [InvoiceAccessLinkController::class, 'destroy'])->name('invoices.secure-link.destroy');
     Route::post('invoices/{invoice}/reminders', [InvoiceReminderController::class, 'store'])->name('invoices.reminders.store');
+    Route::post('invoices/{invoice}/sms-reminder', [\App\Http\Controllers\Admin\InvoiceSmsController::class, 'store'])->name('invoices.sms-reminder.store');
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/payment-methods', [PaymentMethodSettingsController::class, 'index'])->name('payment-methods.index');
     Route::put('settings/payment-methods/general', [PaymentMethodSettingsController::class, 'updateGeneral'])->name('payment-methods.general.update');
@@ -193,10 +202,16 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
     Route::put('settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
     Route::post('settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+    Route::put('settings/sms', [SettingsController::class, 'updateSms'])->name('settings.sms.update');
+    Route::post('settings/sms/test', [SettingsController::class, 'testSms'])->middleware('throttle:3,1')->name('settings.sms.test');
     Route::post('settings/security/logout-all', [SettingsController::class, 'logoutAllDevices'])->name('settings.security.logout-all');
     Route::put('settings/templates/{template}', [SettingsController::class, 'updateTemplate'])->name('settings.templates.update');
     Route::put('settings/reminders', [SettingsController::class, 'updateReminders'])->name('settings.reminders.update');
     Route::post('settings/templates/{template}/restore', [SettingsController::class, 'restoreTemplate'])->name('settings.templates.restore');
+    Route::post('settings/test-data/clients',[TestDataController::class,'addClient'])->name('settings.test-data.clients.add');
+    Route::delete('settings/test-data/clients/{client}',[TestDataController::class,'removeClient'])->name('settings.test-data.clients.remove');
+    Route::post('settings/test-data/plans',[TestDataController::class,'addPlan'])->name('settings.test-data.plans.add');
+    Route::delete('settings/test-data/plans/{plan}',[TestDataController::class,'removePlan'])->name('settings.test-data.plans.remove');
     Route::post('plans/{plan}/service-fee-satisfaction', [PaymentController::class, 'satisfyServiceFee'])->name('plans.service-fee-satisfaction.store');
     Route::delete('plans/{plan}/service-fee-satisfaction/{satisfaction}', [PaymentController::class, 'revokeServiceFeeSatisfaction'])->name('plans.service-fee-satisfaction.destroy');
     Route::post('plans/{plan}/payments/preview', [PaymentController::class, 'preview'])->name('plans.payments.preview');

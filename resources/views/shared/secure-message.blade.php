@@ -30,13 +30,13 @@
             $escapedBody
         ) ?? $escapedBody;
     @endphp
-    <div class="secure-message-body">{!! $linkedBody !!}</div>
+    <div class="secure-message-body {{$isAdminMessage ? 'formatted-text' : ''}}">{!! $isAdminMessage ? \App\Support\FormattedText::admin($message->body) : $linkedBody !!}</div>
 
     @if(!$portal && $isAdminMessage)
         @php($latestRevision=$message->revisions->last())
         <div class="collapse mt-2" id="edit-message-{{$message->uuid}}">
             <form method="post" action="{{route('admin.messages.update',[$thread,$message])}}">@csrf @method('PUT')
-                <textarea class="form-control" name="body" rows="4" maxlength="10000">{{$message->body}}</textarea>
+                <x-formatting-editor name="body" id="edit-body-{{$message->uuid}}" :value="$message->body" :rows="4" />
                 <div class="form-text">Previously sent email or text notifications cannot be changed. Card information must not be entered here.</div>
                 <div class="d-flex gap-2 mt-2"><button class="btn btn-sm btn-brand" type="submit">Save</button><button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#edit-message-{{$message->uuid}}">Cancel</button></div>
             </form>

@@ -7,10 +7,13 @@ use App\Models\Invoice;
 use App\Models\InvoiceAccessLink;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
+use App\Models\PortalInvitation;
+use App\Models\PortalAccount;
 use App\Models\User;
 use App\Services\ContractOpeningService;
 use App\Services\PaymentPlanMembershipService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class SecureInvoiceAccessTest extends TestCase
@@ -55,6 +58,30 @@ class SecureInvoiceAccessTest extends TestCase
         $newUrl = session('secure_link_url');
         $this->delete(route('admin.invoices.secure-link.destroy', $invoice))->assertSessionHas('success');
         $this->get($newUrl)->assertRedirect(route('portal.login'));
+    }
+
+    public function test_client_without_active_portal_can_request_an_invitation_from_secure_invoice(): void
+    {
+        Mail::fake();
+        [$admin, $invoice] = $this->invoice();
+        $this->actingAs($admin)->post(route('admin.invoices.secure-link.store', $invoice));
+        $this->get(session('secure_link_url'))->assertRedirect(route('secure-invoice.show'));
+        $this->get(route('secure-invoice.show'))->assertOk()->assertSee('Activate my client portal');
+        $this->post(route('secure-invoice.portal-invitation.store'))->assertRedirect()->assertSessionHas('status');
+        $this->assertSame($invoice->created_by_user_id, PortalInvitation::query()->sole()->invited_by_user_id);
+    }
+
+    public function test_active_portal_is_not_offered_activation_from_secure_invoice(): void
+    {
+        Mail::fake();
+        [$admin, $invoice] = $this->invoice();
+        $client = $invoice->paymentPlan->memberships()->whereNull('effective_to')->firstOrFail()->client;
+        PortalAccount::query()->create(['client_id'=>$client->id,'email'=>$client->email,'password'=>'password','enabled'=>true]);
+        $this->actingAs($admin)->post(route('admin.invoices.secure-link.store', $invoice));
+        $this->get(session('secure_link_url'))->assertRedirect(route('secure-invoice.show'));
+        $this->get(route('secure-invoice.show'))->assertOk()->assertDontSee('Activate my client portal');
+        $this->post(route('secure-invoice.portal-invitation.store'))->assertRedirect()->assertSessionHas('status');
+        $this->assertDatabaseCount('portal_invitations',0);
     }
 
     private function invoice(): array

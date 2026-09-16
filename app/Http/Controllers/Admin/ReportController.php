@@ -11,6 +11,7 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentPlan;
+use App\Models\SmsDelivery;
 use App\Services\FinancialBalanceService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -21,7 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    private const REPORTS = ['payments', 'receivables', 'contracts', 'fees', 'client-portals'];
+    private const REPORTS = ['payments', 'receivables', 'contracts', 'fees', 'client-portals', 'client-sms'];
 
     public function __construct(private readonly FinancialBalanceService $balances) {}
 
@@ -45,7 +46,7 @@ class ReportController extends Controller
         abort_unless(in_array($report, self::REPORTS, true), 404);
         $this->applyDefaults($request, $report);
         $result = $this->build($request, $report);
-        [$headers, $values] = $this->csvDefinition($report);
+        [$headers, $values] = $this->csvDefinition($report, $request);
 
         return response()->streamDownload(function () use ($headers, $values, $result): void {
             $out = fopen('php://output', 'w');
@@ -63,7 +64,23 @@ class ReportController extends Controller
             'contracts' => $this->contracts($request),
             'fees' => $this->fees($request),
             'client-portals' => $this->clientPortals($request),
+            'client-sms' => $this->clientSms($request),
         };
+    }
+
+    private function clientSms(Request $request): array
+    {
+        $clients = Client::query()->whereNull('archived_at')->with(['smsPreference', 'smsDeliveries'])->matchingAdminSearch($request->string('search')->value(), true)->orderBy('last_name')->orderBy('first_name')->get();
+        $clientRows = $clients->map(fn (Client $client): array => ['client' => $client, 'preference' => $client->smsPreference, 'sent' => $client->smsDeliveries->where('status', 'sent')->count(), 'failed' => $client->smsDeliveries->where('status', 'failed')->count()]);
+        $totals = ['Opted in' => $clientRows->filter(fn ($row) => (bool) $row['preference']?->enabled)->count(), 'STOP blocked' => $clientRows->filter(fn ($row) => (bool) $row['preference']?->stopped_at)->count(), 'Failed messages' => $clientRows->sum('failed')];
+
+        if ($request->string('tab')->value() !== 'log') return ['rows' => $clientRows, 'totals' => $totals];
+
+        $term = trim($request->string('search')->value());
+        $rows = SmsDelivery::query()->with(['client', 'invoice', 'sentBy'])
+            ->when($term, fn ($q) => $q->where(fn ($q) => $q->where('recipient_phone', 'like', '%'.$term.'%')->orWhere('message_type', 'like', '%'.$term.'%')->orWhereHas('invoice', fn ($i) => $i->where('invoice_number', 'like', '%'.$term.'%'))->orWhereHas('client', fn ($c) => $c->matchingAdminSearch($term, true))))
+            ->latest()->get()->map(fn (SmsDelivery $delivery): array => ['delivery' => $delivery, 'client' => $delivery->client, 'invoice' => $delivery->invoice, 'sender' => $delivery->sentBy]);
+        return ['rows' => $rows, 'totals' => $totals];
     }
 
     private function clientPortals(Request $request): array
@@ -85,6 +102,7 @@ class ReportController extends Controller
             'payer', 'financialTransaction.paymentPlan.memberships.client',
             'financialTransaction.reversedBy', 'allocations.invoiceItem', 'allocations.invoice',
         ])->newestFirst();
+        $query->whereHas('financialTransaction.paymentPlan', fn ($q) => $q->includedInReports())->where(fn ($q) => $q->whereNull('payer_client_id')->orWhereHas('payer', fn ($c) => $c->where('excluded_from_reports', false)));
         $this->dates($query, $request, 'received_date');
         $this->paymentSearch($query, $request);
 
@@ -122,7 +140,7 @@ class ReportController extends Controller
 
     private function receivables(Request $request): array
     {
-        $query = Invoice::query()->where('status', '!=', 'voided')
+        $query = Invoice::query()->where('status', '!=', 'voided')->whereHas('paymentPlan', fn ($q) => $q->includedInReports())
             ->with(['paymentPlan.memberships.client', 'items'])->orderBy('due_date');
         $this->dates($query, $request, 'issue_date');
         $this->invoiceSearch($query, $request);
@@ -154,7 +172,7 @@ class ReportController extends Controller
 
     private function contracts(Request $request): array
     {
-        $query = PaymentPlan::query()->with(['memberships.client', 'invoices.items', 'currentBillingTerms'])
+        $query = PaymentPlan::query()->includedInReports()->with(['memberships.client', 'invoices.items', 'currentBillingTerms'])
             ->orderBy('plan_number');
         $this->planSearch($query, $request);
         if ($request->filled('status') && $request->status !== 'all') $query->where('status', $request->status);
@@ -183,7 +201,7 @@ class ReportController extends Controller
     private function fees(Request $request): array
     {
         $query = InvoiceItem::query()->where('item_type', '!=', InvoiceItemType::ScheduledPurchasePayment->value)
-            ->whereNull('retired_at')->with(['invoice.paymentPlan.memberships.client'])->orderByDesc('id');
+            ->whereHas('invoice.paymentPlan', fn ($q) => $q->includedInReports())->whereNull('retired_at')->with(['invoice.paymentPlan.memberships.client'])->orderByDesc('id');
         if ($request->filled('from')) $query->whereHas('invoice', fn ($q) => $q->whereDate('issue_date', '>=', $request->from));
         if ($request->filled('to')) $query->whereHas('invoice', fn ($q) => $q->whereDate('issue_date', '<=', $request->to));
         if ($request->filled('search')) {
@@ -213,7 +231,7 @@ class ReportController extends Controller
         $direct = PaymentAllocation::query()
             ->whereNull('invoice_item_id')
             ->whereIn('allocation_type', [PaymentAllocationType::ServiceFee->value, PaymentAllocationType::ProcessingFee->value])
-            ->with(['payment.payer', 'payment.financialTransaction.paymentPlan.memberships.client', 'payment.financialTransaction.reversedBy'])
+            ->with(['payment.payer', 'payment.financialTransaction.paymentPlan.memberships.client', 'payment.financialTransaction.reversedBy'])->whereHas('payment.financialTransaction.paymentPlan', fn ($q) => $q->includedInReports())->whereHas('payment', fn ($q) => $q->whereNull('payer_client_id')->orWhereHas('payer', fn ($c) => $c->where('excluded_from_reports', false)))
             ->whereHas('payment', function ($query) use ($request): void {
                 if ($request->filled('from')) $query->whereDate('received_date', '>=', $request->from);
                 if ($request->filled('to')) $query->whereDate('received_date', '<=', $request->to);
@@ -255,7 +273,8 @@ class ReportController extends Controller
     {
         return ['from' => $request->string('from')->value(), 'to' => $request->string('to')->value(),
             'search' => trim($request->string('search')->value()), 'status' => $request->string('status')->value() ?: 'all',
-            'aging' => $request->string('aging')->value(), 'portal_status' => $request->string('portal_status')->value() ?: 'pending'];
+            'aging' => $request->string('aging')->value(), 'portal_status' => $request->string('portal_status')->value() ?: 'pending',
+            'sms_tab' => $request->string('tab')->value() === 'log' ? 'log' : 'clients'];
     }
     private function dates($query, Request $request, string $column): void
     {
@@ -290,13 +309,16 @@ class ReportController extends Controller
         return new LengthAwarePaginator($rows->forPage($page, $perPage)->values(), $rows->count(), $perPage, $page,
             ['path' => $request->url(), 'query' => $request->query()]);
     }
-    private function csvDefinition(string $report): array
+    private function csvDefinition(string $report, Request $request): array
     {
         return match ($report) {
             'payments' => [['Date','Client','Plan','Method','Gross','Fees','Invoices','Principal','Credit','Status','Net','Reference'], fn ($r) => [$r['date']->toDateString(),$this->name($r['client']),$r['plan']?->plan_number,$r['method'],$r['gross']/100,$r['fees']/100,$r['invoice']/100,$r['principal']/100,$r['credit']/100,$r['reversed']?'Reversed':'Posted',$r['net']/100,$r['reference']]],
             'receivables' => [['Client','Plan','Invoice','Issued','Due','Original','Paid/Credited','Balance','Days overdue','Aging'], fn ($r) => [$this->name($r['client']),$r['plan']->plan_number,$r['model']->invoice_number,$r['issue']->toDateString(),$r['due']->toDateString(),$r['amount']/100,$r['paid']/100,$r['balance']/100,$r['days'],$r['bucket']]],
             'contracts' => [['Client','Plan','Purchase price','Documentation fee','Principal paid','Contract balance','Open invoices','Account credit','Next due','Status','Estimated payoff'], fn ($r) => [$this->name($r['client']),$r['model']->plan_number,$r['purchase']/100,$r['documentation']/100,$r['principal_paid']/100,$r['contract']/100,$r['open']/100,$r['credit']/100,$r['next_due']?->toDateString(),$r['status'],$r['payoff']]],
             'fees' => [['Date','Client','Plan','Invoice','Type','Description','Assessed','Waived','Collected','Outstanding'], fn ($r) => [$r['date']->toDateString(),$this->name($r['client']),$r['plan']?->plan_number,$r['source_label'],$r['type'],$r['description'],$r['assessed']/100,$r['waived']/100,$r['collected']/100,$r['outstanding']/100]],
+            'client-sms' => $request->string('tab')->value() === 'log'
+                ? [['Date','Client','Phone','Type','Invoice','Status','Sender','Message','Failure'], fn ($r) => [$r['delivery']->created_at->toDateTimeString(),$this->name($r['client']),$r['delivery']->recipient_phone,$r['delivery']->message_type,$r['invoice']?->invoice_number,$r['delivery']->status,$r['sender']?->name ?: 'System',$r['delivery']->message_snapshot,$r['delivery']->failure_message]]
+                : [['Client','Phone','SMS phone','Enabled','Opt-in time','Opt-in source','Opt-out time','Opt-out source','STOP time','Sent','Failed'], fn ($r) => [$this->name($r['client']),$r['client']->primary_phone,$r['preference']?->sms_phone_e164,$r['preference']?->enabled?'Yes':'No',$r['preference']?->opted_in_at?->toDateTimeString(),$r['preference']?->opt_in_source,$r['preference']?->opted_out_at?->toDateTimeString(),$r['preference']?->opt_out_source,$r['preference']?->stopped_at?->toDateTimeString(),$r['sent'],$r['failed']]],
         };
     }
     private function name($client): string

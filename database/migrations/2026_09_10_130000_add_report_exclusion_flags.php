@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration;use Illuminate\Database\Schema\Blueprint;use Illuminate\Support\Facades\Schema;
+return new class extends Migration{public function up():void{Schema::table('clients',fn(Blueprint $t)=>$t->boolean('excluded_from_reports')->default(false)->index());Schema::table('payment_plans',fn(Blueprint $t)=>$t->boolean('excluded_from_reports')->default(false)->index());}public function down():void{Schema::table('clients',fn(Blueprint $t)=>$t->dropColumn('excluded_from_reports'));Schema::table('payment_plans',fn(Blueprint $t)=>$t->dropColumn('excluded_from_reports'));}};
