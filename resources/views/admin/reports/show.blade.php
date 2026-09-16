@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title','Reports | LandPay')
+@section('title','Reports_Landpay_'.match($report){'client-portals'=>'Client-Portals','client-sms'=>'Client-SMS',default=>str($report)->title()}.'-'.now()->format('Y-m-d'))
 @section('body_class','admin-page')
 @section('content')
 @php

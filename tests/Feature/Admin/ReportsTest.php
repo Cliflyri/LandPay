@@ -9,6 +9,8 @@ class ReportsTest extends TestCase{
   $this->actingAs(User::factory()->create());
   foreach(['payments','receivables','contracts','fees','client-portals'] as $report){
    $response=$this->get(route('admin.reports.show',['report'=>$report]))->assertOk()->assertSee('Print report');
+   $name=match($report){'client-portals'=>'Client-Portals','client-sms'=>'Client-SMS',default=>str($report)->title()};
+   $response->assertSee('Reports_Landpay_'.$name.'-'.now()->format('Y-m-d'));
    if ($report !== 'client-portals') $response->assertSee('Export CSV');
    if ($report !== 'client-portals') $this->get(route('admin.reports.export',['report'=>$report]))->assertOk()->assertHeader('content-type','text/csv; charset=UTF-8');
   }
