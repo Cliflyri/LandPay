@@ -11,6 +11,7 @@ use App\Models\PaymentPlan;
 use App\Services\FinancialBalanceService;
 use App\Services\AutomaticInvoiceService;
 use App\Services\CurrentPayoffService;
+use App\Services\AdminReminderService;
 use App\Services\ReminderAutomationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class DashboardController extends Controller
         private readonly CurrentPayoffService $payoffs,
         private readonly AutomaticInvoiceService $automaticInvoices,
         private readonly ReminderAutomationService $reminderAutomation,
+        private readonly AdminReminderService $adminReminderService,
     ) {}
 
     public function __invoke(Request $request): View
@@ -72,6 +74,7 @@ class DashboardController extends Controller
             'planStatus' => $planStatus,
             'planSearch' => $planSearch,
             'notices' => $this->notices(),
+            'adminReminders' => $this->adminReminderService->dueFor($request->user()),
         ]);
     }
 
@@ -81,6 +84,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'open_notices' => AdminNotice::query()->whereNull('dismissed_at')->count(),
+            'due_admin_reminders' => $this->adminReminderService->dueFor($request->user())->count(),
             'notices_revision' => $notices ? sha1($notices->pluck('updated_at', 'id')->toJson()) : null,
             'unread_messages' => \App\Models\SecureMessageThread::query()->unreadByAdmin()->count(),
             'starred_messages' => \App\Models\SecureMessageThread::query()->whereNotNull('starred_at')->count(),

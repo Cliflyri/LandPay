@@ -25,6 +25,7 @@
         </div>
     </div>
 
+    @include('admin.partials.dashboard-reminders')
     @include('admin.partials.dashboard-notices')
 
     <div class="mb-3">

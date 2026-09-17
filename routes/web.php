@@ -112,6 +112,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('formatting-preview', FormattingPreviewController::class)->name('formatting-preview');
     Route::get('actions', AdminActionController::class)->name('actions.index');
+    Route::resource('actions/reminders', \App\Http\Controllers\Admin\AdminReminderController::class)->names('reminders')->except(['show']);
+    Route::post('actions/reminder-occurrences/{occurrence}/dismiss', \App\Http\Controllers\Admin\AdminReminderDismissalController::class)->name('reminders.dismiss');
     Route::post('property-tax-batches/{propertyTaxBatch}/issue', [PropertyTaxBatchController::class, 'issue'])->name('property-tax-batches.issue');
     Route::post('property-tax-batches/{propertyTaxBatch}/rows/{row}/retry-email', [PropertyTaxBatchController::class, 'retryEmail'])->name('property-tax-batches.retry-email');
     Route::resource('property-tax-batches', PropertyTaxBatchController::class)->except(['destroy']);

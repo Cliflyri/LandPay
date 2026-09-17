@@ -141,6 +141,11 @@ if (adminStatusRoot) {
             const response = await fetch(statusUrl, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
             if (!response.ok) return;
             const status = await response.json();
+            document.querySelectorAll('[data-admin-reminder-badge]').forEach(badge => {
+                badge.textContent = status.due_admin_reminders;
+                badge.setAttribute('aria-label', status.due_admin_reminders + ' admin reminder' + (status.due_admin_reminders === 1 ? '' : 's') + ' due');
+                badge.classList.toggle('d-none', !status.due_admin_reminders);
+            });
             const messageText = [status.unread_messages ? status.unread_messages + ' unread' : '', status.starred_messages ? '★ ' + status.starred_messages : ''].filter(Boolean).join(' · ');
             document.querySelectorAll('[data-admin-message-badge]').forEach(badge => { badge.textContent = messageText; badge.classList.toggle('d-none', !messageText); });
             document.querySelectorAll('[data-admin-notice-link]').forEach(link => {

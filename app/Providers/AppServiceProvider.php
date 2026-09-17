@@ -6,6 +6,7 @@ use App\Services\SmtpConfigurationService;
 use App\Models\AdminNotice;
 use App\Models\PortalAccount;
 use App\Models\SecureMessageThread;
+use App\Services\AdminReminderService;
 use App\Observers\AdminNoticeObserver;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\View;
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
             'openAdminNoticeCount' => AdminNotice::query()->whereNull('dismissed_at')->count(),
             'unreadSecureMessageCount' => SecureMessageThread::query()->unreadByAdmin()->count(),
             'starredSecureMessageCount' => SecureMessageThread::query()->whereNotNull('starred_at')->count(),
+            'dueAdminReminderCount' => auth()->check() ? app(AdminReminderService::class)->dueFor(auth()->user())->count() : 0,
         ]));
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
             return $notifiable instanceof PortalAccount

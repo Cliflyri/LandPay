@@ -49,6 +49,7 @@
     >
         <span aria-hidden="true">▦</span>
         Dashboard
+        <span class="admin-notice-badge {{$dueAdminReminderCount > 0 ? '' : 'd-none'}}" data-admin-reminder-badge aria-label="{{$dueAdminReminderCount}} admin {{Str::plural('reminder',$dueAdminReminderCount)}} due">{{$dueAdminReminderCount}}</span>
     </a>
 
     <a class="admin-sidebar-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" href="{{route('admin.reports.show')}}"><span aria-hidden="true">&#9636;</span>Reports</a>

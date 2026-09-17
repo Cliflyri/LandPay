@@ -10,8 +10,8 @@
 <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#company-settings" type="button" role="tab">Company</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#billing-settings" type="button" role="tab">Billing Defaults</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#smtp-settings" type="button" role="tab">SMTP</button></li>
-<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#notification-settings" type="button" role="tab">Notifications</button></li>
-<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reminder-settings" type="button" role="tab">Reminders</button></li>
+<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#notification-settings" type="button" role="tab">Admin Notifications</button></li>
+<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reminder-settings" type="button" role="tab">Client Reminders</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#sms-settings" type="button" role="tab">SMS Reminders</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#test-data-settings" type="button" role="tab">Test Data</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#template-settings" type="button" role="tab">Email templates</button></li>
@@ -59,6 +59,7 @@
 @foreach(['invoice'=>'Invoice activity','payments'=>'Payments and payment issues','documents'=>'Client document uploads','account_portal'=>'Account and portal changes'] as $category=>$label)
 <div class="col-md-6"><div class="form-check form-switch"><input type="hidden" name="admin_notice_email_{{$category}}" value="0"><input class="form-check-input" type="checkbox" id="admin_notice_email_{{$category}}" name="admin_notice_email_{{$category}}" value="1" @checked(old('admin_notice_email_'.$category,$notificationSettings[$category]))><label class="form-check-label" for="admin_notice_email_{{$category}}">{{$label}}</label></div></div>
 @endforeach
+<div class="col-md-6"><div class="form-check form-switch"><input type="hidden" name="admin_notice_email_scheduled_reminders" value="0"><input class="form-check-input" type="checkbox" id="admin_notice_email_scheduled_reminders" name="admin_notice_email_scheduled_reminders" value="1" @checked(old('admin_notice_email_scheduled_reminders',$notificationSettings['scheduled_reminders']))><label class="form-check-label" for="admin_notice_email_scheduled_reminders">Scheduled reminders</label></div></div>
 <div class="col-12"><div class="form-check form-switch"><input type="hidden" name="admin_notice_email_secure_messages" value="0"><input class="form-check-input" type="checkbox" id="admin_notice_email_secure_messages" name="admin_notice_email_secure_messages" value="1" @checked(old('admin_notice_email_secure_messages',$notificationSettings['secure_messages']))><label class="form-check-label fw-semibold" for="admin_notice_email_secure_messages">New secure messages</label><small class="text-muted d-block">Recommended so important client messages are not missed.</small></div></div>
 <div class="col-12 alert alert-warning mb-0" id="secure-message-opt-out" @if(old('admin_notice_email_secure_messages',$notificationSettings['secure_messages'])) hidden @endif><div class="form-check"><input class="form-check-input" type="checkbox" id="secure_message_email_opt_out_ack" name="secure_message_email_opt_out_ack" value="1"><label class="form-check-label" for="secure_message_email_opt_out_ack">I understand that new secure messages will only appear in LandPay admin notices.</label></div></div>
 <div class="col-md-8"><label class="form-label" for="admin_notice_email_address">Notification email <span class="text-muted">(optional)</span></label><input class="form-control" type="email" autocomplete="email" id="admin_notice_email_address" name="admin_notice_email_address" value="{{old('admin_notice_email_address',$notificationSettings['address'])}}" placeholder="Uses reply-to or company email when blank"><small class="text-muted">This address and all category choices remain saved when individual categories are switched off.</small></div>
@@ -70,7 +71,7 @@
 <div class="admin-next-card mt-4">
     <div class="d-flex flex-wrap justify-content-between gap-3">
         <div>
-            <h2>Automated reminders</h2>
+            <h2>Automated Client Reminders</h2>
             <p class="text-muted mb-0">The scheduler runs daily at {{\Illuminate\Support\Carbon::createFromFormat('H:i',$reminderSendTime)->format('g:i A')}} {{config('app.timezone')}}. Duplicate sends are blocked.</p>
         </div>
 
