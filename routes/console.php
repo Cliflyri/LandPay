@@ -14,3 +14,4 @@ Schedule::command('reminders:send')->dailyAt(config('landpay.reminders_send_time
 Schedule::command('contracts:purge-expired')->dailyAt('05:30')->timezone(config('app.timezone'))->withoutOverlapping();
 Schedule::command('announcements:process')->everyMinute()->withoutOverlapping();
 Schedule::command('admin-reminders:process')->everyMinute()->timezone(config('app.timezone'))->withoutOverlapping();
+Schedule::command('reports:snapshot')->everyMinute()->timezone(config('app.timezone'))->withoutOverlapping();

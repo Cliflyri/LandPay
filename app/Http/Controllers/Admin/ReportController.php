@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    private const REPORTS = ['payments', 'receivables', 'contracts', 'fees', 'client-portals', 'client-sms'];
+    public const REPORTS = ['payments', 'receivables', 'contracts', 'fees', 'client-portals', 'client-sms'];
 
     public function __construct(private readonly FinancialBalanceService $balances) {}
 
@@ -46,6 +46,11 @@ class ReportController extends Controller
         abort_unless(in_array($report, self::REPORTS, true), 404);
         $this->applyDefaults($request, $report);
         $result = $this->build($request, $report);
+        if ($report === 'client-portals') {
+            $rows = collect();
+            foreach (['pending', 'none', 'active'] as $status) {$request->merge(['portal_status' => $status]); $rows = $rows->concat($this->build($request, $report)['rows']);}
+            $result['rows'] = $rows;
+        }
         [$headers, $values] = $this->csvDefinition($report, $request);
 
         return response()->streamDownload(function () use ($headers, $values, $result): void {
@@ -54,6 +59,25 @@ class ReportController extends Controller
             foreach ($result['rows'] as $row) fputcsv($out, $values($row));
             fclose($out);
         }, 'landpay-'.$report.'-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    public function writeCsv(string $report, string $path): int
+    {
+        abort_unless(in_array($report, self::REPORTS, true), 404);
+        $request = Request::create('/', 'GET');
+        $this->applyDefaults($request, $report);
+        $result = $this->build($request, $report);
+        if ($report === 'client-portals') {
+            $rows = collect();
+            foreach (['pending', 'none', 'active'] as $status) {$request->merge(['portal_status' => $status]); $rows = $rows->concat($this->build($request, $report)['rows']);}
+            $result['rows'] = $rows;
+        }
+        [$headers, $values] = $this->csvDefinition($report, $request);
+        $out = fopen($path, 'wb');
+        fputcsv($out, $headers);
+        foreach ($result['rows'] as $row) fputcsv($out, $values($row));
+        fclose($out);
+        return $result['rows']->count();
     }
 
     private function build(Request $request, string $report): array
@@ -316,6 +340,7 @@ class ReportController extends Controller
             'receivables' => [['Client','Plan','Invoice','Issued','Due','Original','Paid/Credited','Balance','Days overdue','Aging'], fn ($r) => [$this->name($r['client']),$r['plan']->plan_number,$r['model']->invoice_number,$r['issue']->toDateString(),$r['due']->toDateString(),$r['amount']/100,$r['paid']/100,$r['balance']/100,$r['days'],$r['bucket']]],
             'contracts' => [['Client','Plan','Purchase price','Documentation fee','Principal paid','Contract balance','Open invoices','Account credit','Next due','Status','Estimated payoff'], fn ($r) => [$this->name($r['client']),$r['model']->plan_number,$r['purchase']/100,$r['documentation']/100,$r['principal_paid']/100,$r['contract']/100,$r['open']/100,$r['credit']/100,$r['next_due']?->toDateString(),$r['status'],$r['payoff']]],
             'fees' => [['Date','Client','Plan','Invoice','Type','Description','Assessed','Waived','Collected','Outstanding'], fn ($r) => [$r['date']->toDateString(),$this->name($r['client']),$r['plan']?->plan_number,$r['source_label'],$r['type'],$r['description'],$r['assessed']/100,$r['waived']/100,$r['collected']/100,$r['outstanding']/100]],
+            'client-portals' => [['Client','Email','Phone','Status','Last invited','Activated'], fn ($r) => [$this->name($r['client']),$r['client']->email,$r['client']->primary_phone,str($r['group'])->replace('_',' ')->title(),$r['invitation']?->created_at?->toDateTimeString(),$r['account']?->created_at?->toDateTimeString()]],
             'client-sms' => $request->string('tab')->value() === 'log'
                 ? [['Date','Client','Phone','Type','Invoice','Status','Sender','Message','Failure'], fn ($r) => [$r['delivery']->created_at->toDateTimeString(),$this->name($r['client']),$r['delivery']->recipient_phone,$r['delivery']->message_type,$r['invoice']?->invoice_number,$r['delivery']->status,$r['sender']?->name ?: 'System',$r['delivery']->message_snapshot,$r['delivery']->failure_message]]
                 : [['Client','Phone','SMS phone','Enabled','Opt-in time','Opt-in source','Opt-out time','Opt-out source','STOP time','Sent','Failed'], fn ($r) => [$this->name($r['client']),$r['client']->primary_phone,$r['preference']?->sms_phone_e164,$r['preference']?->enabled?'Yes':'No',$r['preference']?->opted_in_at?->toDateTimeString(),$r['preference']?->opt_in_source,$r['preference']?->opted_out_at?->toDateTimeString(),$r['preference']?->opt_out_source,$r['preference']?->stopped_at?->toDateTimeString(),$r['sent'],$r['failed']]],
