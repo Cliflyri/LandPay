@@ -42,6 +42,16 @@ class PropertyTaxBatchController extends Controller
   try{$this->service->retryEmail($row,$request->user());return back()->with('success','Invoice email sent.');}
   catch(\Throwable){return back()->withErrors(['email'=>'Invoice email could not be sent. The invoice remains valid; review the row result below.']);}
  }
+ public function destroy(Request $request,PropertyTaxBatch $propertyTaxBatch):RedirectResponse
+ {
+  DB::transaction(function()use($request,$propertyTaxBatch):void{
+   $batch=PropertyTaxBatch::query()->lockForUpdate()->findOrFail($propertyTaxBatch->id);
+   abort_unless($batch->status==='draft',409);
+   AuditLog::create(['actor_type'=>'administrator','actor_user_id'=>$request->user()->id,'event'=>'property_tax_batch.deleted','auditable_type'=>PropertyTaxBatch::class,'auditable_id'=>$batch->id,'before_values'=>['status'=>$batch->status,'tax_year'=>$batch->tax_year,'label'=>$batch->label,'row_count'=>$batch->rows()->count()],'ip_address'=>$request->ip(),'user_agent'=>str($request->userAgent())->limit(500)]);
+   $batch->delete();
+  });
+  return redirect()->route('admin.property-tax-batches.index',['status'=>'draft'])->with('success','Draft property-tax batch deleted.');
+ }
  private function form(PropertyTaxBatch $batch):View{return view('admin.property-taxes.form',compact('batch'));}
  private function save(Request $request,PropertyTaxBatch $batch):RedirectResponse
  {
