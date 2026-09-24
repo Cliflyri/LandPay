@@ -365,6 +365,29 @@ class InvoiceManagementTest extends TestCase
         }
     }
 
+    public function test_precreated_invoice_is_emailed_once_its_issue_date_arrives(): void
+    {
+        Mail::fake();
+        [$user, $plan] = $this->activePlan();
+        $plan->update(['scheduled_invoice_email_enabled' => true, 'first_scheduled_invoice_date' => '2026-10-01']);
+        $invoice = Invoice::query()->create([
+            'payment_plan_id' => $plan->id, 'invoice_number' => 'M20-260916-XW',
+            'issue_date' => '2026-09-16', 'due_date' => '2026-09-21', 'status' => 'issued',
+            'issued_at' => now(), 'created_by_user_id' => $user->id,
+        ]);
+
+        app(AutomaticInvoiceService::class)->run(Carbon::parse('2026-09-15'));
+        Mail::assertNothingSent();
+
+        app(AutomaticInvoiceService::class)->run(Carbon::parse('2026-09-16'));
+        app(AutomaticInvoiceService::class)->run(Carbon::parse('2026-09-17'));
+
+        Mail::assertSentCount(1);
+        $this->assertDatabaseHas('email_deliveries', [
+            'invoice_id' => $invoice->id, 'template_slug' => 'invoice-email', 'status' => 'sent',
+        ]);
+    }
+
     public function test_manually_created_invoice_email_follows_the_manual_invoice_toggle(): void
     {
         Mail::fake();
