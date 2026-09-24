@@ -376,6 +376,10 @@ class InvoiceManagementTest extends TestCase
             'issued_at' => now(), 'created_by_user_id' => $user->id,
         ]);
 
+        $this->travelTo(Carbon::parse('2026-09-15'));
+        $this->actingAs($user)->get(route('admin.invoices.show', $invoice))->assertOk()->assertSee('>Scheduled<', false);
+        $this->travelBack();
+
         app(AutomaticInvoiceService::class)->run(Carbon::parse('2026-09-15'));
         Mail::assertNothingSent();
 
