@@ -5,7 +5,7 @@
 
 @section('content')
 @include('portal._secure-invoice-notice')
-@php($statusLabel = str($invoice->status->value)->replace('_', ' ')->title())
+@php($statusLabel = $invoice->status->value === 'issued' && $invoice->issue_date->isFuture() ? 'Scheduled' : str($invoice->status->value)->replace('_', ' ')->title())
 @if(session('status'))<div class="container site-container mt-3"><div class="alert alert-info mb-0">{{session('status')}}</div></div>@endif
 
 <section class="admin-section">
@@ -26,6 +26,8 @@
                     {{ $invoice->paymentPlan->plan_number }}
                     <span aria-hidden="true">&middot;</span>
                     Payment due upon receipt
+                    <span aria-hidden="true">&middot;</span>
+                    Dated {{ $invoice->issue_date->format('M j, Y') }}
                     <span aria-hidden="true">&middot;</span>
                     Late after {{ $invoice->due_date->format('M j, Y') }}
                 </p>

@@ -91,9 +91,11 @@ class ClientPortalTest extends TestCase
         [,,$otherPlan]=$this->records('OTHER',$admin);
         $account=PortalAccount::query()->create(['client_id'=>$client->id,'email'=>$client->email,'password'=>'password','enabled'=>true]);
         \App\Models\AppSetting::putMany(['invoice_view_admin_notice_enabled'=>'1']);
-        $own=Invoice::query()->create(['payment_plan_id'=>$ownPlan->id,'invoice_number'=>'INV-OWN','issue_date'=>'2026-08-01','due_date'=>'2026-08-06','status'=>'issued','issued_at'=>now(),'created_by_user_id'=>$admin->id]);
-        $other=Invoice::query()->create(['payment_plan_id'=>$otherPlan->id,'invoice_number'=>'INV-OTHER','issue_date'=>'2026-08-01','due_date'=>'2026-08-06','status'=>'issued','issued_at'=>now(),'created_by_user_id'=>$admin->id]);
-        $this->actingAs($account,'client')->get(route('portal.invoices.show',$own))->assertOk()->assertSee('INV-OWN')->assertSeeText('Payment due upon receipt')->assertSeeText('Late after Aug 6, 2026');
+        $own=Invoice::query()->create(['payment_plan_id'=>$ownPlan->id,'invoice_number'=>'INV-OWN','issue_date'=>'2026-10-01','due_date'=>'2026-10-06','status'=>'issued','issued_at'=>now(),'created_by_user_id'=>$admin->id]);
+        $other=Invoice::query()->create(['payment_plan_id'=>$otherPlan->id,'invoice_number'=>'INV-OTHER','issue_date'=>'2026-10-01','due_date'=>'2026-10-06','status'=>'issued','issued_at'=>now(),'created_by_user_id'=>$admin->id]);
+        \Illuminate\Support\Carbon::setTestNow('2026-09-15');
+        $this->actingAs($account,'client')->get(route('portal.invoices.show',$own))->assertOk()->assertSee('INV-OWN')->assertSeeText('Scheduled')->assertSeeText('Dated Oct 1, 2026')->assertSeeText('Late after Oct 6, 2026');
+        \Illuminate\Support\Carbon::setTestNow();
         $firstViewedAt=$own->fresh()->first_viewed_at;
         $this->assertNotNull($firstViewedAt);
         $this->assertSame($own->id,AdminNotice::query()->where('type','invoice_first_viewed')->sole()->invoice_id);
@@ -104,7 +106,7 @@ class ClientPortalTest extends TestCase
         $this->get(route('portal.invoices.show',$own))->assertOk();
         $this->assertTrue($own->fresh()->first_viewed_at->equalTo($firstViewedAt));
         $this->assertSame(1,AdminNotice::query()->where('type','invoice_first_viewed')->count());
-        $this->get(route('portal.invoices.index'))->assertOk()->assertSee('Late after')->assertDontSee('>Due<', false);
+        $this->get(route('portal.invoices.index'))->assertOk()->assertSee('>Dated<', false)->assertSee('Late after')->assertDontSee('>Issued<', false)->assertDontSee('>Due<', false);
         $this->get(route('portal.invoices.download',$own))->assertOk()->assertHeader('content-type','application/pdf');
         $own->update(['status'=>'voided']);
         $this->get(route('portal.invoices.index'))->assertOk()->assertDontSee('INV-OWN');
