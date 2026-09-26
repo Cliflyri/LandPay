@@ -118,6 +118,52 @@ class PropertyTaxBatchTest extends TestCase
   $this->put(route('admin.property-tax-batches.update',$batch),$payload)->assertSessionHasNoErrors();
   $this->assertSame('New County',$batch->fresh()->property_county);
  }
+ public function test_zero_rows_require_confirmation_and_never_create_invoices_or_email():void
+ {
+  [$user,,$paid]=$this->plan('POSITIVE',null);
+  [,,$zero]=$this->plan('ZERO',null,$user);
+  $this->plan('UNCHECKED',null,$user);
+  $this->plan('EXCLUDED',null,$user);
+  $this->plan('DRAFTZERO',null,$user,'draft');
+  $this->plan('AMB (1)',null,$user);$this->plan('AMB (2)',null,$user);
+  $this->plan('CLOSED',null,$user,'closed');
+  $payload=['tax_year'=>2026,'issue_date'=>'2026-09-10','due_date'=>'2026-10-15','fallback_description'=>'Tax','source_text'=>"POSITIVE,10.00\nZERO,0.00\nUNCHECKED,0\nEXCLUDED,0\nDRAFTZERO,0\nAMB,0\nUNKNOWN,12.00\nBAD,\nZERO,0\nCLOSED,5",'email_clients'=>'1'];
+  $this->actingAs($user)->post(route('admin.property-tax-batches.store'),$payload)->assertSessionHasNoErrors();
+  $batch=PropertyTaxBatch::query()->sole();$rows=$batch->rows()->get()->keyBy('original_apn');
+  $zeroRow=$batch->rows()->where('payment_plan_id',$zero->id)->first();
+  $this->assertSame('matched',$zeroRow->match_status);
+  $this->assertSame('invalid',$rows['BAD']->match_status);
+  $this->assertSame('duplicate',$rows['ZERO']->match_status);
+  $this->get(route('admin.property-tax-batches.show',$batch))->assertOk()->assertSee('Confirm no tax due')->assertSeeInOrder(['$0.00 — Review required','POSITIVE','Ambiguous — multiple possible plans','Create invoices','Clients / plans with no match','Unmatched / invalid batch lines','Skipped inactive plans']);
+  $this->post(route('admin.property-tax-batches.issue',$batch),['confirm_zero_rows'=>[$zeroRow->id,$rows['EXCLUDED']->id,$rows['DRAFTZERO']->id,$rows['AMB']->id],'exclude_rows'=>[$rows['EXCLUDED']->id]])->assertSessionHasNoErrors();
+  $this->assertDatabaseCount('invoices',1);
+  $this->assertDatabaseHas('invoices',['payment_plan_id'=>$paid->id]);
+  $this->assertDatabaseHas('property_tax_batch_rows',['id'=>$zeroRow->id,'issuance_status'=>'no_tax_due','invoice_id'=>null,'email_status'=>'not_requested']);
+  $this->assertSame('zero_unconfirmed',$rows['UNCHECKED']->fresh()->issuance_status);
+  $this->assertSame('excluded',$rows['EXCLUDED']->fresh()->issuance_status);
+  $this->assertSame('no_tax_due',$rows['DRAFTZERO']->fresh()->issuance_status);
+  $this->assertSame('not_created',$rows['AMB']->fresh()->issuance_status);
+  $this->assertSame('partially_issued',$batch->fresh()->status);
+  $this->get(route('admin.property-tax-batches.show',$batch))->assertOk()->assertSee('No tax due — confirmed')->assertSee('Zero amount unconfirmed');
+  $this->assertDatabaseMissing('financial_transactions',['payment_plan_id'=>$zero->id]);
+ }
+ public function test_zero_only_batch_completes_without_invoice_and_blocks_stale_eligibility():void
+ {
+  [$user,,$zero]=$this->plan('ZERO',null);
+  $payload=['tax_year'=>2026,'issue_date'=>'2026-09-10','due_date'=>'2026-10-15','source_text'=>'ZERO,0.00','email_clients'=>'1'];
+  $this->actingAs($user)->post(route('admin.property-tax-batches.store'),$payload);
+  $batch=PropertyTaxBatch::query()->sole();$row=$batch->rows()->first();
+  $this->post(route('admin.property-tax-batches.issue',$batch),['confirm_zero_rows'=>[$row->id]])->assertSessionHasNoErrors();
+  $this->assertSame('issued',$batch->fresh()->status);
+  $this->assertSame('no_tax_due',$row->fresh()->issuance_status);
+  $this->assertDatabaseCount('invoices',0);
+  $this->post(route('admin.property-tax-batches.store'),$payload);
+  $next=PropertyTaxBatch::latest('id')->first();$nextRow=$next->rows()->first();
+  $zero->update(['status'=>'closed']);
+  $this->post(route('admin.property-tax-batches.issue',$next),['confirm_zero_rows'=>[$nextRow->id]])->assertSessionHasNoErrors();
+  $this->assertSame('zero_unconfirmed',$nextRow->fresh()->issuance_status);
+  $this->assertDatabaseCount('invoices',0);
+ }
  private function plan(string $number,?string $email,?User $user=null,string $status='active'):array
  {
   $user??=User::factory()->create();

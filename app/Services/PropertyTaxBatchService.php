@@ -26,7 +26,7 @@ class PropertyTaxBatchService
    if($result===[]&&in_array(strtolower(str_replace([' ','_'],'',$apn)),['apn','propertyapn'],true))continue;
    $description=trim((string)($fields[2]??''));$resolved=$description!==''?$description:trim((string)$fallback);
    $row=['row_number'=>count($result)+1,'original_apn'=>$apn?:null,'normalized_apn'=>$normalized?:null,'amount'=>null,'imported_description'=>$description?:null,'resolved_description'=>$resolved?:null,'payment_plan_id'=>null,'match_status'=>'unmatched','note'=>null];
-   try{$row['amount']=Money::toCents((string)($fields[1]??''));if($row['amount']<=0)throw new \InvalidArgumentException();}catch(Throwable){$row['match_status']='invalid';$row['note']='Amount must be greater than zero with no more than two decimal places.';$result[]=$row;continue;}
+   try{$row['amount']=Money::toCents((string)($fields[1]??''));if($row['amount']<0)throw new \InvalidArgumentException();}catch(Throwable){$row['match_status']='invalid';$row['note']='Amount must be zero or greater with no more than two decimal places.';$result[]=$row;continue;}
    if($normalized===''){$row['match_status']='invalid';$row['note']='APN is required.';$result[]=$row;continue;}
    if(isset($seen[$normalized])){$row['match_status']='duplicate';$row['note']='Duplicate APN in this batch.';$result[]=$row;continue;}$seen[$normalized]=true;
    $matches=collect($byApn[$normalized]??[])->unique('id');
@@ -48,11 +48,25 @@ class PropertyTaxBatchService
   return $result;
  }
 
- public function issue(PropertyTaxBatch $batch,User $actor,array $draftIds=[],array $excludedIds=[],array $forceIds=[]):PropertyTaxBatch
+ public function issue(PropertyTaxBatch $batch,User $actor,array $draftIds=[],array $excludedIds=[],array $forceIds=[],array $zeroIds=[]):PropertyTaxBatch
  {
   $batch->refresh();abort_unless($batch->status==='draft',409,'This batch has already been issued.');
   $rows=$batch->rows()->with('paymentPlan')->get();
   foreach($rows as $row){
+   if($row->amount!==null&&(int)$row->amount===0&&in_array($row->match_status,['matched','draft'],true)){
+    if(in_array($row->id,$excludedIds,true)){$row->update(['issuance_status'=>'excluded']);continue;}
+    if(!in_array($row->id,$zeroIds,true)){$row->update(['issuance_status'=>'zero_unconfirmed','email_status'=>'not_requested']);continue;}
+    try{
+     DB::transaction(function()use($row,$batch):void{
+      $plan=PaymentPlan::withTrashed()->lockForUpdate()->findOrFail($row->payment_plan_id);
+      if($plan->trashed()||!in_array($plan->status,['active','paused','draft'],true))throw new \RuntimeException('Plan is no longer eligible.');
+      $existing=Invoice::where('payment_plan_id',$plan->id)->where('property_tax_year',$batch->tax_year)->where('status','!=',InvoiceStatus::Voided->value)->first();
+      if($existing)throw new \RuntimeException('Existing property-tax invoice '.$existing->invoice_number.'; no-tax confirmation not recorded.');
+      $row->update(['issuance_status'=>'no_tax_due','email_status'=>'not_requested']);
+     });
+    }catch(Throwable $e){$row->update(['issuance_status'=>'zero_unconfirmed','note'=>Str::limit($e->getMessage(),500)]);}
+    continue;
+   }
    $included=$row->match_status==='matched'||($row->match_status==='draft'&&in_array($row->id,$draftIds,true));
    if(!$included){$row->update(['issuance_status'=>$row->match_status==='draft'?'not_included':'not_created']);continue;}
    if(in_array($row->id,$excludedIds,true)){$row->update(['issuance_status'=>'excluded']);continue;}
@@ -64,8 +78,8 @@ class PropertyTaxBatchService
    try{$delivery=$this->emails->send($invoice,$actor,'inline');$row->update(['email_status'=>'sent','email_sent_at'=>$delivery->sent_at??now(),'email_note'=>$delivery->recipient_email]);}
    catch(Throwable $e){$row->update(['email_status'=>str_contains($e->getMessage(),'No valid invoice-recipient')?'ineligible':'failed','email_sent_at'=>null,'email_note'=>Str::limit($e->getMessage(),500)]);}
   }
-  $intended=$rows->filter(fn($r)=>$r->match_status==='matched'||($r->match_status==='draft'&&in_array($r->id,$draftIds,true)))->reject(fn($r)=>in_array($r->id,$excludedIds,true));
-  $created=$intended->filter(fn($r)=>$r->fresh()->invoice_id!==null)->count();
+  $intended=$rows->filter(fn($r)=>$r->match_status==='matched'||($r->match_status==='draft'&&(in_array($r->id,$draftIds,true)||($r->amount!==null&&(int)$r->amount===0))))->reject(fn($r)=>in_array($r->id,$excludedIds,true));
+  $created=$intended->filter(fn($r)=>$r->fresh()->invoice_id!==null||$r->fresh()->issuance_status==='no_tax_due')->count();
   $status=$created===0?'not_issued':($created===$intended->count()?'issued':'partially_issued');
   $batch->update(['status'=>$status,'confirmed_by_user_id'=>$actor->id,'confirmed_at'=>now()]);
   return $batch->fresh('rows.invoice');

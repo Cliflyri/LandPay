@@ -62,11 +62,11 @@ class PropertyTaxBatchController extends Controller
  }
  public function issue(Request $request,PropertyTaxBatch $propertyTaxBatch):RedirectResponse
  {
-  $data=$request->validate(['include_drafts'=>['nullable','array'],'include_drafts.*'=>['integer'],'exclude_rows'=>['nullable','array'],'exclude_rows.*'=>['integer'],'force_duplicates'=>['nullable','array'],'force_duplicates.*'=>['integer'],'duplicate_acknowledgment'=>['nullable','boolean']]);
+  $data=$request->validate(['confirm_zero_rows'=>['nullable','array'],'confirm_zero_rows.*'=>['integer'],'include_drafts'=>['nullable','array'],'include_drafts.*'=>['integer'],'exclude_rows'=>['nullable','array'],'exclude_rows.*'=>['integer'],'force_duplicates'=>['nullable','array'],'force_duplicates.*'=>['integer'],'duplicate_acknowledgment'=>['nullable','boolean']]);
   if(($data['force_duplicates']??[])!==[]&&!$request->boolean('duplicate_acknowledgment'))throw ValidationException::withMessages(['duplicate_acknowledgment'=>'Acknowledge the duplicate invoices before continuing.']);
   $forces=array_map('intval',$data['force_duplicates']??[]);
-  $batch=$this->service->issue($propertyTaxBatch,$request->user(),array_map('intval',$data['include_drafts']??[]),array_map('intval',$data['exclude_rows']??[]),$forces);
-  AuditLog::create(['actor_type'=>'administrator','actor_user_id'=>$request->user()->id,'event'=>'property_tax_batch.issued','auditable_type'=>PropertyTaxBatch::class,'auditable_id'=>$batch->id,'after_values'=>['status'=>$batch->status,'invoice_count'=>$batch->rows->whereNotNull('invoice_id')->count(),'duplicate_overrides'=>count($forces)],'ip_address'=>$request->ip(),'user_agent'=>str($request->userAgent())->limit(500)]);
+  $batch=$this->service->issue($propertyTaxBatch,$request->user(),array_map('intval',$data['include_drafts']??[]),array_map('intval',$data['exclude_rows']??[]),$forces,array_map('intval',$data['confirm_zero_rows']??[]));
+  AuditLog::create(['actor_type'=>'administrator','actor_user_id'=>$request->user()->id,'event'=>'property_tax_batch.issued','auditable_type'=>PropertyTaxBatch::class,'auditable_id'=>$batch->id,'after_values'=>['status'=>$batch->status,'invoice_count'=>$batch->rows->whereNotNull('invoice_id')->count(),'no_tax_due_rows'=>$batch->rows->where('issuance_status','no_tax_due')->pluck('id')->all(),'duplicate_overrides'=>count($forces)],'ip_address'=>$request->ip(),'user_agent'=>str($request->userAgent())->limit(500)]);
   return redirect()->route('admin.property-tax-batches.show',$batch)->with('success','Property-tax batch processed. Invoice and email results are shown below.');
  }
  public function retryEmail(Request $request,PropertyTaxBatch $propertyTaxBatch,PropertyTaxBatchRow $row):RedirectResponse
