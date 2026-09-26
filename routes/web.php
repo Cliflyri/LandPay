@@ -122,6 +122,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('actions/reminder-occurrences/{occurrence}/dismiss', \App\Http\Controllers\Admin\AdminReminderDismissalController::class)->name('reminders.dismiss');
     Route::post('property-tax-batches/{propertyTaxBatch}/issue', [PropertyTaxBatchController::class, 'issue'])->name('property-tax-batches.issue');
     Route::post('property-tax-batches/{propertyTaxBatch}/rows/{row}/retry-email', [PropertyTaxBatchController::class, 'retryEmail'])->name('property-tax-batches.retry-email');
+    Route::post('property-tax-batches/{propertyTaxBatch}/rows/{row}/match', [PropertyTaxBatchController::class, 'saveMatch'])->name('property-tax-batches.match');
     Route::resource('property-tax-batches', PropertyTaxBatchController::class);
     Route::post('clients/quick', [ClientController::class, 'quickStore'])->name('clients.quick-store');
     Route::post('clients/{client}/portal-access', [ClientPortalAccessController::class, 'store'])->name('portal-access.store');

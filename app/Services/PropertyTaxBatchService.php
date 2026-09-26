@@ -96,5 +96,18 @@ class PropertyTaxBatchService
   },3);
  }
 
- private function normalize(?string $value):string{return strtoupper((string)preg_replace('/[^A-Z0-9]/i','',(string)$value));}
+ public function candidates(?string $apn,?\Illuminate\Support\Collection $plans=null):\Illuminate\Support\Collection
+ {
+  $key=$this->normalize($apn);
+  $plans??=PaymentPlan::whereIn('status',['active','paused','draft'])->get();
+  $matches=$plans->filter(fn($plan)=>$key!==''&&in_array($key,[$this->normalize($plan->apn),$this->normalize($plan->plan_number)],true));
+  $active=$matches->whereIn('status',['active','paused']);
+  return $active->isNotEmpty()?$active:$matches->where('status','draft');
+ }
+
+ private function normalize(?string $value):string
+ {
+  $value=preg_replace('/\s*\(\d+\)\s*$/','',(string)$value);
+  return strtoupper((string)preg_replace('/[^A-Z0-9]/i','',$value));
+ }
 }

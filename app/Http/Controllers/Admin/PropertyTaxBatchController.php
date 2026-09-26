@@ -29,7 +29,33 @@ class PropertyTaxBatchController extends Controller
    ->whereNotIn('id',$propertyTaxBatch->rows->whereIn('match_status',['matched','draft'])->pluck('payment_plan_id')->filter()->unique())
    ->with(['memberships'=>fn($q)=>$q->whereNull('effective_to')->with('client')])
    ->orderBy('plan_number')->get();
-  return view('admin.property-taxes.show',['batch'=>$propertyTaxBatch,'unmatchedPlans'=>$unmatchedPlans]);
+  $matchCandidates=[];
+  if($propertyTaxBatch->status==='draft'){
+   $reviewRows=$propertyTaxBatch->rows->filter(fn($row)=>$row->match_status==='ambiguous'||str_starts_with((string)$row->note,'Manually selected'));
+   if($reviewRows->isNotEmpty()){
+    $plans=PaymentPlan::whereIn('status',['active','paused','draft'])->with(['memberships'=>fn($q)=>$q->whereNull('effective_to')->with('client')])->get();
+    foreach($reviewRows as $row)$matchCandidates[$row->id]=$this->service->candidates($row->original_apn,$plans);
+   }
+  }
+  return view('admin.property-taxes.show',['batch'=>$propertyTaxBatch,'unmatchedPlans'=>$unmatchedPlans,'matchCandidates'=>$matchCandidates]);
+ }
+ public function saveMatch(Request $request,PropertyTaxBatch $propertyTaxBatch,PropertyTaxBatchRow $row):RedirectResponse
+ {
+  abort_unless($row->property_tax_batch_id===$propertyTaxBatch->id,404);
+  $data=$request->validate(['payment_plan_id'=>['required','integer']]);
+  DB::transaction(function()use($request,$propertyTaxBatch,$row,$data):void{
+   $batch=PropertyTaxBatch::query()->lockForUpdate()->findOrFail($propertyTaxBatch->id);
+   $row=PropertyTaxBatchRow::query()->lockForUpdate()->findOrFail($row->id);
+   abort_unless($batch->status==='draft'&&!$row->invoice_id,409);
+   abort_unless($row->match_status==='ambiguous'||str_starts_with((string)$row->note,'Manually selected'),409);
+   $plan=$this->service->candidates($row->original_apn)->firstWhere('id',(int)$data['payment_plan_id']);
+   if(!$plan)throw ValidationException::withMessages(['payment_plan_id'=>'Choose a currently eligible plan matching this uploaded APN.']);
+   $before=$row->only(['payment_plan_id','match_status','existing_invoice_id','note']);
+   $existing=\App\Models\Invoice::where('payment_plan_id',$plan->id)->where('property_tax_year',$batch->tax_year)->where('status','!=','voided')->first();
+   $row->update(['payment_plan_id'=>$plan->id,'match_status'=>$plan->status==='draft'?'draft':'matched','existing_invoice_id'=>$existing?->id,'note'=>'Manually selected'.($plan->status==='draft'?'; draft plan must be included to issue.':'.')]);
+   AuditLog::create(['actor_type'=>'administrator','actor_user_id'=>$request->user()->id,'event'=>'property_tax_batch.match_selected','auditable_type'=>PropertyTaxBatchRow::class,'auditable_id'=>$row->id,'before_values'=>$before,'after_values'=>$row->only(['payment_plan_id','match_status','existing_invoice_id','note']),'ip_address'=>$request->ip(),'user_agent'=>str($request->userAgent())->limit(500)]);
+  });
+  return back()->with('success','Match saved. No invoices have been created.');
  }
  public function issue(Request $request,PropertyTaxBatch $propertyTaxBatch):RedirectResponse
  {
