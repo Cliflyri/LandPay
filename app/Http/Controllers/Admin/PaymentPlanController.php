@@ -341,11 +341,17 @@ class PaymentPlanController extends Controller
         return back()->with('success', $applied > 0 ? Money::format($applied).' account credit applied to open invoices.' : 'No account credit could be applied.');
     }
 
+    private function countySuggestions(): \Illuminate\Support\Collection
+    {
+        return PaymentPlan::whereNotNull('property_county')->distinct()->orderBy('property_county')->pluck('property_county')
+            ->map(fn ($county) => trim($county))->filter()->unique(fn ($county) => mb_strtolower($county))->values();
+    }
+
     public function edit(PaymentPlan $plan): View
     {
         $plan->load(['currentBillingTerms', 'memberships.client']);
 
-        return view('admin.plans.edit', ['plan' => $plan, 'terms' => $plan->currentBillingTerms, 'previousPaid' => $this->openingPrincipalCredit->amount($plan), 'contractBalance' => $this->balances->contractBalance($plan)]);
+        return view('admin.plans.edit', ['counties' => $this->countySuggestions(), 'plan' => $plan, 'terms' => $plan->currentBillingTerms, 'previousPaid' => $this->openingPrincipalCredit->amount($plan), 'contractBalance' => $this->balances->contractBalance($plan)]);
     }
 
     public function update(Request $request, PaymentPlan $plan): RedirectResponse
@@ -426,18 +432,21 @@ class PaymentPlanController extends Controller
         DB::transaction(function () use ($request, $plan, $terms, $data, $previousPaid, $stageOneDaysLate, $purchasePrice, $documentationFeeStandard, $documentationFeeWaived): void {
             $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             $lockedTerms = PaymentPlanBillingTerm::query()->lockForUpdate()->findOrFail($terms->id);
-            $before = ['plan' => $lockedPlan->only(['plan_number', 'title', 'asset_description', 'notes', 'status', 'plan_start_date', 'first_payment_amount', 'first_due_date', 'purchase_price', 'documentation_fee_standard', 'documentation_fee_waived', 'documentation_fee_waiver_reason']), 'billing_terms' => $lockedTerms->getAttributes()];
+            $before = ['plan' => $lockedPlan->only(['plan_number', 'title', 'asset_description', 'property_county', 'notes', 'status', 'plan_start_date', 'first_payment_amount', 'first_due_date', 'purchase_price', 'documentation_fee_standard', 'documentation_fee_waived', 'documentation_fee_waiver_reason']), 'billing_terms' => $lockedTerms->getAttributes()];
             $this->contractAmounts->amend($lockedPlan, $request->user(), $purchasePrice, $documentationFeeStandard, $documentationFeeWaived, $data['effective_from'], $data['amendment_reason'], $data['documentation_fee_waiver_reason'] ?? null);
             $this->openingPrincipalCredit->amend($lockedPlan, $request->user(), $previousPaid, $data['effective_from'], $data['amendment_reason']);
             $scheduled = Money::toCents($data['scheduled_payment_amount']);
             $monthlyFee = Money::toCents($data['monthly_service_fee']);
             $firstPayment = filled($data['first_payment_amount'] ?? null) ? Money::toCents($data['first_payment_amount']) : ($lockedPlan->status === 'draft' && $request->boolean('create_first_payment_invoice') ? 0 : null);
 
+            $county = trim((string) ($data['property_county'] ?? ''));
+            $county = $county === '' ? null : ($this->countySuggestions()->first(fn ($existing) => mb_strtolower($existing) === mb_strtolower($county)) ?? $county);
+
             $lockedPlan->update([
                 'plan_number' => trim($data['plan_number']), 'apn' => trim($data['plan_number']), 'title' => $data['title'],
                 'asset_description' => $data['asset_description'] ?? null, 'notes' => $data['notes'] ?? null,
                 'plan_start_date' => $data['contract_start_date'],
-                'property_county' => $lockedPlan->status === 'draft' ? ($data['property_county'] ?? null) : $lockedPlan->property_county,
+                'property_county' => array_key_exists('property_county', $data) ? $county : $lockedPlan->property_county,
                 'hoa_fee' => $lockedPlan->status === 'draft' ? (filled($data['hoa_fee'] ?? null) ? Money::toCents($data['hoa_fee']) : 0) : $lockedPlan->hoa_fee,
                 'hoa_term' => $lockedPlan->status === 'draft' ? ($data['hoa_term'] ?? null) : $lockedPlan->hoa_term, 'govdeals' => $lockedPlan->status === 'draft' ? $request->boolean('govdeals') : $lockedPlan->govdeals,
                 'status' => $data['status'], 'first_payment_amount' => $firstPayment,
