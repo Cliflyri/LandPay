@@ -29,6 +29,9 @@ class PropertyTaxBatchController extends Controller
    ->whereNotIn('id',$propertyTaxBatch->rows->whereIn('match_status',['matched','draft'])->pluck('payment_plan_id')->filter()->unique())
    ->with(['memberships'=>fn($q)=>$q->whereNull('effective_to')->with('client')])
    ->orderBy('plan_number')->get();
+  $countyKey=mb_strtolower(trim((string)$propertyTaxBatch->property_county));
+  $sameCountyPlanIds=$countyKey===''?collect():$unmatchedPlans->filter(fn($plan)=>mb_strtolower(trim((string)$plan->property_county))===$countyKey)->pluck('id');
+  if($sameCountyPlanIds->isNotEmpty())$unmatchedPlans=$unmatchedPlans->sortBy(fn($plan)=>$sameCountyPlanIds->contains($plan->id)?0:1)->values();
   $matchCandidates=[];
   if($propertyTaxBatch->status==='draft'){
    $reviewRows=$propertyTaxBatch->rows->filter(fn($row)=>$row->match_status==='ambiguous'||str_starts_with((string)$row->note,'Manually selected'));
@@ -37,7 +40,7 @@ class PropertyTaxBatchController extends Controller
     foreach($reviewRows as $row)$matchCandidates[$row->id]=$this->service->candidates($row->original_apn,$plans);
    }
   }
-  return view('admin.property-taxes.show',['batch'=>$propertyTaxBatch,'unmatchedPlans'=>$unmatchedPlans,'matchCandidates'=>$matchCandidates]);
+  return view('admin.property-taxes.show',['batch'=>$propertyTaxBatch,'unmatchedPlans'=>$unmatchedPlans,'matchCandidates'=>$matchCandidates,'sameCountyPlanIds'=>$sameCountyPlanIds]);
  }
  public function saveMatch(Request $request,PropertyTaxBatch $propertyTaxBatch,PropertyTaxBatchRow $row):RedirectResponse
  {
@@ -82,20 +85,28 @@ class PropertyTaxBatchController extends Controller
   });
   return redirect()->route('admin.property-tax-batches.index',['status'=>'draft'])->with('success','Draft property-tax batch deleted.');
  }
- private function form(PropertyTaxBatch $batch):View{return view('admin.property-taxes.form',compact('batch'));}
+ private function countySuggestions():\Illuminate\Support\Collection
+ {
+  return PaymentPlan::whereNotNull('property_county')->distinct()->orderBy('property_county')->pluck('property_county')
+   ->map(fn($county)=>trim($county))->filter()->unique(fn($county)=>mb_strtolower($county))->values();
+ }
+ private function form(PropertyTaxBatch $batch):View{return view('admin.property-taxes.form',['batch'=>$batch,'counties'=>$this->countySuggestions()]);}
  private function save(Request $request,PropertyTaxBatch $batch):RedirectResponse
  {
-  $data=$request->validate(['tax_year'=>['required','integer','min:2000','max:2100'],'label'=>['nullable','string','max:100'],'issue_date'=>['required','date'],'due_date'=>['required','date','after_or_equal:issue_date'],'fallback_description'=>['nullable','string','max:500'],'email_clients'=>['nullable','boolean'],'source_text'=>['nullable','string'],'csv_file'=>['nullable','file','max:5120']]);
+  $data=$request->validate(['tax_year'=>['required','integer','min:2000','max:2100'],'label'=>['nullable','string','max:100'],'property_county'=>['nullable','string','max:100'],'issue_date'=>['required','date'],'due_date'=>['required','date','after_or_equal:issue_date'],'fallback_description'=>['nullable','string','max:500'],'email_clients'=>['nullable','boolean'],'source_text'=>['nullable','string'],'csv_file'=>['nullable','file','max:5120']]);
   if(filled($data['source_text']??null)&&$request->hasFile('csv_file'))throw ValidationException::withMessages(['source_text'=>'Paste data or upload a CSV, not both.']);
   $text=$request->hasFile('csv_file')?(string)file_get_contents($request->file('csv_file')->getRealPath()):(string)($data['source_text']??'');
   if(trim($text)==='')throw ValidationException::withMessages(['source_text'=>'Paste property-tax data or upload a CSV file.']);
+  $county=trim((string)($data['property_county']??$batch->property_county));
+  if(array_key_exists('property_county',$data)&&$data['property_county']===null)$county='';
+  $data['property_county']=$county===''?null:($this->countySuggestions()->first(fn($existing)=>mb_strtolower($existing)===mb_strtolower($county))??$county);
   $rows=$this->service->rows($text,$data['fallback_description']??null,(int)$data['tax_year']);
   if($rows===[])throw ValidationException::withMessages(['source_text'=>'No data rows were found.']);
   DB::transaction(function()use($batch,$data,$text,$rows,$request){
-   $batch->fill(['tax_year'=>$data['tax_year'],'label'=>trim($data['label']??'Annual')?:'Annual','issue_date'=>$data['issue_date'],'due_date'=>$data['due_date'],'fallback_description'=>trim((string)($data['fallback_description']??''))?:null,'email_clients'=>$request->boolean('email_clients'),'source_filename'=>$request->file('csv_file')?->getClientOriginalName(),'source_text'=>$text,'status'=>'draft','created_by_user_id'=>$batch->created_by_user_id?:$request->user()->id])->save();
+   $batch->fill(['tax_year'=>$data['tax_year'],'property_county'=>$data['property_county'],'label'=>trim($data['label']??'Annual')?:'Annual','issue_date'=>$data['issue_date'],'due_date'=>$data['due_date'],'fallback_description'=>trim((string)($data['fallback_description']??''))?:null,'email_clients'=>$request->boolean('email_clients'),'source_filename'=>$request->file('csv_file')?->getClientOriginalName(),'source_text'=>$text,'status'=>'draft','created_by_user_id'=>$batch->created_by_user_id?:$request->user()->id])->save();
    $batch->rows()->delete();$batch->rows()->createMany($rows);
   });
-  AuditLog::create(['actor_type'=>'administrator','actor_user_id'=>$request->user()->id,'event'=>'property_tax_batch.saved','auditable_type'=>PropertyTaxBatch::class,'auditable_id'=>$batch->id,'after_values'=>['status'=>'draft','tax_year'=>$batch->tax_year,'row_count'=>count($rows)],'ip_address'=>$request->ip(),'user_agent'=>str($request->userAgent())->limit(500)]);
+  AuditLog::create(['actor_type'=>'administrator','actor_user_id'=>$request->user()->id,'event'=>'property_tax_batch.saved','auditable_type'=>PropertyTaxBatch::class,'auditable_id'=>$batch->id,'after_values'=>['status'=>'draft','tax_year'=>$batch->tax_year,'property_county'=>$batch->property_county,'row_count'=>count($rows)],'ip_address'=>$request->ip(),'user_agent'=>str($request->userAgent())->limit(500)]);
   return redirect()->route('admin.property-tax-batches.show',$batch)->with('success','Draft property-tax batch saved. No invoices have been created.');
  }
 }

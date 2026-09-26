@@ -45,7 +45,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate-
     </a>
     @endif
 </h1>
-        <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }}</p>
+        <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }} @if(filled($plan->property_county))<span class="text-muted"> · County: {{$plan->property_county}}</span>@endif</p>
 
     </div>
     <div class="d-flex flex-wrap gap-2">

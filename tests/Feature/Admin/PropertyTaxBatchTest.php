@@ -95,6 +95,29 @@ class PropertyTaxBatchTest extends TestCase
   $this->assertDatabaseCount('invoices',1);
   $this->post($url,['payment_plan_id'=>$first->id])->assertStatus(409);
  }
+ public function test_county_prioritizes_unmatched_plans_without_restricting_matching():void
+ {
+  [$user,,$matched]=$this->plan('MATCH',null);
+  [,,$missing]=$this->plan('A-MISSING',null,$user);
+  [,,$other]=$this->plan('B-OTHER',null,$user);$other->update(['property_county'=>'Yavapai']);
+  [,,$same]=$this->plan('Z-SAME',null,$user);$same->update(['property_county'=>'Mohave']);
+  $this->actingAs($user)->get(route('admin.property-tax-batches.create'))->assertOk()->assertSee('Mohave')->assertSee('batch-counties');
+  $payload=['tax_year'=>2026,'issue_date'=>'2026-09-10','due_date'=>'2026-10-15','source_text'=>'MATCH,10.00','email_clients'=>'0','property_county'=>' mohave '];
+  $this->post(route('admin.property-tax-batches.store'),$payload)->assertSessionHasNoErrors();
+  $batch=PropertyTaxBatch::query()->sole();
+  $this->assertSame('Mohave',$batch->property_county);
+  $this->assertSame($matched->id,$batch->rows()->first()->payment_plan_id);
+  $this->get(route('admin.property-tax-batches.show',$batch))->assertOk()->assertSee('Same county')->assertSee('County missing')->assertViewHas('unmatchedPlans',fn($plans)=>$plans->pluck('id')->all()===[$same->id,$missing->id,$other->id]);
+  $this->get(route('admin.property-tax-batches.index'))->assertOk()->assertSee('County: Mohave');
+  $this->get(route('admin.property-tax-batches.edit',$batch))->assertOk()->assertSee('Mohave');
+  $payload['property_county']='';
+  $this->put(route('admin.property-tax-batches.update',$batch),$payload)->assertSessionHasNoErrors();
+  $this->assertNull($batch->fresh()->property_county);
+  $this->get(route('admin.property-tax-batches.show',$batch))->assertOk()->assertDontSee('Same county')->assertViewHas('unmatchedPlans',fn($plans)=>$plans->pluck('id')->all()===[$missing->id,$other->id,$same->id]);
+  $payload['property_county']='New County';
+  $this->put(route('admin.property-tax-batches.update',$batch),$payload)->assertSessionHasNoErrors();
+  $this->assertSame('New County',$batch->fresh()->property_county);
+ }
  private function plan(string $number,?string $email,?User $user=null,string $status='active'):array
  {
   $user??=User::factory()->create();

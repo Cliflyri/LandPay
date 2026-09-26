@@ -13,6 +13,7 @@
     <div>
         <span class="eyebrow eyebrow-dark">
             Property tax {{ $batch->tax_year }} · {{ $batch->label }}
+            @if(filled($batch->property_county)) · County: {{$batch->property_county}} @endif
         </span>
 
         <h1>
@@ -100,17 +101,21 @@
 @if($inactiveRows->isNotEmpty())<div class='admin-next-card mt-4'><h2>Skipped inactive plans</h2><p class='text-muted'>Closed, terminated, or deleted plans are shown for review only.</p><div class='table-responsive'><table class='table'><thead><tr><th>Status</th><th>Plan #</th><th>APN</th><th class='text-end'>Amount</th></tr></thead><tbody>@foreach($inactiveRows as $row)<tr><td>{{$row->note}}</td><td>{{$row->paymentPlan?->plan_number}}</td><td>{{$row->original_apn}}</td><td class='money-cell'>{{\App\Support\Money::format((int)$row->amount)}}</td></tr>@endforeach</tbody></table></div></div>@endif
 <div class="admin-next-card mt-4">
 <h2>Clients / plans with no match in this batch <span class="text-muted">({{$unmatchedPlans->count()}} plans)</span></h2>
+@if(filled($batch->property_county))<p class="fw-semibold text-warning-emphasis">{{$sameCountyPlanIds->count()}} unmatched plans in {{$batch->property_county}} County</p>@endif
 <p class="text-muted">Current active and paused plans without a batch match. For review only; nonstandard properties may be expected exceptions. This list does not affect invoice creation.</p>
 <div class="table-responsive"><table class="table align-middle">
-<thead><tr><th>Client</th><th>Plan # / APN</th><th>Plan status</th></tr></thead>
+<thead><tr><th>Client</th><th>Plan # / APN</th><th>County</th><th>Plan status</th></tr></thead>
 <tbody>
 @forelse($unmatchedPlans as $unmatchedPlan)
-<tr><td>
+<tr @class(['table-warning'=>$sameCountyPlanIds->contains($unmatchedPlan->id)])><td>
 @forelse($unmatchedPlan->memberships->pluck('client')->filter()->unique('id') as $unmatchedClient)
 <div>{{$unmatchedClient->organization_name?:trim($unmatchedClient->first_name.' '.$unmatchedClient->last_name)}}</div>
 @empty<span class="text-muted">No current client</span>@endforelse
-</td><td><a href="{{route('admin.plans.show',$unmatchedPlan)}}">{{$unmatchedPlan->apn?:$unmatchedPlan->plan_number}}</a></td><td>{{ucfirst($unmatchedPlan->status)}}</td></tr>
-@empty<tr><td colspan="3">All current active and paused plans have a match in this batch.</td></tr>@endforelse
+</td><td><a href="{{route('admin.plans.show',$unmatchedPlan)}}">{{$unmatchedPlan->apn?:$unmatchedPlan->plan_number}}</a></td><td>
+@if(filled($unmatchedPlan->property_county)){{$unmatchedPlan->property_county}}@else<span class="badge bg-secondary">County missing</span>@endif
+@if($sameCountyPlanIds->contains($unmatchedPlan->id))<small class="d-block"><span class="badge" style="background-color:#fff3cd;color:#664d03">Same county — no batch match</span></small>@endif
+</td><td>{{ucfirst($unmatchedPlan->status)}}</td></tr>
+@empty<tr><td colspan="4">All current active and paused plans have a match in this batch.</td></tr>@endforelse
 </tbody></table></div>
 </div>
 </div></section>
