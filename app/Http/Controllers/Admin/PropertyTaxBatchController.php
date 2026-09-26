@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\{AuditLog,PropertyTaxBatch,PropertyTaxBatchRow};
+use App\Models\{AuditLog,PaymentPlan,PropertyTaxBatch,PropertyTaxBatchRow};
 use App\Services\PropertyTaxBatchService;
 use Illuminate\Http\{RedirectResponse,Request};
 use Illuminate\Support\Facades\DB;
@@ -25,7 +25,11 @@ class PropertyTaxBatchController extends Controller
  public function show(PropertyTaxBatch $propertyTaxBatch):View
  {
   $propertyTaxBatch->load(['rows.paymentPlan.memberships'=>fn($q)=>$q->whereNull('effective_to')->with('client'),'rows.invoice.emailDeliveries','rows.existingInvoice']);
-  return view('admin.property-taxes.show',['batch'=>$propertyTaxBatch]);
+  $unmatchedPlans=PaymentPlan::whereIn('status',['active','paused'])
+   ->whereNotIn('id',$propertyTaxBatch->rows->whereIn('match_status',['matched','draft'])->pluck('payment_plan_id')->filter()->unique())
+   ->with(['memberships'=>fn($q)=>$q->whereNull('effective_to')->with('client')])
+   ->orderBy('plan_number')->get();
+  return view('admin.property-taxes.show',['batch'=>$propertyTaxBatch,'unmatchedPlans'=>$unmatchedPlans]);
  }
  public function issue(Request $request,PropertyTaxBatch $propertyTaxBatch):RedirectResponse
  {
