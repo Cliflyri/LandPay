@@ -63,7 +63,7 @@
 
 
 
-<div class='row g-3 mt-2'><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','matched')->count()}}</strong><div>eligible matches</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{\App\Support\Money::format((int)$batch->rows->whereIn('match_status',['matched','draft'])->sum('amount'))}}</strong><div>eligible total</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','draft')->count()}}</strong><div>draft matches</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->whereNotIn('match_status',['matched','draft','inactive'])->count()}}</strong><div>exceptions</div></div></div></div>
+<div class='row g-3 mt-2'><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','matched')->count()}}</strong><div>eligible matches</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{\App\Support\Money::format((int)$batch->rows->whereIn('match_status',['matched','draft'])->sum('amount'))}}</strong><div>eligible total</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','draft')->count()}}</strong><div>matches to draft plans</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->whereNotIn('match_status',['matched','draft','inactive'])->count()}}</strong><div>exceptions</div></div></div></div>
 
 
 
