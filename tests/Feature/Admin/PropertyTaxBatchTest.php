@@ -164,6 +164,21 @@ class PropertyTaxBatchTest extends TestCase
   $this->assertSame('zero_unconfirmed',$nextRow->fresh()->issuance_status);
   $this->assertDatabaseCount('invoices',0);
  }
+ public function test_review_email_choice_overrides_saved_batch_setting():void
+ {
+  [$user]=$this->plan('EMAIL',null);
+  foreach([false,true] as $send){
+   $this->actingAs($user)->post(route('admin.property-tax-batches.store'),['tax_year'=>$send?2027:2026,'issue_date'=>'2026-09-10','due_date'=>'2026-10-15','source_text'=>'EMAIL,10.00','email_clients'=>$send?'0':'1'])->assertSessionHasNoErrors();
+   $batch=PropertyTaxBatch::latest('id')->first();
+   $this->get(route('admin.property-tax-batches.show',$batch))->assertOk()->assertSee('review-email-clients');
+   $this->post(route('admin.property-tax-batches.issue',$batch),['email_clients'=>$send?'1':'0'])->assertSessionHasNoErrors();
+   $this->assertSame($send,$batch->fresh()->email_clients);
+   $this->assertSame($send?'ineligible':'not_requested',$batch->rows()->first()->email_status);
+   $this->get(route('admin.property-tax-batches.show',$batch))->assertOk()->assertSee('Email eligible clients on invoice creation:')->assertDontSee('review-email-clients');
+   $this->post(route('admin.property-tax-batches.issue',$batch),['email_clients'=>$send?'0':'1'])->assertStatus(409);
+   $this->assertSame($send,$batch->fresh()->email_clients);
+  }
+ }
  private function plan(string $number,?string $email,?User $user=null,string $status='active'):array
  {
   $user??=User::factory()->create();

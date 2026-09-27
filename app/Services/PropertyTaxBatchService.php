@@ -48,9 +48,10 @@ class PropertyTaxBatchService
   return $result;
  }
 
- public function issue(PropertyTaxBatch $batch,User $actor,array $draftIds=[],array $excludedIds=[],array $forceIds=[],array $zeroIds=[]):PropertyTaxBatch
+ public function issue(PropertyTaxBatch $batch,User $actor,array $draftIds=[],array $excludedIds=[],array $forceIds=[],array $zeroIds=[],?bool $emailClients=null):PropertyTaxBatch
  {
   $batch->refresh();abort_unless($batch->status==='draft',409,'This batch has already been issued.');
+  if($emailClients!==null)$batch->update(['email_clients'=>$emailClients]);
   $rows=$batch->rows()->with('paymentPlan')->get();
   foreach($rows as $row){
    if($row->amount!==null&&(int)$row->amount===0&&in_array($row->match_status,['matched','draft'],true)){
