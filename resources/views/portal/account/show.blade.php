@@ -35,6 +35,7 @@
         <h2>Contact details</h2>
 
         <p>
+            <strong>{{ $account->client->organization_name ?: collect([$account->client->first_name, $account->client->middle_name, $account->client->last_name])->filter(fn ($part) => filled($part))->map(fn ($part) => trim($part))->implode(' ') }}</strong><br>
             {{ $account->client->email }}<br>
             {{ $account->client->primary_phone }}<br>
             {{ $account->client->address_line_1 }}
