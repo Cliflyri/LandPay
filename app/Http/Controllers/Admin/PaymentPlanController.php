@@ -319,6 +319,7 @@ class PaymentPlanController extends Controller
             'plan' => $plan,
             'contractBalance' => $contractBalance,
             'estimatedPayoff' => $estimatedPayoff,
+            'nextInvoiceDate' => $nextInvoiceDate,
             'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
             'principalPaid' => $this->balances->purchasePrincipalPaid($plan),

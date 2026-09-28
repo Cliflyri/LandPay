@@ -190,6 +190,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate-
     </div>
     @endif
     <dl class="row mb-0 mt-3">
+        <dt class="col-sm-4 col-lg-3">Next scheduled invoice</dt><dd class="col-sm-8 col-lg-9">{{ $nextInvoiceDate?->format('F j, Y') ?? ($plan->status === 'paused' ? 'Paused' : 'Not scheduled') }}</dd>
         <dt class="col-sm-4 col-lg-3">Purchase price</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->purchase_price)}}</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_standard)}}</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee waived</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_waived)}}@if($plan->documentation_fee_waived > 0) &mdash; {{ $plan->documentation_fee_waiver_reason }}@endif</dd>
