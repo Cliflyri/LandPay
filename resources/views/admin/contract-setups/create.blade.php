@@ -122,6 +122,44 @@ $contractStageTwoValue = $contractStageTwoType === 'percentage' ? ($defaults?->s
 document.addEventListener('DOMContentLoaded',()=>{
  const form=document.getElementById('contract-setup-form');
  const field=n=>form.elements[n];
+ // Use a page-owned dropdown; native datalist popups are unreliable on this form.
+ const countyInput=document.getElementById('property-county');
+ const countyNames=Array.from(document.getElementById('property-counties').options,option=>option.value);
+ const countyResults=document.createElement('div');
+ countyResults.id='county-suggestions';countyResults.className='list-group mt-1';countyResults.hidden=true;
+ countyResults.setAttribute('role','listbox');countyResults.setAttribute('aria-label','Existing counties');
+ countyInput.after(countyResults);countyInput.removeAttribute('list');countyInput.autocomplete='off';
+ countyInput.setAttribute('role','combobox');countyInput.setAttribute('aria-autocomplete','list');
+ countyInput.setAttribute('aria-controls',countyResults.id);countyInput.setAttribute('aria-expanded','false');
+ let countyIndex=-1;
+ const closeCounties=()=>{countyResults.hidden=true;countyInput.setAttribute('aria-expanded','false');countyInput.removeAttribute('aria-activedescendant');countyIndex=-1;};
+ const chooseCounty=name=>{countyInput.value=name;closeCounties();countyInput.dispatchEvent(new Event('change',{bubbles:true}));};
+ const showCounties=()=>{
+   closeCounties();countyResults.replaceChildren();
+   const query=countyInput.value.trim().toLowerCase();
+   if(!query)return;
+   countyNames.filter(name=>name.toLowerCase().includes(query)).slice(0,8).forEach((name,index)=>{
+     const option=document.createElement('button');option.type='button';option.tabIndex=-1;
+     option.id='county-option-'+index;option.className='list-group-item list-group-item-action';option.textContent=name;
+     option.setAttribute('role','option');option.setAttribute('aria-selected','false');
+     option.addEventListener('mousedown',event=>event.preventDefault());
+     option.addEventListener('click',()=>chooseCounty(name));countyResults.appendChild(option);
+   });
+   countyResults.hidden=!countyResults.children.length;countyInput.setAttribute('aria-expanded',String(!countyResults.hidden));
+ };
+ countyInput.addEventListener('input',showCounties);countyInput.addEventListener('focus',showCounties);
+ countyInput.addEventListener('blur',closeCounties);
+ countyInput.addEventListener('keydown',event=>{
+   if(event.key==='Escape'){if(!countyResults.hidden){event.preventDefault();closeCounties();}return;}
+   if(event.key==='Enter'&&!countyResults.hidden&&countyIndex>=0){event.preventDefault();chooseCounty(countyResults.children[countyIndex].textContent);return;}
+   if(!['ArrowDown','ArrowUp'].includes(event.key))return;
+   if(countyResults.hidden)showCounties();
+   const options=Array.from(countyResults.children);if(countyResults.hidden||!options.length)return;
+   event.preventDefault();countyIndex=countyIndex<0?(event.key==='ArrowDown'?0:options.length-1):(countyIndex+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;
+   options.forEach((option,index)=>{option.classList.toggle('active',index===countyIndex);option.setAttribute('aria-selected',String(index===countyIndex));});
+   countyInput.setAttribute('aria-activedescendant',options[countyIndex].id);
+ });
+
  const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
  const clients=@json($contractClientOptions);
  const clientById=id=>clients.find(client=>String(client.id)===String(id));
