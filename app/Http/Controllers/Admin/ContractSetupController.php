@@ -35,9 +35,16 @@ class ContractSetupController extends Controller
         private readonly InvoiceEmailService $invoiceEmails,
     ) {}
 
+    private function countySuggestions(): \Illuminate\Support\Collection
+    {
+        return PaymentPlan::whereNotNull('property_county')->distinct()->orderBy('property_county')->pluck('property_county')
+            ->map(fn ($county) => trim($county))->filter()->unique(fn ($county) => mb_strtolower($county))->values();
+    }
+
     public function create(Request $request): View
     {
         return view('admin.contract-setups.create', [
+            'counties' => $this->countySuggestions(),
             'clients' => Client::query()->whereNull('archived_at')->orderBy('last_name')->orderBy('first_name')->get(),
             'selectedClient' => $request->integer('client') ?: null,
             'defaults' => BillingDefault::query()->latest('id')->first(),
@@ -104,6 +111,9 @@ class ContractSetupController extends Controller
             'contract_templates' => ['required', 'array', 'between:1,10'],
             'contract_templates.*' => ['required', 'file', 'mimes:docx', 'max:10240'],
         ]);
+
+        $county = trim((string) ($data['property_county'] ?? ''));
+        $data['property_county'] = $county === '' ? null : ($this->countySuggestions()->first(fn ($existing) => mb_strtolower($existing) === mb_strtolower($county)) ?? $county);
 
         if ($data['primary_mode'] === 'new') {
             $this->validateNewClient($data, 'primary');
