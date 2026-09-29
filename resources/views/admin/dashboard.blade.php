@@ -391,4 +391,5 @@
 </section>
 
 @foreach($plans as $row)@if($row['balance_invoice'])@include('admin.shared.pay-invoice-full-modal',['invoice'=>$row['balance_invoice'],'clientName'=>$row['client_name'],'returnTo'=>'dashboard'])@endif @endforeach
+@include('admin.documents._preview')
 @endsection

@@ -5,7 +5,7 @@
             <strong>{{$notice->title}}</strong>
             @if($notice->type === 'shared_document_uploaded' && $notice->client && $notice->sharedDocument)
                 <p class="mb-0"><a href="{{route('admin.clients.show',$notice->client)}}">{{$notice->client->organization_name ?: trim($notice->client->first_name.' '.$notice->client->last_name)}}</a> uploaded
-                    <a href="{{route(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true) ? 'admin.documents.preview' : 'admin.documents.download',$notice->sharedDocument)}}">{{$notice->sharedDocument->name}}</a>.
+                    <a href="{{route(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true) ? 'admin.documents.preview' : 'admin.documents.download',$notice->sharedDocument)}}" @if(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true)) data-document-preview="{{route('admin.documents.preview',$notice->sharedDocument)}}" data-document-name="{{$notice->sharedDocument->name}}" @endif>{{$notice->sharedDocument->name}}</a>.
                 </p>
             @elseif($notice->type === 'invoice_first_viewed' && $notice->client && $notice->invoice)
                 @php($noticeClientName = $notice->client->organization_name ?: trim($notice->client->first_name.' '.$notice->client->last_name))
@@ -27,7 +27,7 @@
             @if($notice->paymentIntent?->overpayment_disposition)<p class="mb-0 mt-1"><strong>Client overpayment instruction:</strong> {{$notice->paymentIntent->overpayment_disposition === 'next_invoice_credit' ? 'Keep extra as account credit.' : 'Apply extra to principal.'}}</p>@endif
         </div><div class="d-flex align-items-start gap-2 flex-shrink-0">
             @if($notice->type === 'shared_document_uploaded')
-                @if($notice->sharedDocument)<a class="btn btn-sm btn-outline-brand" href="{{route(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true) ? 'admin.documents.preview' : 'admin.documents.download',$notice->sharedDocument)}}">Open document</a>@else<span class="small text-muted">Document unavailable</span>@endif
+                @if($notice->sharedDocument)<a class="btn btn-sm btn-outline-brand" href="{{route(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true) ? 'admin.documents.preview' : 'admin.documents.download',$notice->sharedDocument)}}" @if(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true)) data-document-preview="{{route('admin.documents.preview',$notice->sharedDocument)}}" data-document-name="{{$notice->sharedDocument->name}}" @endif>Open document</a>@else<span class="small text-muted">Document unavailable</span>@endif
             @elseif($notice->changeRequest)<a class="btn btn-sm btn-brand" href="{{route('admin.client-change-requests.show',$notice->changeRequest)}}">Review</a>
             @elseif($notice->type === 'square_payment_anomaly' && $notice->paymentIntent?->payment)<a class="btn btn-sm btn-brand" href="{{route('admin.payments.show',$notice->paymentIntent->payment)}}">Review payment</a>
             @elseif($notice->paymentIntent?->status === 'announced')<a class="btn btn-sm btn-brand" href="{{route('admin.payment-intents.receive',$notice->paymentIntent)}}">Receive payment</a>

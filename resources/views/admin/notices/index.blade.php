@@ -63,4 +63,5 @@
 </div>
 @endif
 </div></section>
+@include('admin.documents._preview')
 @endsection
