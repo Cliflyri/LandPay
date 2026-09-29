@@ -11,11 +11,13 @@
 <h2 class='h4 mt-4'>Communicate</h2><div class='row g-4'>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Client banner notification</h3><p>Create an announcement for client portals.</p><a class='btn btn-outline-brand' href={{route('admin.announcements.create')}}>Create announcement</a></div></div>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Secure client message</h3><p>Send a secure message to a client.</p><a class='btn btn-outline-brand' href={{route('admin.messages.create')}}>Compose message</a></div></div>
+<div class='col-md-6'><div class='admin-next-card h-100'><h3>Admin Reminders</h3><p>Create and manage monthly operational reminders. {{$adminReminderCounts['due']}} due &middot; {{$adminReminderCounts['active']}} active.</p><a class='btn btn-outline-brand' href={{route('admin.reminders.index')}}>Manage reminders</a> &nbsp;&nbsp;&nbsp;  (email must be enabled in settings)</div></div>
 </div>
 <h2 class='h4 mt-4'>Review and maintain</h2><div class='admin-next-card'><div class='d-flex flex-wrap gap-3'>
 <a href={{route('admin.property-tax-batches.index',['status'=>'draft'])}}><strong>{{$taxCounts['draft']}}</strong> draft property-tax batches</a>
 <a href={{route('admin.property-tax-batches.index',['status'=>'partially_issued'])}}><strong>{{$taxCounts['partial']}}</strong> partially issued batches</a>
 <a href={{route('admin.property-tax-batches.index',['email'=>'failed'])}}><strong>{{$taxCounts['failed']}}</strong> batches with failed emails</a>
 </div></div>
+<div class='admin-next-card mt-4'><h3>Report snapshots</h3><p>Create and download CSV snapshots of every report, or schedule them automatically.</p><a class='btn btn-outline-brand' href={{route('admin.report-snapshots.index')}}>Manage report snapshots</a></div>
 </div></section>
 @endsection

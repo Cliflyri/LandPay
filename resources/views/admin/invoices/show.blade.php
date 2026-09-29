@@ -5,7 +5,7 @@
 @php
     $primary = $invoice->paymentPlan->memberships->firstWhere('role', 'primary')?->client;
     $clientName = $primary?->organization_name ?: trim(($primary?->first_name ?? '').' '.($primary?->last_name ?? '')) ?: 'Not assigned';
-    $statusLabel = str($invoice->status->value)->replace('_', ' ')->title();
+    $statusLabel = $invoice->status->value === 'issued' && $invoice->issue_date->isFuture() ? 'Scheduled' : str($invoice->status->value)->replace('_', ' ')->title();
     $invoiceSentAt = $invoice->emailDeliveries->where('template_slug', 'invoice-email')->where('status', 'sent')->sortByDesc('sent_at')->first()?->sent_at;
     $secureLink = $invoice->accessLink;
     $secureLinkActive = $secureLink?->isActive() ?? false;

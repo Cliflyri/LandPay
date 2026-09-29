@@ -2,12 +2,71 @@
 @section('title','Review Property Tax Batch | LandPay')
 @section('body_class','admin-page')
 @section('content')
-@php($activeRows=$batch->rows->where('match_status','!=','inactive'))
+@php($activeRows=$batch->rows->whereIn('match_status',['matched','draft','ambiguous'])->sortBy(fn($row)=>$row->match_status==='ambiguous'?2:((int)$row->amount===0?0:1)))
+@php($unmatchedRows=$batch->rows->whereNotIn('match_status',['matched','draft','ambiguous','inactive']))
 @php($inactiveRows=$batch->rows->where('match_status','inactive'))
 @php($batchStatus=$batch->status==='not_issued'&&$batch->rows->whereNotNull('existing_invoice_id')->isNotEmpty()?'Not issued — existing invoices detected':str($batch->status)->replace('_',' ')->title())
 <section class='admin-section'><div class='container-fluid dashboard-container'>
-<div class='admin-heading d-flex flex-wrap justify-content-between gap-3'><div><span class='eyebrow eyebrow-dark'>Property tax {{$batch->tax_year}} · {{$batch->label}}</span><h1>{{$batch->status==='draft'?'Review draft batch':'Batch results'}}</h1><p class='mb-0'>Invoice {{$batch->issue_date->format('M j, Y')}} &middot; due {{$batch->due_date->format('M j, Y')}} &middot; {{$batchStatus}}</p></div><div>@if($batch->status==='draft')<a class='btn btn-outline-brand' href={{route('admin.property-tax-batches.edit',$batch)}}>Edit import</a>@endif <a class='btn btn-outline-brand' href={{route('admin.property-tax-batches.index')}}>All batches</a></div></div>
-<div class='row g-3 mt-2'><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','matched')->count()}}</strong><div>eligible matches</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{\App\Support\Money::format((int)$batch->rows->whereIn('match_status',['matched','draft'])->sum('amount'))}}</strong><div>eligible total</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','draft')->count()}}</strong><div>draft matches</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->whereNotIn('match_status',['matched','draft','inactive'])->count()}}</strong><div>exceptions</div></div></div></div>
+
+
+
+<div class="admin-heading d-flex flex-wrap justify-content-between gap-3">
+    <div>
+        <span class="eyebrow eyebrow-dark">
+            Property tax {{ $batch->tax_year }} · {{ $batch->label }}
+            @if(filled($batch->property_county)) · County: {{$batch->property_county}} @endif
+        </span>
+
+        <h1>
+            {{ $batch->status === 'draft' ? 'Review draft batch' : 'Batch results' }}
+        </h1>
+
+        <p class="mb-0">
+            Invoice {{ $batch->issue_date->format('M j, Y') }}
+            &middot;
+            due {{ $batch->due_date->format('M j, Y') }}
+            &middot;
+            {{ $batchStatus }}
+        </p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-start gap-2">
+
+        @if($batch->status === 'draft')
+            <form method="post"
+                  action="{{ route('admin.property-tax-batches.destroy', $batch) }}"
+                  onsubmit="return confirm('Permanently delete this draft batch and its imported rows?')">
+
+                @csrf
+                @method('DELETE')
+
+                <button type="submit" class="btn btn-outline-danger">
+                    Delete draft
+                </button>
+            </form>
+        @endif
+
+        @if($batch->status === 'draft')
+            <a class="btn btn-outline-brand"
+               href="{{ route('admin.property-tax-batches.edit', $batch) }}">
+                Edit import
+            </a>
+        @endif
+
+        <a class="btn btn-outline-brand"
+           href="{{ route('admin.property-tax-batches.index') }}">
+            All batches
+        </a>
+
+    </div>
+</div>
+
+
+
+<div class='row g-3 mt-2'><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','matched')->count()}}</strong><div>eligible matches</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{\App\Support\Money::format((int)$batch->rows->whereIn('match_status',['matched','draft'])->sum('amount'))}}</strong><div>eligible total</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->where('match_status','draft')->count()}}</strong><div>matches to draft plans</div></div></div><div class='col-md-3'><div class='admin-next-card'><strong>{{$batch->rows->whereNotIn('match_status',['matched','draft','inactive'])->count()}}</strong><div>exceptions</div></div></div></div>
+
+
+
 @if($batch->status==='draft')<div class='alert alert-info mt-4'><strong>No invoices have been created.</strong> Review the rows below, then explicitly create the batch when ready.</div><form method='post' action={{route('admin.property-tax-batches.issue',$batch)}}>@csrf @endif
 <div class='admin-next-card mt-4 table-responsive'><table class='table align-middle'><thead><tr><th>Status</th><th>Client</th><th>Plan # / APN</th><th>Description</th><th class='text-end'>Amount</th><th>Email</th>@if($batch->status==='draft'||$batch->rows->where('email_status','failed')->isNotEmpty())<th>Action</th>@endif</tr></thead><tbody>
 @foreach($activeRows as $row)
@@ -16,11 +75,62 @@
 @php($client=$membership?->client)
 @php($clientName=$client?->organization_name?:trim(($client?->first_name??'').' '.($client?->last_name??'')))
 @php($sentAt=$row->email_sent_at??$row->invoice?->emailDeliveries?->where('status','sent')->sortByDesc('sent_at')->first()?->sent_at)
-@php($rowLabel=$batch->status==='draft'?str($row->match_status)->title():((in_array($row->match_status,['matched','draft'],true)?'Matched':str($row->match_status)->title()).' — '.match($row->issuance_status){'created'=>'created','excluded'=>'excluded','not_included'=>'not included',default=>'not created'}))
-<tr><td>{{$rowLabel}}@if($row->existingInvoice)<small class='d-block'><a href={{route('admin.invoices.show',$row->existingInvoice)}}>Existing invoice: {{$row->existingInvoice->invoice_number}}</a></small>@elseif($row->note)<small class='d-block text-muted'>{{$row->note}}</small>@endif @if($row->duplicate_override)<small class='d-block text-warning'>Duplicate override approved</small>@endif</td><td>{{$clientName?:'-'}}</td><td>{{$plan?->plan_number?:'-'}}<small class='d-block text-muted'>{{$row->original_apn?:'-'}}</small></td><td>{{$row->resolved_description}}</td><td class='money-cell'>{{$row->amount!==null?\App\Support\Money::format($row->amount):'-'}}</td><td>@if($row->invoice_id){{str($row->email_status??'not requested')->replace('_',' ')->title()}}@if($sentAt)<small class='d-block'>Sent {{$sentAt->format('n/j/y g:ia')}}</small>@endif @if($row->email_note)<small class='d-block text-muted'>{{$row->email_note}}</small>@endif @else {{filter_var($client?->email,FILTER_VALIDATE_EMAIL)?$client->email:'Not eligible'}} @endif</td>
-@if($batch->status==='draft')<td>@if($row->match_status==='matched'&&$row->existing_invoice_id)<label><input type='checkbox' name='force_duplicates[]' value={{$row->id}}> Create another invoice anyway</label>@elseif($row->match_status==='matched')<label><input type='checkbox' name='exclude_rows[]' value={{$row->id}}> Exclude</label>@elseif($row->match_status==='draft')<label><input type='checkbox' name='include_drafts[]' value={{$row->id}}> Include draft</label>@else Skipped @endif</td>@elseif($batch->rows->where('email_status','failed')->isNotEmpty())<td>@if($row->email_status==='failed')<form method='post' action={{route('admin.property-tax-batches.retry-email',[$batch,$row])}}>@csrf<button class='btn btn-sm btn-outline-brand'>Retry email</button></form>@else - @endif</td>@endif</tr>
+@php($rowLabel=$batch->status==='draft'?str($row->match_status)->title():((in_array($row->match_status,['matched','draft'],true)?'Matched':str($row->match_status)->title()).' — '.match($row->issuance_status){'created'=>'created','excluded'=>'excluded','not_included'=>'not included','no_tax_due'=>'No tax due','zero_unconfirmed'=>'Zero amount unconfirmed',default=>'not created'}))
+<tr @class(['table-warning'=>$row->amount!==null&&(int)$row->amount===0])><td>@if(str_starts_with((string)$rowLabel,'Matched'))<span class="badge rounded-pill" style="background-color:#d1e7dd;color:#0f5132">Matched</span>{{substr((string)$rowLabel,7)}}@elseif($row->match_status==='ambiguous')<span class="badge rounded-pill" style="background-color:#fff3cd;color:#664d03">Ambiguous — multiple possible plans</span>@else{{$rowLabel}}@endif
+@if($row->amount!==null&&(int)$row->amount===0)
+<small class="d-block"><span class="badge" style="background-color:#fff3cd;color:#664d03">{{$row->issuance_status==='no_tax_due'?'No tax due — confirmed':($batch->status==='draft'?'$0.00 — Review required':'$0.00 — Not confirmed')}}</span></small>
+@endif
+@if($row->existingInvoice)<small class='d-block'><a href={{route('admin.invoices.show',$row->existingInvoice)}}>Existing invoice: {{$row->existingInvoice->invoice_number}}</a></small>@endif @if($row->note)<small class='d-block text-muted'>{{$row->note}}</small>@endif @if($row->duplicate_override)<small class='d-block text-warning'>Duplicate override approved</small>@endif</td><td>{{$clientName?:'-'}}</td><td>{{$plan?->plan_number?:'-'}}<small class='d-block text-muted'>{{$row->original_apn?:'-'}}</small></td><td>{{$row->resolved_description}}</td><td class='money-cell'>{{$row->amount!==null?\App\Support\Money::format($row->amount):'-'}}</td><td>@if($row->amount!==null&&(int)$row->amount===0)No email — zero amount @elseif($row->invoice_id){{str($row->email_status??'not requested')->replace('_',' ')->title()}}@if($sentAt)<small class='d-block'>Sent {{$sentAt->format('n/j/y g:ia')}}</small>@endif @if($row->email_note)<small class='d-block text-muted'>{{$row->email_note}}</small>@endif @else {{filter_var($client?->email,FILTER_VALIDATE_EMAIL)?$client->email:'Not eligible'}} @endif</td>
+@if($batch->status==='draft')<td>@if($row->amount!==null&&(int)$row->amount===0&&in_array($row->match_status,['matched','draft'],true))<label><input type="checkbox" name="confirm_zero_rows[]" value="{{$row->id}}"> Confirm no tax due</label><small class="d-block text-muted">No invoice or email. Use Edit import to correct the amount.</small><label class="d-block"><input type="checkbox" name="exclude_rows[]" value="{{$row->id}}"> Exclude</label>@elseif($row->match_status==='matched'&&$row->existing_invoice_id)<label><input type='checkbox' name='force_duplicates[]' value={{$row->id}}> Create another invoice anyway</label>@elseif($row->match_status==='matched')<label><input type='checkbox' name='exclude_rows[]' value={{$row->id}}> Exclude</label>@elseif($row->match_status==='draft')<label><input type='checkbox' name='include_drafts[]' value={{$row->id}}> Include draft</label>@else Skipped @endif</td>@elseif($batch->rows->where('email_status','failed')->isNotEmpty())<td>@if($row->email_status==='failed')<form method='post' action={{route('admin.property-tax-batches.retry-email',[$batch,$row])}}>@csrf<button class='btn btn-sm btn-outline-brand'>Retry email</button></form>@else - @endif</td>@endif</tr>
+@if(isset($matchCandidates[$row->id]))
+<tr><td colspan="7">
+@foreach($matchCandidates[$row->id] as $candidate)
+<label class="d-block mb-2"><input type="radio" form="match-{{$row->id}}" name="payment_plan_id" value="{{$candidate->id}}" @checked($row->payment_plan_id===$candidate->id) required>
+<strong>{{$candidate->plan_number}}</strong> — {{ucfirst($candidate->status)}}
+@foreach($candidate->memberships->pluck('client')->filter()->unique('id') as $candidateClient)
+<span> · {{$candidateClient->organization_name?:trim($candidateClient->first_name.' '.$candidateClient->last_name)}}</span>
+@endforeach
+<span class="d-block ms-4">Match with upload <strong>{{$row->original_apn}}</strong></span>
+</label>
+@endforeach
+<button class="btn btn-sm btn-outline-brand" type="submit" form="match-{{$row->id}}">Save match</button>
+<small class="text-muted ms-2">Choose one plan and save before creating invoices.</small>
+</td></tr>
+@endif
 @endforeach</tbody></table></div>
-@if($batch->status==='draft')<div class='admin-next-card mt-3'><p><strong>Create separate property-tax invoices for every included plan?</strong> Email failures or missing addresses will not prevent invoice creation.</p>@if($batch->rows->whereNotNull('existing_invoice_id')->isNotEmpty())<label class='form-check mb-3'><input class='form-check-input' type='checkbox' name='duplicate_acknowledgment' value='1'> <span class='form-check-label'>I understand that selected override rows already have property-tax invoices for this tax year.</span></label>@endif<button class='btn btn-brand'>Create invoices</button></div></form>@endif
+@if($batch->status==='draft')<div class='admin-next-card mt-3'><p><strong>Create separate property-tax invoices for every included positive-dollar plan?</strong> Email failures or missing addresses will not prevent invoice creation. Confirmed zero-dollar rows are recorded as No tax due without invoices or emails; unchecked zero-dollar rows remain unconfirmed.</p>@if($batch->rows->whereNotNull('existing_invoice_id')->isNotEmpty())<label class='form-check mb-3'><input class='form-check-input' type='checkbox' name='duplicate_acknowledgment' value='1'> <span class='form-check-label'>I understand that selected override rows already have property-tax invoices for this tax year.</span></label>@endif<div class="form-check mb-2"><input type="hidden" name="email_clients" value="0"><input class="form-check-input" type="checkbox" id="review-email-clients" name="email_clients" value="1" @checked(old('email_clients',$batch->email_clients))><label class="form-check-label" for="review-email-clients">Email eligible clients when invoices are created</label></div><p class="small text-muted">Zero-dollar “No tax due” rows do not generate emails.</p><button class='btn btn-brand'>Create invoices</button></div></form>@endif
+@if($batch->status!=='draft')<p class="mt-3">Email eligible clients on invoice creation: <strong>{{$batch->email_clients?'Yes':'No'}}</strong></p>@endif
+@foreach($matchCandidates as $rowId=>$candidates)
+<form id="match-{{$rowId}}" method="post" action="{{route('admin.property-tax-batches.match',[$batch,$rowId])}}">@csrf</form>
+@endforeach
+
+<div class="admin-next-card mt-4">
+<h2>Clients / plans with no match in this batch <span class="text-muted">({{$unmatchedPlans->count()}} plans)</span></h2>
+@if(filled($batch->property_county))<p class="fw-semibold text-warning-emphasis">{{$sameCountyPlanIds->count()}} unmatched plans in {{$batch->property_county}} County</p>@endif
+<p class="text-muted">Current active and paused plans without a batch match. For review only; nonstandard properties may be expected exceptions. This list does not affect invoice creation.</p>
+<div class="table-responsive"><table class="table align-middle">
+<thead><tr><th>Client</th><th>Plan # / APN</th><th>County</th><th>Plan status</th></tr></thead>
+<tbody>
+@forelse($unmatchedPlans as $unmatchedPlan)
+<tr @class(['table-warning'=>$sameCountyPlanIds->contains($unmatchedPlan->id)])><td>
+@forelse($unmatchedPlan->memberships->pluck('client')->filter()->unique('id') as $unmatchedClient)
+<div>{{$unmatchedClient->organization_name?:trim($unmatchedClient->first_name.' '.$unmatchedClient->last_name)}}</div>
+@empty<span class="text-muted">No current client</span>@endforelse
+</td><td><a href="{{route('admin.plans.show',$unmatchedPlan)}}">{{$unmatchedPlan->apn?:$unmatchedPlan->plan_number}}</a></td><td>
+@if(filled($unmatchedPlan->property_county)){{$unmatchedPlan->property_county}}@else<span class="badge bg-secondary">County missing</span>@endif
+@if($sameCountyPlanIds->contains($unmatchedPlan->id))<small class="d-block"><span class="badge" style="background-color:#fff3cd;color:#664d03">Same county — no batch match</span></small>@endif
+</td><td>{{ucfirst($unmatchedPlan->status)}}</td></tr>
+@empty<tr><td colspan="4">All current active and paused plans have a match in this batch.</td></tr>@endforelse
+</tbody></table></div>
+</div>
+@if($unmatchedRows->isNotEmpty())
+<div class="admin-next-card mt-4 table-responsive"><h2>Unmatched / invalid batch lines</h2>
+<table class="table align-middle"><thead><tr><th>Status</th><th>Uploaded APN</th><th>Description</th><th class="text-end">Amount</th></tr></thead><tbody>
+@foreach($unmatchedRows as $row)
+<tr><td>{{str($row->match_status)->title()}}<small class="d-block text-muted">{{$row->note}}</small></td><td>{{$row->original_apn?:'-'}}</td><td>{{$row->resolved_description}}</td><td class="money-cell">{{$row->amount!==null?\App\Support\Money::format((int)$row->amount):'-'}}</td></tr>
+@endforeach
+</tbody></table></div>
+@endif
 @if($inactiveRows->isNotEmpty())<div class='admin-next-card mt-4'><h2>Skipped inactive plans</h2><p class='text-muted'>Closed, terminated, or deleted plans are shown for review only.</p><div class='table-responsive'><table class='table'><thead><tr><th>Status</th><th>Plan #</th><th>APN</th><th class='text-end'>Amount</th></tr></thead><tbody>@foreach($inactiveRows as $row)<tr><td>{{$row->note}}</td><td>{{$row->paymentPlan?->plan_number}}</td><td>{{$row->original_apn}}</td><td class='money-cell'>{{\App\Support\Money::format((int)$row->amount)}}</td></tr>@endforeach</tbody></table></div></div>@endif
 </div></section>
 @endsection

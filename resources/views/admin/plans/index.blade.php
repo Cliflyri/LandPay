@@ -206,6 +206,7 @@
                                     >
                                         {{ $plan->plan_number }}
                                     </a>
+                                    @if(filled($plan->property_county))<small class="d-block text-muted">County: {{$plan->property_county}}</small>@endif
                                 </td>
 
                                 <td>

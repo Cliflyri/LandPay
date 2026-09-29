@@ -16,7 +16,14 @@
         <div class="dashboard-actions">
             <a class="btn btn-outline-brand" href="{{ route('admin.clients.index') }}">Clients</a>
             <a class="btn btn-outline-brand" href="{{ route('admin.settings.index') }}">Settings</a>
-            <a class="btn btn-sun" href="{{ route('admin.plans.create') }}">New payment plan</a>
+            <div class="dropdown">
+                <button class="btn btn-sun dropdown-toggle" type="button" id="dashboard-new" data-bs-toggle="dropdown" aria-expanded="false">New&hellip;</button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dashboard-new">
+                    <li><a class="dropdown-item" href="{{ route('admin.contract-setups.create') }}">Contract setup</a></li>
+                    <li><a class="dropdown-item" href="{{ route('admin.plans.create') }}">Payment plan</a></li>
+                    <li><a class="dropdown-item" href="{{ route('admin.clients.create') }}">Client</a></li>
+                </ul>
+            </div>
 
             <form method="POST" action="{{ route('admin.logout') }}">
                 @csrf
@@ -25,6 +32,7 @@
         </div>
     </div>
 
+    @include('admin.partials.dashboard-reminders')
     @include('admin.partials.dashboard-notices')
 
     <div class="mb-3">
@@ -193,6 +201,7 @@
                             >
                                 {{ $row['plan']->plan_number }}
                             </a> @if($row['plan']->excluded_from_reports)<span class="badge text-bg-warning">Test plan</span>@endif
+                            @if(filled($row['plan']->property_county))<small class="d-block text-muted">County: {{$row['plan']->property_county}}</small>@endif
                         </td>
 
                         <td>

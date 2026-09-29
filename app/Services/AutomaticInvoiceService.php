@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\InvoiceStatus;
 use App\Models\AdminNotice;
 use App\Models\Invoice;
 use App\Models\PaymentPlan;
@@ -18,6 +19,23 @@ class AutomaticInvoiceService
     {
         $through ??= Carbon::today();
         $result = ['created' => 0, 'emailed' => 0, 'failed' => 0];
+        Invoice::query()
+            ->with(['paymentPlan.createdBy', 'paymentPlan.updatedBy'])
+            ->whereDate('issue_date', '<=', $through)
+            ->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])
+            ->whereHas('paymentPlan', fn ($query) => $query->where('status', 'active')->where('scheduled_invoice_email_enabled', true))
+            ->whereDoesntHave('emailDeliveries', fn ($query) => $query->where('template_slug', 'invoice-email')->where('status', 'sent'))
+            ->each(function (Invoice $invoice) use (&$result): void {
+                $actor = $invoice->paymentPlan->updatedBy ?? $invoice->paymentPlan->createdBy;
+                if ($actor === null) return;
+                try {
+                    $this->email->send($invoice, $actor, 'inline');
+                    $result['emailed']++;
+                } catch (Throwable $e) {
+                    $this->notice($invoice->paymentPlan, $invoice, 'Automatic invoice email failed', $e);
+                    $result['failed']++;
+                }
+            });
         PaymentPlan::query()->where('status', 'active')->with(['billingTerms', 'pauses', 'createdBy', 'updatedBy'])->each(function (PaymentPlan $plan) use ($through, &$result): void {
             foreach ($this->missingDates($plan, $through) as $date) {
                 try {

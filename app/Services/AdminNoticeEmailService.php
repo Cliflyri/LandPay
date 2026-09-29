@@ -21,6 +21,7 @@ class AdminNoticeEmailService
         'shared_document_uploaded' => 'documents',
         'client_contact_change' => 'account_portal',
         'portal_invitation_accepted' => 'account_portal',
+        'scheduled_reminder' => 'scheduled_reminders',
     ];
 
     public function send(AdminNotice $notice): bool
@@ -80,6 +81,7 @@ class AdminNoticeEmailService
 
     private function url(AdminNotice $notice): ?string
     {
+        if ($notice->getAttribute('action_url')) return $notice->getAttribute('action_url');
         if ($notice->invoice) return route('admin.invoices.show', $notice->invoice);
         if ($notice->paymentIntent?->payment) return route('admin.payments.show', $notice->paymentIntent->payment);
         if ($notice->paymentIntent?->status === 'announced') return route('admin.payment-intents.receive', $notice->paymentIntent);

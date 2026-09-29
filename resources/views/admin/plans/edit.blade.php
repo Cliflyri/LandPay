@@ -24,9 +24,10 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 @else
 <div class="col-md-2"><label class="form-label" for="plan-status">Status</label><select class="form-select" id="plan-status" name="status">@foreach(['draft'=>'Draft','active'=>'Active','paused'=>'Paused','terminated'=>'Terminated','closed'=>'Closed'] as $value=>$label)<option value="{{ $value }}" @selected(old('status',$plan->status)===$value)>{{ $label }}</option>@endforeach</select></div>
 @endif
-<div class="col-12"><label class="form-label">Additional property details</label><textarea class="form-control" name="asset_description" rows="2">{{ old('asset_description',$plan->asset_description) }}</textarea></div>
+<div class="col-md-8"><label class="form-label">Additional property details</label><textarea class="form-control" name="asset_description" rows="2">{{ old('asset_description',$plan->asset_description) }}</textarea></div>
+<div class="col-md-4"><label class="form-label" for="property-county">Property county <span class="text-muted fw-normal">(optional)</span></label><input class="form-control" id="property-county" name="property_county" list="property-counties" maxlength="100" value="{{ old('property_county',$plan->property_county) }}" placeholder="Choose or type a county">
+<datalist id="property-counties">@foreach($counties as $county)<option value="{{$county}}"></option>@endforeach</datalist></div>
 @if($plan->status === 'draft')
-<div class="col-md-4"><label class="form-label">Property county</label><input class="form-control" name="property_county" value="{{ old('property_county',$plan->property_county) }}"></div>
 <div class="col-md-4"><label class="form-label">HOA fee</label><div class="input-group"><span class="input-group-text">$</span><input class="form-control" name="hoa_fee" inputmode="decimal" value="{{ old('hoa_fee',number_format((int)$plan->hoa_fee/100,2,'.','')) }}"></div></div>
 <div class="col-md-4"><label class="form-label">HOA term</label><input class="form-control" name="hoa_term" value="{{ old('hoa_term',$plan->hoa_term) }}"></div>
 <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="govdeals" value="1" id="govdeals" @checked(old('govdeals',$plan->govdeals))><label class="form-check-label" for="govdeals">GovDeals property</label></div></div>

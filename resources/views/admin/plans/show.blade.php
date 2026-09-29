@@ -45,7 +45,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate-
     </a>
     @endif
 </h1>
-        <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }}</p>
+        <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }} @if(filled($plan->property_county))<span class="text-muted"> · County: {{$plan->property_county}}</span>@endif</p>
 
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -190,6 +190,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate-
     </div>
     @endif
     <dl class="row mb-0 mt-3">
+        <dt class="col-sm-4 col-lg-3">Next scheduled invoice</dt><dd class="col-sm-8 col-lg-9">{{ $nextInvoiceDate?->format('F j, Y') ?? ($plan->status === 'paused' ? 'Paused' : 'Not scheduled') }}</dd>
         <dt class="col-sm-4 col-lg-3">Purchase price</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->purchase_price)}}</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_standard)}}</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee waived</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_waived)}}@if($plan->documentation_fee_waived > 0) &mdash; {{ $plan->documentation_fee_waiver_reason }}@endif</dd>
@@ -273,12 +274,12 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate-
         $currentInvoices = $sortedInvoices->reject(fn ($invoice) => $invoice->status->value === 'voided');
         $voidedInvoices = $sortedInvoices->filter(fn ($invoice) => $invoice->status->value === 'voided');
     @endphp
-    <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Status</th><th>Delivery</th><th class="text-end">Original amount</th></tr></thead><tbody>
+    <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Invoice</th><th>Dated</th><th>Due</th><th>Status</th><th>Delivery</th><th class="text-end">Original amount</th></tr></thead><tbody>
     @forelse($currentInvoices as $invoice)
     @php
         $invoiceSentAt = $invoice->emailDeliveries->where('template_slug', 'invoice-email')->where('status', 'sent')->sortByDesc('sent_at')->first()?->sent_at;
     @endphp
-    <tr><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-{{str($invoice->status->value)->replace('_','-')}}">{{str($invoice->status->value)->replace('_',' ')->title()}}</span></td><td>@if($invoice->first_viewed_at)<span class="invoice-delivery-marker is-viewed" title="First viewed {{$invoice->first_viewed_at->format('M j, Y \a\t g:i A')}}">Viewed</span>@elseif($invoiceSentAt)<span class="invoice-delivery-marker is-sent" title="Sent {{$invoiceSentAt->format('M j, Y \a\t g:i A')}}">Sent</span>@else<span class="invoice-delivery-marker is-unsent" title="No invoice email or client view recorded">Not sent</span>@endif</td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
+    <tr><td><a class="dashboard-plan-link" href="{{route('admin.invoices.show',$invoice)}}">{{$invoice->invoice_number}}</a></td><td>{{$invoice->issue_date->format('M j, Y')}}</td><td>{{$invoice->due_date->format('M j, Y')}}</td><td><span class="dashboard-status status-{{str($invoice->status->value)->replace('_','-')}}">{{$invoice->status->value === 'issued' && $invoice->issue_date->isFuture() ? 'Scheduled' : str($invoice->status->value)->replace('_',' ')->title()}}</span></td><td>@if($invoice->first_viewed_at)<span class="invoice-delivery-marker is-viewed" title="First viewed {{$invoice->first_viewed_at->format('M j, Y \a\t g:i A')}}">Viewed</span>@elseif($invoiceSentAt)<span class="invoice-delivery-marker is-sent" title="Sent {{$invoiceSentAt->format('M j, Y \a\t g:i A')}}">Sent</span>@else<span class="invoice-delivery-marker is-unsent" title="No invoice email or client view recorded">Not sent</span>@endif</td><td class="money-cell">{{\App\Support\Money::format($invoice->items->sum('amount'))}}</td></tr>
     @empty
     <tr><td colspan="6" class="dashboard-empty"><strong>No current invoices</strong><span>Review and issue the next invoice when ready.</span></td></tr>
     @endforelse

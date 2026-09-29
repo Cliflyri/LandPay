@@ -61,6 +61,7 @@ class SettingsController extends Controller
                 'secure_messages' => AppSetting::valueFor('admin_notice_email_secure_messages', AppSetting::valueFor('secure_message_admin_email_enabled', '0')) === '1',
                 'documents' => AppSetting::valueFor('admin_notice_email_documents', '0') === '1',
                 'account_portal' => AppSetting::valueFor('admin_notice_email_account_portal', '0') === '1',
+                'scheduled_reminders' => AppSetting::valueFor('admin_notice_email_scheduled_reminders', '0') === '1',
                 'address' => AppSetting::valueFor('admin_notice_email_address', ''),
             ],
             'testClients'=>Client::where('excluded_from_reports',true)->orderBy('last_name')->get(),
@@ -93,12 +94,13 @@ class SettingsController extends Controller
             'admin_notice_email_secure_messages' => ['nullable', 'boolean'],
             'admin_notice_email_documents' => ['nullable', 'boolean'],
             'admin_notice_email_account_portal' => ['nullable', 'boolean'],
+            'admin_notice_email_scheduled_reminders' => ['nullable', 'boolean'],
             'admin_notice_email_address' => ['nullable', 'email', 'max:254'],
             'secure_message_email_opt_out_ack' => ['sometimes', 'accepted'],
         ]);
 
         $email = trim($data['admin_notice_email_address'] ?? '');
-        $anyEmail = collect(['invoice', 'payments', 'secure_messages', 'documents', 'account_portal'])
+        $anyEmail = collect(['invoice', 'payments', 'secure_messages', 'documents', 'account_portal', 'scheduled_reminders'])
             ->contains(fn ($category) => $request->boolean('admin_notice_email_'.$category));
         $fallback = AppSetting::valueFor('reply_to_email') ?: AppSetting::valueFor('company_email');
         if ($anyEmail && blank($email ?: $fallback)) {
@@ -122,6 +124,7 @@ class SettingsController extends Controller
             'secure_message_admin_email_enabled' => $secureEnabled ? '1' : '0',
             'admin_notice_email_documents' => $request->boolean('admin_notice_email_documents') ? '1' : '0',
             'admin_notice_email_account_portal' => $request->boolean('admin_notice_email_account_portal') ? '1' : '0',
+            'admin_notice_email_scheduled_reminders' => $request->boolean('admin_notice_email_scheduled_reminders') ? '1' : '0',
             'admin_notice_email_address' => $email,
         ]);
 

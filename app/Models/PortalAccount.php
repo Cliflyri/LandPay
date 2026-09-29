@@ -37,7 +37,8 @@ class PortalAccount extends Authenticatable
     public function displayName(): string
     {
         return $this->client->organization_name
-            ?: trim(($this->client->preferred_name ?: $this->client->first_name).' '.$this->client->last_name);
+            ?: ($this->client->preferred_name
+                ?: trim($this->client->first_name.' '.$this->client->last_name));
     }
 
     public function activePlanIds(): array
