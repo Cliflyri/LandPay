@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 @section('title','Client | LandPay')
 @section('body_class','admin-page')
 @section('content')
@@ -42,5 +42,12 @@
 
 <div class="admin-next-card mt-4"><h2>Payment plans</h2>@forelse($client->memberships as $membership)<p><a href="{{route('admin.plans.show',$membership->paymentPlan)}}">{{ $membership->paymentPlan->plan_number }}</a> - <span class="fw-semibold">{{ $membership->paymentPlan->title }}</span>@if(filled($membership->paymentPlan->property_county)) <small class="text-muted">(County: {{$membership->paymentPlan->property_county}})</small>@endif &mdash; {{str($membership->role)->replace('_',' ')->title()}}</p>@empty<p class="mb-0">No payment plans yet.</p>@endforelse</div>
 </div></section>
+@if($documents->total())
+<section class="admin-section pt-0" id="client-documents"><div class="container-fluid dashboard-container px-2">
+<h2>Documents</h2>
+@include('admin.documents._table')
+</div></section>
+@include('admin.documents._preview')
+@endif
 @include('admin.clients._portal-account')
 @endsection

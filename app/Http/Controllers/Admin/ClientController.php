@@ -125,7 +125,12 @@ class ClientController extends Controller
         $client->load(['smsPreference','smsConsentEvents']);
         $client->setRelation('memberships', $client->memberships->filter->paymentPlan->values());
 
-        return view('admin.clients.show', compact('client'));
+        $documents = \App\Models\SharedDocument::query()
+            ->with(['client', 'paymentPlan', 'uploadedByClient'])
+            ->where('client_id', $client->id)
+            ->latest()->paginate(25, ['*'], 'documents_page')->withQueryString()->fragment('client-documents');
+
+        return view('admin.clients.show', compact('client', 'documents'));
     }
 
     public function edit(Client $client): View

@@ -39,5 +39,26 @@ class SharedDocumentTest extends TestCase{
   $this->actingAs($account,'client')->post(route('portal.documents.store'),['category'=>'general','document'=>UploadedFile::fake()->create('notes.docx',10,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')])->assertSessionHas('success');
   $document=SharedDocument::query()->sole();$this->assertSame($client->id,$document->uploaded_by_client_id);$this->assertTrue($document->visible_to_client);$this->assertDatabaseHas('admin_notices',['type'=>'shared_document_uploaded','client_id'=>$client->id]);
  }
+ public function test_client_documents_are_scoped_and_upload_notices_link_to_the_file():void{
+  Storage::fake('local');[$admin,$client,$account]=$this->records();
+  $this->actingAs($admin)->get(route('admin.clients.show',$client))->assertOk()->assertDontSee('id="client-documents"',false);
+  $this->actingAs($account,'client')->post(route('portal.documents.store'),['category'=>'general','document'=>UploadedFile::fake()->create('linked.pdf',10,'application/pdf')])->assertSessionHas('success');
+  $document=SharedDocument::query()->sole();
+  $notice=\App\Models\AdminNotice::query()->where('type','shared_document_uploaded')->sole();
+  $this->assertSame($document->id,$notice->shared_document_id);
+  $other=Client::query()->create(['client_type'=>'individual','first_name'=>'Other','last_name'=>'Client','country_code'=>'US','created_by_user_id'=>$admin->id,'updated_by_user_id'=>$admin->id]);
+  SharedDocument::query()->create(['client_id'=>$other->id,'name'=>'other-only.pdf','category'=>'general','disk'=>'local','path'=>'other.pdf','mime'=>'application/pdf','size'=>10]);
+  $this->actingAs($admin)->get(route('admin.clients.show',$client))->assertOk()->assertSee('id="client-documents"',false)->assertSee('linked.pdf')->assertDontSee('other-only.pdf')->assertSee('<th>Client</th>',false)->assertSee(route('admin.documents.preview',$document),false);
+  $html=view('admin.partials.dashboard-notices',['notices'=>collect([$notice->load(['client','sharedDocument'])])])->render();
+  $this->assertStringContainsString('href="'.route('admin.clients.show',$client).'"',$html);
+  $this->assertSame(2,substr_count($html,'href="'.route('admin.documents.preview',$document).'"'));
+  $this->assertStringContainsString('Open document',$html);
+  $this->assertStringNotContainsString('Open client',$html);
+  $this->actingAs($admin)->get(route('admin.documents.index'))->assertOk()->assertSee('linked.pdf')->assertSee('other-only.pdf');
+  $document->delete();
+  $this->assertNull($notice->fresh()->shared_document_id);
+  $html=view('admin.partials.dashboard-notices',['notices'=>collect([$notice->fresh()])])->render();
+  $this->assertStringContainsString('Document unavailable',$html);
+ }
  private function records():array{$admin=User::factory()->create();$client=Client::query()->create(['client_type'=>'individual','first_name'=>'Document','last_name'=>'Client','email'=>'documents@example.com','country_code'=>'US','created_by_user_id'=>$admin->id,'updated_by_user_id'=>$admin->id]);$account=PortalAccount::query()->create(['client_id'=>$client->id,'email'=>$client->email,'password'=>'password','enabled'=>true]);return [$admin,$client,$account];}
 }

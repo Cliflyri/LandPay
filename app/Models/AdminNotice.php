@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AdminNotice extends Model {
  protected $guarded=['id'];
  protected function casts(): array {return ['dismissed_at'=>'datetime'];}
+ public function sharedDocument(): BelongsTo {return $this->belongsTo(SharedDocument::class);}
  public function client(): BelongsTo {return $this->belongsTo(Client::class);}
  public function paymentPlan(): BelongsTo {return $this->belongsTo(PaymentPlan::class);}
  public function dismissedBy(): BelongsTo {return $this->belongsTo(User::class,'dismissed_by_user_id');}
