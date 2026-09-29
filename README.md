@@ -1,31 +1,3 @@
-cd "/media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay"
-SSH to the NAS as landpaydev using my existing key C:\Users\Chris\.ssh\landpay_nas_codex, then work in /media/F-4tb-WD-Red-NAS/Nas Web Root/LandPay.
-
-
-to push from vscode terminal, first ssh to nas by ssh@nas - landpaydev is user
-
-git status
-git add -A
-git commit -m "Baseline commit"
-git push origin main
-
-
-
-
-cpanel pull from terminal:
-
-
-cd ~/repositories/LandPay
-git pull origin main
-
-
-php artisan migrate --force
-php artisan optimize:clear
-php artisan config:cache
-php artisan view:cache
-php artisan schedule:list
-
-
 
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
