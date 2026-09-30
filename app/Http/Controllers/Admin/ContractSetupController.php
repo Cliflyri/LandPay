@@ -11,6 +11,8 @@ use App\Models\ContractDocument;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
 use App\Services\ContractDocumentService;
+use App\Services\ContractAmountAmendmentService;
+use App\Services\PortalInvitationService;
 use App\Services\ContractOpeningService;
 use App\Services\FirstPaymentInvoiceService;
 use App\Services\InvoiceEmailService;
@@ -22,6 +24,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -51,9 +54,9 @@ class ContractSetupController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    private function rules(?PaymentPlan $plan = null): array
     {
-        $data = $request->validate([
+        return [
             'primary_mode' => ['required', Rule::in(['existing', 'new'])],
             'primary_client_id' => ['nullable', 'required_if:primary_mode,existing', 'exists:clients,id'],
             'primary_client_type' => ['nullable', 'required_if:primary_mode,new', Rule::in(['individual', 'organization'])],
@@ -80,7 +83,7 @@ class ContractSetupController extends Controller
             'co_city' => ['nullable', 'string', 'max:100'],
             'co_state_region' => ['nullable', 'string', 'max:100'],
             'co_postal_code' => ['nullable', 'string', 'max:24'],
-            'plan_number' => ['required', 'string', 'max:40', Rule::unique('payment_plans', 'plan_number')->where(fn ($query) => $query->whereIn('status', ['draft', 'active', 'paused']))],
+            'plan_number' => ['required', 'string', 'max:40', Rule::unique('payment_plans', 'plan_number')->where(fn ($query) => $query->whereIn('status', ['draft', 'active', 'paused']))->ignore($plan?->id)],
             'property_title' => ['required', 'string', 'max:180'],
             'property_description' => ['nullable', 'string'],
             'property_county' => ['nullable', 'string', 'max:100'],
@@ -110,7 +113,17 @@ class ContractSetupController extends Controller
             'first_invoice_date' => ['required', 'date', 'after_or_equal:contract_start_date'],
             'contract_templates' => ['required', 'array', 'between:1,10'],
             'contract_templates.*' => ['required', 'file', 'mimes:docx', 'max:10240'],
-        ]);
+            'effective_from' => [$plan ? 'required' : 'nullable', 'date'],
+            'amendment_reason' => [$plan ? 'required' : 'nullable', 'string', 'max:500'],
+            'co_effective_from' => ['nullable', 'date'],
+            'co_receives_invoices' => ['nullable', 'boolean'],
+            'invite_co_client' => ['nullable', 'boolean'],
+        ];
+    }
+
+    public function store(Request $request, ?PaymentPlan $plan = null): RedirectResponse
+    {
+        $data = $request->validate($this->rules($plan));
 
         $county = trim((string) ($data['property_county'] ?? ''));
         $data['property_county'] = $county === '' ? null : ($this->countySuggestions()->first(fn ($existing) => mb_strtolower($existing) === mb_strtolower($county)) ?? $county);
@@ -131,6 +144,9 @@ class ContractSetupController extends Controller
         $stageOneDaysLate = (int) $data['grace_days'] + 1;
         if (($data['stage_two_enabled'] ?? false) && (int) $data['stage_two_days_late'] <= $stageOneDaysLate) {
             throw ValidationException::withMessages(['stage_two_days_late' => 'Stage two must occur after the stage-one late fee.']);
+        }
+        if ($plan !== null) {
+            return $this->revise($request, $plan, $data);
         }
         $actor = $request->user();
         $firstInvoice = Carbon::parse($data['first_invoice_date']);
@@ -216,11 +232,239 @@ class ContractSetupController extends Controller
 
             return redirect()->route('admin.plans.show', $plan)->with(
                 'warning',
-                'The draft plan was saved, but its contract documents could not be generated. Delete this draft and try again.',
+                'The draft plan was saved, but its contract documents could not be generated. Use Revise setup & regenerate contracts to try again.',
             );
         }
 
         return redirect()->route('admin.plans.show', $plan)->with('success', 'Contract setup created. Download the contracts, then activate the plan when ready.');
+    }
+
+
+    public function edit(Request $request, PaymentPlan $plan): View
+    {
+        $this->assertEditable($plan);
+        $plan->load(['memberships.client', 'currentBillingTerms']);
+        $members = $plan->memberships->whereNull('effective_to');
+        if ($members->where('role', 'co_client')->count() > 1) {
+            throw ValidationException::withMessages(['co_client_id' => 'These templates support one co-client. This plan has multiple co-clients; use a contract prepared for all clients.']);
+        }
+        $terms = $plan->currentBillingTerms;
+        abort_unless($terms && $members->firstWhere('role', 'primary'), 422);
+        $money = fn ($value) => number_format(($value ?? 0) / 100, 2, '.', '');
+        $co = $members->firstWhere('role', 'co_client');
+        $prefill = [
+            'primary_mode' => 'existing', 'primary_client_id' => $members->firstWhere('role', 'primary')->client_id,
+            'co_mode' => $co ? 'existing' : 'none', 'co_client_id' => $co?->client_id,
+            'co_effective_from' => $co?->effective_from?->toDateString() ?? today()->toDateString(),
+            'co_receives_invoices' => $co?->receives_invoices ?? true,
+            'plan_number' => $plan->plan_number, 'property_title' => $plan->title,
+            'property_description' => $plan->asset_description, 'property_county' => $plan->property_county,
+            'purchase_price' => $money($plan->purchase_price),
+            'down_payment' => $money($plan->contract_down_payment ?? $plan->first_payment_amount),
+            'documentation_fee' => $money($plan->documentation_fee_standard - $plan->documentation_fee_waived),
+            'plan_payment' => $money($terms->scheduled_payment_amount), 'service_fee' => $money($terms->monthly_service_fee),
+            'hoa_fee' => $money($plan->hoa_fee), 'hoa_term' => $plan->hoa_term, 'govdeals' => $plan->govdeals,
+            'contract_start_date' => $plan->plan_start_date?->toDateString(),
+            'first_invoice_date' => $plan->first_scheduled_invoice_date?->toDateString(),
+            'first_payment_due_date' => $plan->first_due_date?->toDateString(),
+            'create_first_payment_invoice' => $plan->first_payment_invoice_on_activation,
+            'email_first_payment_invoice' => $plan->first_payment_invoice_email_on_activation,
+            'effective_from' => $plan->status === 'draft' ? $plan->plan_start_date?->toDateString() : today()->toDateString(),
+        ];
+        foreach (['due_days_after_issue', 'grace_days', 'stage_two_enabled', 'stage_two_days_late', 'default_eligibility_days'] as $key) {
+            $prefill[$key] = $terms->$key;
+        }
+        foreach (['stage_one', 'stage_two'] as $stage) {
+            $type = $terms->{$stage.'_fee_type'}?->value ?? 'fixed';
+            $prefill[$stage.'_fee_type'] = $type;
+            $prefill[$stage.'_fee_value'] = $type === 'fixed' ? $money($terms->{$stage.'_fixed_amount'}) : $terms->{$stage.'_percentage_rate'};
+            $prefill[$stage.'_minimum_amount'] = $money($terms->{$stage.'_minimum_amount'});
+        }
+        return view('admin.contract-setups.create', [
+            'plan' => $plan, 'prefill' => $prefill, 'defaults' => $terms,
+            'selectedClient' => $prefill['primary_client_id'], 'counties' => $this->countySuggestions(),
+            'clients' => Client::query()->whereNull('archived_at')->orWhereIn('id', $members->pluck('client_id'))->orderBy('last_name')->get(),
+        ]);
+    }
+
+    public function addClientForm(PaymentPlan $plan): View
+    {
+        $this->assertEditable($plan);
+        return view('admin.contract-setups.add-client', [
+            'plan' => $plan,
+            'clients' => Client::query()->whereNull('archived_at')->whereDoesntHave('memberships', fn ($q) => $q->where('payment_plan_id', $plan->id)->whereNull('effective_to'))->orderBy('last_name')->get(),
+        ]);
+    }
+
+    public function addClient(Request $request, PaymentPlan $plan): RedirectResponse
+    {
+        $rules = array_filter($this->rules(), fn ($key) => str_starts_with($key, 'co_') || $key === 'invite_co_client', ARRAY_FILTER_USE_KEY);
+        $rules['co_mode'] = ['required', Rule::in(['existing', 'new'])];
+        $rules['co_effective_from'] = ['required', 'date'];
+        $data = $request->validate($rules);
+        if ($data['co_mode'] === 'new') $this->validateNewClient($data, 'co');
+        $client = DB::transaction(function () use ($request, $plan, $data) {
+            $plan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
+            $this->assertEditable($plan);
+            $client = $this->resolveCoClient($data, $request->user()->id);
+            $this->memberships->add($plan, $client, $request->user(), 'co_client', $data['co_effective_from'], (bool) ($data['co_receives_invoices'] ?? false));
+            AuditLog::query()->create([
+                'actor_type' => 'administrator', 'actor_user_id' => $request->user()->id,
+                'event' => 'payment_plan.co_client_added', 'auditable_type' => PaymentPlan::class, 'auditable_id' => $plan->id,
+                'after_values' => ['client_id' => $client->id, 'effective_from' => $data['co_effective_from'], 'receives_invoices' => (bool) ($data['co_receives_invoices'] ?? false)],
+            ]);
+            return $client;
+        });
+        $redirect = $request->input('next') === 'contracts'
+            ? redirect()->route('admin.contract-setups.edit', $plan)
+            : redirect()->route('admin.plans.show', $plan);
+        return $this->inviteCoClient($request, $client, $redirect->with('success', 'Co-client added. Existing contracts have not been changed.'));
+    }
+
+
+    public function removeClient(Request $request, PaymentPlan $plan, int $membership): RedirectResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+        DB::transaction(function () use ($request, $plan, $membership, $data): void {
+            $plan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
+            $this->assertEditable($plan);
+            $member = $plan->memberships()->lockForUpdate()->findOrFail($membership);
+            abort_unless($member->role === 'co_client', 422, 'Only co-clients can be removed.');
+            $this->memberships->end($member, $request->user(), today(), $data['reason']);
+            $hidden = \App\Models\SharedDocument::query()
+                ->where('client_id', $member->client_id)->where('payment_plan_id', $plan->id)
+                ->where('visible_to_client', true)->update(['visible_to_client' => false]);
+            AuditLog::query()->create([
+                'actor_type' => 'administrator', 'actor_user_id' => $request->user()->id,
+                'event' => 'payment_plan.co_client_removed', 'auditable_type' => PaymentPlan::class, 'auditable_id' => $plan->id,
+                'before_values' => ['membership_id' => $member->id, 'client_id' => $member->client_id, 'effective_to' => null],
+                'after_values' => ['effective_to' => today()->toDateString(), 'reason' => $data['reason'], 'documents_hidden' => $hidden],
+            ]);
+        });
+        return redirect()->route($request->input('next') === 'contracts' ? 'admin.contract-setups.edit' : 'admin.plans.show', $plan)
+            ->with('success', 'Co-client removed and their shared documents for this plan hidden. Existing contracts are unchanged; use Revise setup & regenerate contracts to update them.');
+    }
+
+    private function assertEditable(PaymentPlan $plan): void
+    {
+        abort_unless(in_array($plan->status, ['draft', 'active', 'paused'], true), 422);
+    }
+
+    private function resolveCoClient(array $data, int $actorId): ?Client
+    {
+        $client = match ($data['co_mode']) {
+            'existing' => Client::query()->whereNull('archived_at')->findOrFail($data['co_client_id']),
+            'new' => $this->createClient($data, 'co', $actorId),
+            default => null,
+        };
+        if (($data['invite_co_client'] ?? false) && (! $client || blank($client->email))) {
+            throw ValidationException::withMessages(['invite_co_client' => 'A co-client email is required to send a portal invitation.']);
+        }
+        return $client;
+    }
+
+    private function inviteCoClient(Request $request, ?Client $client, RedirectResponse $redirect): RedirectResponse
+    {
+        if ($request->boolean('invite_co_client') && $client && ! $client->portalAccount?->enabled) {
+            try {
+                app(PortalInvitationService::class)->invite($client, $request->user());
+            } catch (\Throwable $exception) {
+                report($exception);
+                $redirect->with('warning', 'Changes saved, but the portal invitation could not be sent. Send it again from the client page.');
+            }
+        }
+        return $redirect;
+    }
+
+    private function revise(Request $request, PaymentPlan $plan, array $data): RedirectResponse
+    {
+        $generated = [];
+        $co = null;
+        try {
+            DB::transaction(function () use ($request, $plan, $data, &$generated, &$co): void {
+                $plan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
+                $this->assertEditable($plan);
+                $members = $plan->memberships()->whereNull('effective_to')->get();
+                $primary = $members->firstWhere('role', 'primary');
+                $existingCo = $members->where('role', 'co_client');
+                if (! $primary || $data['primary_mode'] !== 'existing' || (int) $data['primary_client_id'] !== $primary->client_id
+                    || $existingCo->count() > 1 || ($existingCo->isNotEmpty() && ($data['co_mode'] !== 'existing' || (int) ($data['co_client_id'] ?? 0) !== $existingCo->first()->client_id))) {
+                    throw ValidationException::withMessages(['co_client_id' => 'Keep the existing plan clients selected. This action can add a co-client, but cannot remove or replace clients.']);
+                }
+                $terms = $plan->currentBillingTerms()->firstOrFail();
+                $before = ['plan' => $plan->getAttributes(), 'billing_terms' => $terms->getAttributes()];
+                $effective = $plan->status === 'draft' ? $data['contract_start_date'] : $data['effective_from'];
+                if ($plan->status !== 'draft' && Carbon::parse($effective)->lt($terms->effective_from)) {
+                    throw ValidationException::withMessages(['effective_from' => 'The amendment date cannot precede the current billing terms.']);
+                }
+                if ($plan->status !== 'draft' && $data['first_invoice_date'] !== $plan->first_scheduled_invoice_date?->toDateString()) {
+                    throw ValidationException::withMessages(['first_invoice_date' => 'The original first recurring invoice date cannot change after activation.']);
+                }
+                $co = $existingCo->first()?->client ?? $this->resolveCoClient($data, $request->user()->id);
+                if (($data['invite_co_client'] ?? false) && (! $co || blank($co->email))) {
+                    throw ValidationException::withMessages(['invite_co_client' => 'A co-client email is required to send a portal invitation.']);
+                }
+                if ($co && $existingCo->isEmpty()) {
+                    $this->memberships->add($plan, $co, $request->user(), 'co_client', $data['co_effective_from'] ?? $effective, (bool) ($data['co_receives_invoices'] ?? false));
+                }
+                $purchase = Money::toCents($data['purchase_price']);
+                $doc = Money::toCents($data['documentation_fee']);
+                $down = Money::toCents($data['down_payment']);
+                $payment = Money::toCents($data['plan_payment']);
+                $fee = Money::toCents($data['service_fee']);
+                $first = Carbon::parse($data['first_invoice_date']);
+                app(ContractAmountAmendmentService::class)->amend($plan, $request->user(), $purchase, $doc + (int) $plan->documentation_fee_waived, (int) $plan->documentation_fee_waived, $effective, $data['amendment_reason'], $plan->documentation_fee_waiver_reason);
+                $plan->refresh();
+                $plan->fill([
+                    'plan_number' => trim($data['plan_number']), 'apn' => trim($data['plan_number']),
+                    'title' => $data['property_title'], 'asset_description' => $data['property_description'] ?? null,
+                    'property_county' => $data['property_county'], 'contract_down_payment' => $down,
+                    'hoa_fee' => Money::toCents($data['hoa_fee'] ?? '0'), 'hoa_term' => $data['hoa_term'] ?? null,
+                    'govdeals' => (bool) ($data['govdeals'] ?? false), 'plan_start_date' => $data['contract_start_date'],
+                    'customary_monthly_payment' => $payment, 'monthly_service_fee' => $fee,
+                    'grace_period_days' => $data['grace_days'], 'updated_by_user_id' => $request->user()->id,
+                ]);
+                if ($plan->status === 'draft') {
+                    $plan->fill([
+                        'first_scheduled_invoice_date' => $first, 'monthly_due_day' => $first->day,
+                        'first_payment_amount' => $down, 'first_due_date' => $data['first_payment_due_date'] ?? null,
+                        'first_payment_invoice_on_activation' => (bool) ($data['create_first_payment_invoice'] ?? false),
+                        'first_payment_invoice_email_on_activation' => (bool) ($data['email_first_payment_invoice'] ?? false),
+                    ]);
+                }
+                $plan->save();
+                $newTerms = $this->billingTerms($plan, $first, $payment, $fee, $data, $request->user()->id);
+                $newTerms['invoice_day'] = $plan->monthly_due_day;
+                $newTerms['stage_one_enabled'] = $terms->stage_one_enabled;
+                unset($newTerms['effective_from'], $newTerms['created_by_user_id']);
+                $candidate = clone $terms;
+                $candidate->fill($newTerms);
+                if ($plan->status === 'draft') {
+                    $terms->update($newTerms + ['effective_from' => $effective]);
+                } elseif ($candidate->isDirty()) {
+                    $terms->update(['effective_to' => Carbon::parse($effective)->subDay()]);
+                    PaymentPlanBillingTerm::query()->create($newTerms + ['effective_from' => $effective, 'reason' => $data['amendment_reason'], 'created_by_user_id' => $request->user()->id]);
+                }
+                $values = $this->placeholders($data, $primary->client, $co, $purchase, $down, $doc, $payment, $fee, $first);
+                $values['PInvoiceDay'] = (string) $plan->monthly_due_day;
+                $oldDocuments = $plan->contractDocuments()->whereNull('deleted_at')->get();
+                AuditLog::query()->create([
+                    'actor_type' => 'administrator', 'actor_user_id' => $request->user()->id,
+                    'event' => 'contract_setup.revised', 'auditable_type' => PaymentPlan::class, 'auditable_id' => $plan->id,
+                    'before_values' => $before, 'after_values' => ['plan' => $plan->getAttributes(), 'billing_terms' => $plan->currentBillingTerms()->first()?->getAttributes(), 'co_client_id' => $co?->id, 'reason' => $data['amendment_reason']],
+                ]);
+                $generated = $this->documents->generate($request->file('contract_templates'), $values, $plan, $primary->client, $request->user());
+                foreach ($oldDocuments as $document) {
+                    if (! str_starts_with($document->name, 'Superseded - ')) $document->update(['name' => 'Superseded - '.$document->name]);
+                }
+            });
+        } catch (\Throwable $exception) {
+            foreach ($generated as $document) Storage::disk($document->disk)->delete($document->path);
+            if ($exception instanceof ValidationException || $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) throw $exception;
+            report($exception);
+            return back()->withInput()->withErrors(['contract_templates' => 'Revision was not saved. Check the uploaded Word templates and try again.']);
+        }
+        return $this->inviteCoClient($request, $co, redirect()->route('admin.plans.show', $plan)->with('success', 'Plan updated and contracts regenerated. Previous files are marked superseded.'));
     }
 
     public function activate(Request $request, PaymentPlan $plan): RedirectResponse

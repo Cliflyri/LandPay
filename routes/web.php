@@ -137,6 +137,11 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('contract-setups', [ContractSetupController::class, 'store'])->name('contract-setups.store');
     Route::post('plans/{plan}/contract-setup/activate', [ContractSetupController::class, 'activate'])->name('contract-setups.activate');
     Route::delete('plans/{plan}/contract-setup', [ContractSetupController::class, 'deleteDraft'])->name('contract-setups.delete-draft');
+    Route::get('plans/{plan}/contract-setup/edit', [ContractSetupController::class, 'edit'])->name('contract-setups.edit');
+    Route::put('plans/{plan}/contract-setup', [ContractSetupController::class, 'store'])->name('contract-setups.update');
+    Route::get('plans/{plan}/co-clients/create', [ContractSetupController::class, 'addClientForm'])->name('plans.co-clients.create');
+    Route::post('plans/{plan}/co-clients', [ContractSetupController::class, 'addClient'])->name('plans.co-clients.store');
+    Route::delete('plans/{plan}/co-clients/{membership}', [ContractSetupController::class, 'removeClient'])->name('plans.co-clients.destroy');
     Route::get('contract-documents/{document}', [ContractSetupController::class, 'download'])->name('contract-documents.download');
     Route::delete('contract-documents/{document}', [ContractSetupController::class, 'destroy'])->name('contract-documents.destroy');
     Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);

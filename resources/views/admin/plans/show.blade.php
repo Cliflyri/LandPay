@@ -257,14 +257,38 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate-
 @endif
 
 <div class="admin-next-card mt-4">
-    <h2>Clients</h2>
+    <div class="d-flex flex-wrap justify-content-between gap-2"><h2>Clients</h2>
+    @if(in_array($plan->status,['draft','active','paused'],true))
+    <div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-brand" href="{{ route('admin.plans.co-clients.create',$plan) }}">Add co-client</a><a class="btn btn-outline-brand" href="{{ route('admin.contract-setups.edit',$plan) }}">Revise setup &amp; regenerate contracts</a></div>
+    @endif
+    </div>
     <div class="mt-3">
 
-    @forelse($plan->memberships as $membership)
-        <p class="mb-2"><a class="dashboard-client-link" href="{{ route('admin.clients.show',$membership->client) }}">{{ $membership->client->organization_name ?: trim($membership->client->first_name.' '.$membership->client->last_name) }}</a> <span class="text-muted">&mdash; {{ str($membership->role)->replace('_',' ')->title() }}</span></p>
+    @forelse($plan->memberships->whereNull('effective_to') as $membership)
+        <div class="mb-3">
+        <a class="dashboard-client-link" href="{{ route('admin.clients.show',$membership->client) }}">{{ $membership->client->organization_name ?: trim($membership->client->first_name.' '.$membership->client->last_name) }}</a> <span class="text-muted">&mdash; {{ str($membership->role)->replace('_',' ')->title() }}</span>
+        @if($membership->role === 'co_client' && in_array($plan->status,['draft','active','paused'],true))
+        <details class="mt-2"><summary class="text-danger">Remove from plan</summary>
+            <form class="mt-2" method="post" action="{{ route('admin.plans.co-clients.destroy',[$plan,$membership->id]) }}" onsubmit="return confirm('Remove this co-client from this plan now and hide their shared documents for this plan?');">
+                @csrf @method('DELETE')
+                <p class="small text-muted">Plan access ends immediately and documents for this client and plan become not shared. Their login, other plans, messages, and existing invoice links remain available. Admin retains all records and can share documents again.</p>
+                <label class="form-label" for="removal-reason-{{$membership->id}}">Reason for removal</label>
+                <input class="form-control" id="removal-reason-{{$membership->id}}" name="reason" maxlength="500" value="{{ old('reason') }}" required>
+                <div class="d-flex flex-wrap gap-2 mt-2"><button class="btn btn-outline-danger" name="next" value="plan">Remove co-client</button><button class="btn btn-outline-danger" name="next" value="contracts">Remove and revise contracts</button></div>
+            </form>
+        </details>
+        @endif
+        </div>
     @empty
-        <p class="text-muted mb-0">No clients are associated with this plan.</p>
+        <p class="text-muted mb-0">No current clients are associated with this plan.</p>
     @endforelse
+    @if($plan->memberships->whereNotNull('effective_to')->isNotEmpty())
+    <details class="mt-3"><summary>Former clients</summary>
+        @foreach($plan->memberships->whereNotNull('effective_to') as $membership)
+        <p class="mt-2 mb-0"><a href="{{ route('admin.clients.show',$membership->client) }}">{{ $membership->client->organization_name ?: trim($membership->client->first_name.' '.$membership->client->last_name) }}</a> &mdash; {{ str($membership->role)->replace('_',' ')->title() }}; removed {{ $membership->effective_to->format('M j, Y') }}<span class="d-block small text-muted">{{ $membership->end_reason }}</span></p>
+        @endforeach
+    </details>
+    @endif
     </div>
 </div>
 
