@@ -188,7 +188,10 @@ class DashboardController extends Controller
         if ($plan->status === 'paused') {
             return 'Paused';
         }
-        if (in_array($plan->status, ['closed', 'terminated'], true)) {
+        if ($plan->status === 'terminated') {
+            return 'Terminated';
+        }
+        if ($plan->status === 'closed') {
             return 'Closed';
         }
         if ($oldestDueDate === null || $currentBalanceDue <= 0) {

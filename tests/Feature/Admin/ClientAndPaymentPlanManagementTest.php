@@ -383,7 +383,7 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->assertSame($unpaid, $balances->invoiceBalance($invoice));
         $this->get(route('admin.reports.show', ['report' => 'receivables']))->assertDontSee($invoice->invoice_number);
         $this->assertStringNotContainsString($invoice->invoice_number, $this->get(route('admin.reports.export', ['report' => 'receivables']))->streamedContent());
-        $this->get(route('admin.dashboard', ['status' => 'terminated']))->assertOk()->assertSee('Default &lt;medical&gt;', false)->assertViewHas('openInvoiceCount', 0);
+        $this->get(route('admin.dashboard', ['status' => 'terminated']))->assertOk()->assertSee('Default &lt;medical&gt;', false)->assertViewHas('openInvoiceCount', 0)->assertViewHas('plans', fn ($plans) => $plans->first()['operational_status'] === 'Terminated');
         $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Default &lt;medical&gt;', false);
         $this->get(route('admin.plans.index', ['status' => 'terminated']))->assertOk()->assertSee('Default &lt;medical&gt;', false);
         $this->get(route('admin.clients.show', $client))->assertOk()->assertSee('Default &lt;medical&gt;', false);
