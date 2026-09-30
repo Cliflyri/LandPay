@@ -162,7 +162,17 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
     <div class="col-md-3"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong><span class="d-block text-muted fs-6">{{ $clientCredit > 0 ? 'Available for open invoices' : 'No unapplied credit' }}</span>@if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Total applied to contract</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong><span class="d-block text-muted fs-6">Principal paid: <strong>{{\App\Support\Money::format($principalPaid)}}</strong></span></article></div>
-    <div class="col-md-3"><article class="admin-summary-card"><span>Monthly payment</span><strong>{{\App\Support\Money::format($plan->customary_monthly_payment)}}</strong></article></div>
+    <div class="col-md-3"><article class="admin-summary-card"><span>Monthly payment</span>
+    
+<span class="d-block text-muted fs-6">
+          {{\App\Support\Money::format($plan->customary_monthly_payment)}}  + {{ \App\Support\Money::format($plan->monthly_service_fee) }} fee
+        </span>
+
+        <span class="d-block text-muted fs-6">
+            Total monthly:
+            <strong>{{ \App\Support\Money::format($plan->customary_monthly_payment + $plan->monthly_service_fee) }}</strong>
+        </span>
+    </article></div>
 </div>
 
 <div class="admin-next-card mt-4" id="pause-plan-controls">
