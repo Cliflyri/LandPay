@@ -216,9 +216,13 @@
                                     </span>
                                 </a>
                             @else
-                                <span class="dashboard-status {{ $statusClass }}" @if($row['plan']->status === 'terminated') title="{{ $row['plan']->termination_reason ?: 'No termination reason recorded.' }}" @endif>
-                                    {{ $row['operational_status'] }}
-                                </span>
+@if($row['plan']->status === 'terminated')
+    @include('admin.plans.partials.termination-badge', ['plan' => $row['plan']])
+@else
+    <span class="dashboard-status {{ $statusClass }}">
+        {{ $row['operational_status'] }}
+    </span>
+@endif
                             @endif
 
                             @if ($row['ready_to_close'])
