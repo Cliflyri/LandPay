@@ -5,6 +5,7 @@
 <section class='admin-section'><div class='container-fluid dashboard-container'>
 <div class='admin-heading'><div><span class='eyebrow eyebrow-dark'>Administration</span><h1>Admin Actions</h1><p class='mb-0'>Create records, communicate with clients, and manage occasional workflows.</p></div></div>
 <h2 class='h4 mt-4'>Create</h2><div class='row g-4'>
+<div class='col-md-6'><div class='admin-next-card h-100'><h3>Charge Customer</h3><p>Take a card payment over the phone, apply it to a plan or invoice, and email a LandPay receipt.</p><a class='btn btn-brand' href="{{route('admin.take-payment.create')}}">Charge Customer</a></div></div>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>New contract setup</h3><p>Create a client and payment plan through the guided setup.</p><a class='btn btn-brand' href={{route('admin.contract-setups.create')}}>Start contract setup</a></div></div>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Property tax invoices</h3><p>Import APNs, review matches, save drafts, and issue annual invoices.</p><a class='btn btn-brand' href={{route('admin.property-tax-batches.create')}}>Start a batch</a> <a class='btn btn-outline-brand' href={{route('admin.property-tax-batches.index')}}>View batches</a></div></div>
 </div>

@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends(($adminPayment ?? false) ? 'layouts.admin' : 'layouts.app')
 
-@section('title','Make a payment | LandPay')
+@section('title',($adminPayment ?? false) ? 'Charge Customer | LandPay' : 'Make a payment | LandPay')
 
 @section('body_class','admin-page')
 
@@ -12,19 +12,27 @@
 
         <div class="admin-heading d-flex justify-content-between align-items-end">
             <div>
-                <span class="eyebrow eyebrow-dark">Client portal</span>
-                <h1>Make a payment</h1>
+                <span class="eyebrow eyebrow-dark">{{ ($adminPayment ?? false) ? 'Admin Actions' : 'Client portal' }}</span>
+                <h1>{{ ($adminPayment ?? false) ? 'Charge Customer' : 'Make a payment' }}</h1>
+                @if($adminPayment ?? false)
+                <p class="mb-0">{{ $paymentClient->organization_name ?: trim($paymentClient->first_name.' '.$paymentClient->last_name) }} — choose the plan or invoice and amount, then review and charge the card.</p>
+                @else
                 <p class="mb-0">Choose the plan, amount, and payment method.</p>
+                @endif
             </div>
-            <a class="btn btn-outline-brand" href="{{ ($secureAccess ?? false) ? route('secure-invoice.show') : route('portal.dashboard') }}">Dashboard</a>
+            <a class="btn btn-outline-brand" href="{{ ($adminPayment ?? false) ? route('admin.take-payment.create') : (($secureAccess ?? false) ? route('secure-invoice.show') : route('portal.dashboard')) }}">{{ ($adminPayment ?? false) ? 'Change client' : 'Dashboard' }}</a>
         </div>
 
         @if($errors->any())
             <div class="alert alert-danger mt-4">{{ $errors->first() }}</div>
         @endif
 
-        <form class="admin-next-card mt-4" id="payment-form" method="post" action="{{ ($secureAccess ?? false) ? route('secure-invoice.payment.store') : route('portal.make-payment.store') }}">
+        <form class="admin-next-card mt-4" id="payment-form" method="post" action="{{ ($adminPayment ?? false) ? route('admin.take-payment.store') : (($secureAccess ?? false) ? route('secure-invoice.payment.store') : route('portal.make-payment.store')) }}">
             @csrf
+            @if($adminPayment ?? false)
+            <input type="hidden" name="client_id" value="{{ $paymentClient->id }}">
+            <input type="hidden" name="checkout_key" value="{{ $checkoutKey }}">
+            @endif
 
             <div class="row g-3">
 
@@ -189,9 +197,11 @@
         Any fee and your final total will be shown before you confirm payment.
     </p>
 
+    @unless($adminPayment ?? false)
     <p class="mb-0 text-muted small">
         To avoid processing fees, please consider one of the direct payment methods above.
     </p>
+    @endunless
 </div>
 
     @if($general['card_provider']==='square' && $square['experience']==='landpay')
@@ -970,6 +980,7 @@
                 }
 
                 if (pendingSquareToken) {
+                    @if($adminPayment ?? false) b.disabled = true; @endif
                     form.submit();
                     return;
                 }
@@ -1034,7 +1045,7 @@
                 document.querySelector('[data-change-square-card]').hidden =
                     false;
 
-                b.textContent = 'Pay $' + money(total);
+                b.textContent = @json(($adminPayment ?? false) ? 'Charge $' : 'Pay $') + money(total);
 
                 return;
 

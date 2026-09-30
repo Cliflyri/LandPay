@@ -113,6 +113,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('formatting-preview', FormattingPreviewController::class)->name('formatting-preview');
     Route::get('actions', AdminActionController::class)->name('actions.index');
+    Route::get('take-payment', [\App\Http\Controllers\Admin\TakePaymentController::class, 'create'])->middleware('square.payment-csp')->name('take-payment.create');
+    Route::post('take-payment', [\App\Http\Controllers\Admin\TakePaymentController::class, 'store'])->block(60, 10)->name('take-payment.store');
+    Route::get('take-payment/{intent}', [\App\Http\Controllers\Admin\TakePaymentController::class, 'show'])->name('take-payment.show');
+    Route::post('take-payment/{intent}/receipt', [\App\Http\Controllers\Admin\TakePaymentController::class, 'receipt'])->name('take-payment.receipt');
     Route::get('actions/report-snapshots', [ReportSnapshotController::class, 'index'])->name('report-snapshots.index');
     Route::put('actions/report-snapshots', [ReportSnapshotController::class, 'update'])->name('report-snapshots.update');
     Route::post('actions/report-snapshots', [ReportSnapshotController::class, 'store'])->name('report-snapshots.store');

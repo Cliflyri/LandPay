@@ -73,3 +73,6 @@ landpay-vendor.zip
 # Local production database backups
 /Production Backups/
 README-NAS.md
+
+# Local archive of old project documents
+/Z-OLD/

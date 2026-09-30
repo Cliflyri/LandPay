@@ -32,7 +32,7 @@ class SquareCardPaymentService
         private readonly FinancialBalanceService $balances,
     ) {}
 
-    public function pay(ClientPaymentIntent $intent, string $sourceId): ClientPaymentIntent
+    public function pay(ClientPaymentIntent $intent, string $sourceId, ?User $actor = null): ClientPaymentIntent
     {
         $secret = AppSetting::encryptedValueFor('square_api_secret');
         if (blank($secret)) {
@@ -66,7 +66,7 @@ class SquareCardPaymentService
         ]);
 
         try {
-            return DB::transaction(function () use ($intent, $feeInvoice, $payment): ClientPaymentIntent {
+            return DB::transaction(function () use ($intent, $feeInvoice, $payment, $actor): ClientPaymentIntent {
                 $locked = ClientPaymentIntent::query()->lockForUpdate()->findOrFail($intent->id);
                 if ($locked->status === 'received') {
                     return $locked;
@@ -74,7 +74,7 @@ class SquareCardPaymentService
                 if ($locked->processing_fee_amount > 0 && $feeInvoice !== null) {
                     $this->postFee($locked, $feeInvoice);
                 }
-                $actor = User::query()->where('status', 'active')->oldest()->firstOrFail();
+                $actor ??= User::query()->where('status', 'active')->oldest()->firstOrFail();
                 $posted = $this->payments->post(
                     $locked->paymentPlan,
                     $actor,

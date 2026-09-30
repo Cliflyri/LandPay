@@ -16,7 +16,7 @@ class PaymentReceiptService
 {
     public function __construct(private readonly FinancialBalanceService $balances, private readonly EmailTemplateService $templates) {}
 
-    public function send(Payment $payment, User $actor, bool $reversal = false): EmailDelivery
+    public function send(Payment $payment, User $actor, bool $reversal = false, ?string $recipientEmail = null): EmailDelivery
     {
         $payment->loadMissing('financialTransaction.paymentPlan.memberships.client', 'allocations.invoice', 'allocations.invoiceItem', 'payer');
         $transaction = $payment->financialTransaction;
@@ -26,8 +26,9 @@ class PaymentReceiptService
         }
         $membership = $plan->memberships->whereNull('effective_to')->first(fn ($item) => $item->receives_invoices && $item->role === 'primary')
             ?? $plan->memberships->whereNull('effective_to')->firstWhere('receives_invoices', true);
-        $client = $membership?->client;
-        if ($client === null || blank($client->email) || ! filter_var($client->email, FILTER_VALIDATE_EMAIL)) {
+        $client = $recipientEmail !== null ? ($payment->payer ?? $membership?->client) : $membership?->client;
+        $email = $recipientEmail ?? $client?->email;
+        if ($client === null || blank($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw ValidationException::withMessages(['recipient' => 'No valid receipt-recipient email is configured for this payment plan.']);
         }
         $contractBalance = $this->balances->contractBalance($plan);
@@ -51,8 +52,8 @@ class PaymentReceiptService
         $slug = $reversal ? 'payment-reversal' : 'payment-receipt';
         $rendered = $this->templates->renderVariables($slug, $variables);
         $delivery = EmailDelivery::query()->create([
-            'payment_id' => $payment->id, 'payment_plan_id' => $plan->id, 'recipient_client_id' => $client->id,
-            'sent_by_user_id' => $actor->id, 'template_slug' => $slug, 'recipient_email' => strtolower(trim($client->email)),
+            'payment_id' => $payment->id, 'payment_plan_id' => $plan->id, 'recipient_client_id' => strcasecmp(trim((string) $client->email), trim($email)) === 0 ? $client->id : null,
+            'sent_by_user_id' => $actor->id, 'template_slug' => $slug, 'recipient_email' => strtolower(trim($email)),
             'subject_snapshot' => $rendered['subject'], 'body_snapshot' => $rendered['body'],
             'delivery_format' => $reversal ? 'inline' : 'both', 'status' => 'pending',
         ]);
