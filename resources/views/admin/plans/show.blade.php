@@ -201,6 +201,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
         <dt class="col-sm-4 col-lg-3">Documentation fee</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_standard)}}</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee waived</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_waived)}}@if($plan->documentation_fee_waived > 0) &mdash; {{ $plan->documentation_fee_waiver_reason }}@endif</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee charged</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_standard - $plan->documentation_fee_waived)}}</dd>
+        <dt class="col-sm-4 col-lg-3">Total first payment</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format((int) $plan->first_payment_amount + $plan->documentation_fee_standard - $plan->documentation_fee_waived)}}</dd>
         <dt class="col-sm-4 col-lg-3">Amount previously paid in</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($previousPaid)}}</dd>
         <dt class="col-sm-4 col-lg-3">Adjusted initial contract amount</dt><dd class="col-sm-8 col-lg-9"><strong>{{\App\Support\Money::format($plan->original_purchase_balance - $previousPaid)}}</strong></dd>
         <dt class="col-12"><hr></dt>
