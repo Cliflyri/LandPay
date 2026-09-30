@@ -266,6 +266,47 @@ class FinancialPostingServiceTest extends TestCase
         $this->assertFalse($service->assess($invoice->fresh('allItems'), 1, Carbon::parse('2026-08-13')));
     }
 
+
+    public function test_principal_paid_excludes_documentation_fee_once_and_tracks_later_payments_and_reversals(): void
+    {
+        [$user, $plan] = $this->draftPlan();
+        app(ContractOpeningService::class)->open($plan, $user, 1_099_900, 44_900, 0, '2026-08-01');
+        $plan->update(['status' => 'active', 'first_payment_amount' => 120_000]);
+        $plan = $plan->fresh();
+        $balances = app(FinancialBalanceService::class);
+        $payments = app(\App\Services\PaymentService::class);
+        $invoice = app(\App\Services\FirstPaymentInvoiceService::class)->issue($plan, $user, 120_000, '2026-08-01', '2026-08-08', 44_900);
+        $first = $payments->postInvoiceInFull($invoice, $user, \App\Enums\PaymentMethod::Cash, '2026-08-08');
+        $this->assertSame(120_000, $balances->purchasePrincipalPaid($plan));
+        $this->assertSame(979_900, $balances->contractBalance($plan));
+        $this->assertSame(0, $balances->invoiceBalance($invoice));
+        $this->actingAs($user)->get(route('admin.plans.show', $plan))->assertOk()->assertViewHas('principalPaid', 120_000);
+        $report = $this->get(route('admin.reports.show', ['report' => 'contracts']))->assertOk();
+        $report->assertViewHas('totals', fn ($totals) => $totals['Principal paid'] === 120_000);
+        $csv = $this->get(route('admin.reports.export', ['report' => 'contracts']))->streamedContent();
+        $this->assertSame('1200', str_getcsv(explode("\n", trim($csv))[1])[4]);
+
+        $later = $payments->post($plan, $user, 50_000, 'principal_only', \App\Enums\PaymentMethod::Cash, '2026-09-08');
+        $this->assertSame(170_000, $balances->purchasePrincipalPaid($plan));
+        $this->assertSame(929_900, $balances->contractBalance($plan));
+        $payments->reverse($later, $user, 'Reverse later payment');
+        $this->assertSame(120_000, $balances->purchasePrincipalPaid($plan));
+        $payments->reverse($first, $user, 'Reverse first payment');
+        $this->assertSame(0, $balances->purchasePrincipalPaid($plan));
+        $this->assertSame(1_144_800, $balances->contractBalance($plan));
+    }
+
+    public function test_small_opening_credit_does_not_erase_later_recorded_principal(): void
+    {
+        [$user, $plan] = $this->draftPlan();
+        app(ContractOpeningService::class)->open($plan, $user, 100_000, 5_000, 0, '2026-08-01');
+        app(OpeningPrincipalCreditService::class)->post($plan, $user, 2_000, '2026-08-01');
+        $plan->update(['status' => 'active']);
+        app(\App\Services\PaymentService::class)->post($plan, $user, 10_000, 'principal_only', \App\Enums\PaymentMethod::Cash, '2026-08-02');
+        $this->assertSame(10_000, app(FinancialBalanceService::class)->purchasePrincipalPaid($plan->fresh()));
+        $this->assertSame(93_000, app(FinancialBalanceService::class)->contractBalance($plan));
+    }
+
     private function activeOpenedPlan(): array
     {
         [$user, $plan] = $this->draftPlan();

@@ -71,7 +71,12 @@ class FinancialBalanceService
     {
         $documentationFeeCharged = max(0, (int) $plan->documentation_fee_standard - (int) $plan->documentation_fee_waived);
 
-        return max(0, min((int) $plan->purchase_price, $this->administratorPaidInValue($plan) - $documentationFeeCharged));
+        // Recorded payments already separate documentation fees from purchase principal.
+        // Only the imported opening credit includes the fee in its paid-in amount.
+        $openingCredit = app(OpeningPrincipalCreditService::class)->amount($plan);
+        $openingDocumentationFee = min($openingCredit, $documentationFeeCharged);
+
+        return max(0, min((int) $plan->purchase_price, $this->administratorPaidInValue($plan) - $openingDocumentationFee));
     }
 
     private function planEffectSum(PaymentPlan|int $plan, FinancialEffectType $type): int
