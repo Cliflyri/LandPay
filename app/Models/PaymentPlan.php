@@ -33,6 +33,7 @@ class PaymentPlan extends Model
             'first_payment_invoice_email_on_activation' => 'boolean',
             'first_payment_invoice_on_activation' => 'boolean',
             'closed_at' => 'datetime',
+            'invoicing_resumes_on' => 'date',
         ];
     }
 

@@ -6,7 +6,7 @@
 $primaryMembership = $plan->memberships->firstWhere('role', 'primary');
 $primaryClient = $primaryMembership?->client;
 $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?->first_name ?? '').' '.($primaryClient?->last_name ?? ''));
-$nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate->status,[\App\Enums\InvoiceStatus::Issued,\App\Enums\InvoiceStatus::PartiallyPaid],true)&&app(\App\Services\FinancialBalanceService::class)->invoiceBalance($candidate)>0)->sortBy(fn($candidate)=>[$candidate->due_date->timestamp,$candidate->issue_date->timestamp,$candidate->id])->first();
+$nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->status,['active','paused'],true)&&in_array($candidate->status,[\App\Enums\InvoiceStatus::Issued,\App\Enums\InvoiceStatus::PartiallyPaid],true)&&app(\App\Services\FinancialBalanceService::class)->invoiceBalance($candidate)>0)->sortBy(fn($candidate)=>[$candidate->due_date->timestamp,$candidate->issue_date->timestamp,$candidate->id])->first();
 @endphp
 <section class="admin-section"><div class="container-fluid dashboard-container px-2">
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
@@ -45,7 +45,11 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($candidate-
     </span>
     </a>
     @endif
+@include('admin.plans.partials.termination-badge')
 </h1>
+@if($plan->status === 'terminated')
+<div class="alert alert-secondary mt-3"><strong>Servicing ended &mdash; historical balances excluded from receivables.</strong><div style="white-space:pre-wrap">{{ $plan->termination_reason ?: 'No termination reason recorded.' }}</div></div>
+@endif
         <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }} @if(filled($plan->property_county))<span class="text-muted"> · County: {{$plan->property_county}}</span>@endif</p>
 
     </div>

@@ -164,7 +164,7 @@ class ReportController extends Controller
 
     private function receivables(Request $request): array
     {
-        $query = Invoice::query()->where('status', '!=', 'voided')->whereHas('paymentPlan', fn ($q) => $q->includedInReports())
+        $query = Invoice::query()->where('status', '!=', 'voided')->whereHas('paymentPlan', fn ($q) => $q->includedInReports()->where('status', '!=', 'terminated'))
             ->with(['paymentPlan.memberships.client', 'items'])->orderBy('due_date');
         $this->dates($query, $request, 'issue_date');
         $this->invoiceSearch($query, $request);

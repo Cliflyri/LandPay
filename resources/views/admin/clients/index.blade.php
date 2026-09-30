@@ -70,7 +70,7 @@
     </div>
 </td>
 <td class="text-nowrap"><a class="dashboard-client-link" href="{{route('admin.clients.show',$client)}}">{{$name}}</a>@if($client->archived_at)<span class="dashboard-status status-closed ms-2">Archived</span>@endif</td>
-<td>@if($plan)<a class="dashboard-plan-link text-nowrap" href="{{route('admin.plans.show',$plan)}}">{{$plan->apn ?: $plan->plan_number}}</a>@else<span class="muted-value">&mdash;</span>@endif</td>
+<td>@if($plan)<a class="dashboard-plan-link text-nowrap" href="{{route('admin.plans.show',$plan)}}">{{$plan->apn ?: $plan->plan_number}}</a> @include('admin.plans.partials.termination-badge')@else<span class="muted-value">&mdash;</span>@endif</td>
 
 <td class="money-cell">
     @if($plan)

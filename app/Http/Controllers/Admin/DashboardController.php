@@ -69,7 +69,7 @@ class DashboardController extends Controller
         return view('admin.dashboard', [
             'clientCount' => Client::query()->whereNull('archived_at')->count(),
             'planCount' => PaymentPlan::query()->whereIn('status', ['active', 'paused'])->count(),
-            'openInvoiceCount' => Invoice::query()->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])->count(),
+            'openInvoiceCount' => Invoice::query()->whereHas('paymentPlan', fn ($query) => $query->where('status', '!=', 'terminated'))->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])->count(),
             'plans' => $plans,
             'planStatus' => $planStatus,
             'planSearch' => $planSearch,

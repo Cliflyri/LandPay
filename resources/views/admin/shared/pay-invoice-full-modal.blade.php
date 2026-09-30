@@ -1,6 +1,6 @@
 @php
 $fullPaymentBalance=app(\App\Services\FinancialBalanceService::class)->invoiceBalance($invoice);
-$fullPaymentPreview=$fullPaymentBalance>0?app(\App\Services\PaymentService::class)->preview($invoice->paymentPlan,$fullPaymentBalance,'regular',invoiceId:$invoice->id):null;
+$fullPaymentPreview=$fullPaymentBalance>0 && in_array($invoice->paymentPlan->status,['active','paused'],true)?app(\App\Services\PaymentService::class)->preview($invoice->paymentPlan,$fullPaymentBalance,'regular',invoiceId:$invoice->id):null;
 $fullPaymentModalId='pay-invoice-full-'.$invoice->id.'-'.$returnTo;
 @endphp
 @if($fullPaymentPreview && in_array($invoice->status,[\App\Enums\InvoiceStatus::Issued,\App\Enums\InvoiceStatus::PartiallyPaid],true))

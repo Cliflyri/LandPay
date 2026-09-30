@@ -360,6 +360,53 @@ class ClientAndPaymentPlanManagementTest extends TestCase
             ->assertSessionHasInput('co_client_ids', [$coClient->id]);
     }
 
+
+    public function test_termination_requires_reason_excludes_receivables_and_reactivation_restores_them(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-09-30 12:00:00'));
+        $user = User::factory()->create();
+        $client = $this->client($user);
+        $data = $this->validPlanData($client);
+        $this->actingAs($user)->post(route('admin.plans.store'), $data)->assertSessionHasNoErrors();
+        $plan = PaymentPlan::query()->sole();
+        $this->post(route('admin.plans.invoices.store', $plan), ['billing_month' => '2026-08'])->assertSessionHasNoErrors();
+        $invoice = $plan->invoices()->sole();
+        $balances = app(\App\Services\FinancialBalanceService::class);
+        $principal = $balances->contractBalance($plan);
+        $unpaid = $balances->invoiceBalance($invoice);
+        $edit = array_merge($data, ['status' => 'terminated', 'invoice_day' => 1, 'effective_from' => '2026-09-30', 'amendment_reason' => 'End servicing']);
+        $this->put(route('admin.plans.update', $plan), $edit)->assertSessionHasErrors('termination_reason');
+        $edit['termination_reason'] = 'Default <medical>';
+        $this->put(route('admin.plans.update', $plan), $edit)->assertSessionHasNoErrors();
+        $this->assertSame('terminated', $plan->fresh()->status);
+        $this->assertSame($principal, $balances->contractBalance($plan));
+        $this->assertSame($unpaid, $balances->invoiceBalance($invoice));
+        $this->get(route('admin.reports.show', ['report' => 'receivables']))->assertDontSee($invoice->invoice_number);
+        $this->assertStringNotContainsString($invoice->invoice_number, $this->get(route('admin.reports.export', ['report' => 'receivables']))->streamedContent());
+        $this->get(route('admin.dashboard', ['status' => 'terminated']))->assertOk()->assertSee('Default &lt;medical&gt;', false)->assertViewHas('openInvoiceCount', 0);
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Default &lt;medical&gt;', false);
+        $this->get(route('admin.plans.index', ['status' => 'terminated']))->assertOk()->assertSee('Default &lt;medical&gt;', false);
+        $this->get(route('admin.clients.show', $client))->assertOk()->assertSee('Default &lt;medical&gt;', false);
+        $this->get(route('admin.clients.index', ['plans' => 'all']))->assertOk()->assertSee('Default &lt;medical&gt;', false);
+        $this->get(route('admin.reports.show', ['report' => 'contracts']))->assertSee($plan->plan_number);
+        $this->get(route('admin.plans.edit', $plan))->assertOk()->assertSee('Resume invoicing from');
+        $edit['status'] = 'active';
+        $this->put(route('admin.plans.update', $plan), $edit)->assertSessionHasErrors('invoicing_resumes_on');
+        $edit['invoicing_resumes_on'] = '2026-10-01';
+        $this->put(route('admin.plans.update', $plan), $edit)->assertSessionHasNoErrors();
+        $this->get(route('admin.reports.show', ['report' => 'receivables']))->assertSee($invoice->invoice_number);
+        $this->get(route('admin.dashboard'))->assertViewHas('openInvoiceCount', 1);
+        $this->assertSame($principal, $balances->contractBalance($plan));
+        $this->assertSame($unpaid, $balances->invoiceBalance($invoice));
+        $automation = app(\App\Services\AutomaticInvoiceService::class);
+        $this->assertSame('2026-10-01', $automation->nextDate($plan->fresh())->toDateString());
+        $this->assertSame(0, $automation->run(today())['created']);
+        $this->assertSame(1, $automation->run(today()->addDay())['created']);
+        $this->assertDatabaseMissing('invoices', ['payment_plan_id' => $plan->id, 'invoice_number' => 'INV-'.$plan->id.'-202609']);
+        $this->assertSame('Default <medical>', $plan->fresh()->termination_reason);
+        $this->assertSame('Default <medical>', AuditLog::query()->where('event', 'payment_plan.amended')->first()->after_values['plan']['termination_reason']);
+    }
+
     private function client(User $user, string $firstName = 'Maya'): Client
     {
         return Client::query()->create([

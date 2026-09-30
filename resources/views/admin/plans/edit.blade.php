@@ -24,6 +24,10 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 @else
 <div class="col-md-2"><label class="form-label" for="plan-status">Status</label><select class="form-select" id="plan-status" name="status">@foreach(['draft'=>'Draft','active'=>'Active','paused'=>'Paused','terminated'=>'Terminated','closed'=>'Closed'] as $value=>$label)<option value="{{ $value }}" @selected(old('status',$plan->status)===$value)>{{ $label }}</option>@endforeach</select></div>
 @endif
+<div class="col-12" id="termination-details"><label class="form-label" for="termination-reason">Termination reason</label><textarea class="form-control" id="termination-reason" name="termination_reason" maxlength="2000" rows="2">{{ old('termination_reason', $plan->termination_reason) }}</textarea><div class="form-text">Required when terminated. Servicing stops and unpaid balances are excluded from receivables; history is retained.</div></div>
+@if($plan->status === 'terminated')
+<div class="col-12" id="reinstatement-details"><label class="form-label" for="invoicing-resumes-on">Resume invoicing from</label><input class="form-control" type="date" id="invoicing-resumes-on" name="invoicing_resumes_on" min="{{ today()->toDateString() }}" value="{{ old('invoicing_resumes_on', today()->toDateString()) }}"><div class="form-text">On reactivation, unpaid balances return to receivables and enabled reminders and late fees resume. Scheduled invoices before this date will not be generated. Adjust unwanted unpaid invoices before reactivating. Restore archived clients separately.</div></div>
+@endif
 <div class="col-md-8"><label class="form-label">Additional property details</label><textarea class="form-control" name="asset_description" rows="2">{{ old('asset_description',$plan->asset_description) }}</textarea></div>
 <div class="col-md-4"><label class="form-label" for="property-county">Property county <span class="text-muted fw-normal">(optional)</span></label><input class="form-control" id="property-county" name="property_county" list="property-counties" maxlength="100" value="{{ old('property_county',$plan->property_county) }}" placeholder="Choose or type a county">
 <datalist id="property-counties">@foreach($counties as $county)<option value="{{$county}}"></option>@endforeach</datalist></div>
@@ -127,6 +131,9 @@ $stageTwoValue = $stageTwoType === 'percentage' ? $terms->stage_two_percentage_r
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
  const form=document.querySelector('form[action*="/plans/"]');if(!form)return;
+ const status=document.getElementById('plan-status'),reason=document.getElementById('termination-reason'),resume=document.getElementById('invoicing-resumes-on');
+ const syncStatus=()=>{const terminated=status?.value==='terminated';document.getElementById('termination-details').hidden=!terminated;reason.required=terminated;if(resume){const restoring=['active','paused'].includes(status?.value);document.getElementById('reinstatement-details').hidden=!restoring;resume.disabled=!restoring;resume.required=restoring;}};
+ status?.addEventListener('change',syncStatus);syncStatus();
  const names=['purchase_price','documentation_fee_standard','documentation_fee_waived','previous_principal_paid'];
  const inputs=Object.fromEntries(names.map(name=>[name,form.elements[name]]));
  const cents=value=>Math.round((Number.parseFloat(String(value).replace(/[$,]/g,''))||0)*100);

@@ -104,6 +104,9 @@ class AutomaticInvoiceService
         if ($plan->first_scheduled_invoice_date?->gt($from)) {
             $from = $plan->first_scheduled_invoice_date->copy();
         }
+        if ($plan->invoicing_resumes_on?->gt($from)) {
+            $from = $plan->invoicing_resumes_on->copy();
+        }
         $activatedOn = $plan->activated_at?->copy()->startOfDay();
         if ($activatedOn?->gt($from)) {
             $from = $activatedOn;
@@ -149,6 +152,9 @@ class AutomaticInvoiceService
         }
         $notBefore = $plan->first_scheduled_invoice_date?->copy()->startOfDay()
             ?? $legacyAnchor->copy()->addDay();
+        if ($plan->invoicing_resumes_on?->gt($notBefore)) {
+            $notBefore = $plan->invoicing_resumes_on->copy();
+        }
         $activatedOn = $plan->activated_at?->copy()->startOfDay();
         if ($activatedOn?->gt($notBefore)) {
             $notBefore = $activatedOn;

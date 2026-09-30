@@ -102,7 +102,7 @@
                                                 View invoice
                                             </a>
                                         </li>
-                                        <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#pay-invoice-full-{{$row['balance_invoice']->id}}-dashboard">Pay invoice in full</button></li>
+                                        @if(in_array($row['plan']->status, ['active','paused'], true))<li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#pay-invoice-full-{{$row['balance_invoice']->id}}-dashboard">Pay invoice in full</button></li>@endif
                                     @endif
 
                                     <li>
@@ -216,7 +216,7 @@
                                     </span>
                                 </a>
                             @else
-                                <span class="dashboard-status {{ $statusClass }}">
+                                <span class="dashboard-status {{ $statusClass }}" @if($row['plan']->status === 'terminated') title="{{ $row['plan']->termination_reason ?: 'No termination reason recorded.' }}" @endif>
                                     {{ $row['operational_status'] }}
                                 </span>
                             @endif
@@ -390,6 +390,6 @@
 
 </section>
 
-@foreach($plans as $row)@if($row['balance_invoice'])@include('admin.shared.pay-invoice-full-modal',['invoice'=>$row['balance_invoice'],'clientName'=>$row['client_name'],'returnTo'=>'dashboard'])@endif @endforeach
+@foreach($plans as $row)@if($row['balance_invoice'] && in_array($row['plan']->status, ['active','paused'], true))@include('admin.shared.pay-invoice-full-modal',['invoice'=>$row['balance_invoice'],'clientName'=>$row['client_name'],'returnTo'=>'dashboard'])@endif @endforeach
 @include('admin.documents._preview')
 @endsection

@@ -214,7 +214,7 @@
                                 </td>
 
                                 <td>
-                                    <span class="dashboard-status {{ $statusClass }}">
+                                    <span class="dashboard-status {{ $statusClass }}" @if($plan->status === 'terminated') title="{{ $plan->termination_reason ?: 'No termination reason recorded.' }}" @endif>
                                         {{ $statusLabel }}
                                     </span>
                                     @if ($plan->ready_to_close)
