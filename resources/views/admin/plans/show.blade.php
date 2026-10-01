@@ -99,11 +99,14 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
 <ul class="nav nav-tabs mt-4">
-    <li class="nav-item"><a class="nav-link {{ request('tab') !== 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', $plan) }}">Plan overview</a></li>
+    <li class="nav-item"><a class="nav-link {{ ! in_array(request('tab'), ['ledger', 'communications']) ? 'active' : '' }}" href="{{ route('admin.plans.show', $plan) }}">Plan overview</a></li>
     <li class="nav-item"><a class="nav-link {{ request('tab') === 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']) }}">Account ledger</a></li>
+    <li class="nav-item"><a class="nav-link {{ request('tab') === 'communications' ? 'active' : '' }}" href="{{ route('admin.plans.show', ['plan' => $plan, 'tab' => 'communications']) }}">Communication log</a></li>
 </ul>
 
-@if(request('tab') === 'ledger')
+@if(request('tab') === 'communications')
+@include('admin.plans.partials.communication-log')
+@elseif(request('tab') === 'ledger')
 <div class="admin-next-card mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
         <div><h2 class="mb-1">Account ledger</h2><p class="text-muted mb-0">Payment reconciliation for plan # {{ $plan->plan_number }}.</p></div>

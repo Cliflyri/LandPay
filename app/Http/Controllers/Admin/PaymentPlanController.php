@@ -315,6 +315,32 @@ class PaymentPlanController extends Controller
                 ]);
             });
 
+        $communications = null;
+        if (request('tab') === 'communications') {
+            $sources = [
+                ['email_deliveries', 'Email', 'template_slug', 'recipient_email', 'subject_snapshot'],
+                ['invoice_reminders', 'Email', null, 'recipient_email', null],
+                ['sms_deliveries', 'SMS', 'message_type', 'recipient_phone', 'message_snapshot'],
+            ];
+            $queries = collect($sources)->map(function ($source) use ($plan) {
+                [$table, $channel, $type, $recipient, $details] = $source;
+                return DB::table($table)
+                    ->where('payment_plan_id', $plan->id)
+                    ->selectRaw("id, invoice_id, created_at, sent_at, failed_at, status, failure_message, '{$channel}' as channel, '{$table}' as source")
+                    ->selectRaw(($type ?? "'payment-reminder'").' as message_type')
+                    ->selectRaw($recipient.' as recipient')
+                    ->selectRaw(($details ?? 'NULL').' as details')
+                    ->selectRaw(($table === 'email_deliveries' ? 'body_snapshot' : 'NULL').' as body');
+            });
+            $combined = $queries->shift();
+            foreach ($queries as $query) {
+                $combined->unionAll($query);
+            }
+            $communications = DB::query()->fromSub($combined, 'communications')
+                ->orderByDesc('created_at')->orderBy('source')->orderByDesc('id')
+                ->paginate(25)->appends(['tab' => 'communications']);
+        }
+
         return view('admin.plans.show', [
             'plan' => $plan,
             'contractBalance' => $contractBalance,
@@ -327,6 +353,7 @@ class PaymentPlanController extends Controller
             'openInvoiceBalance' => $openInvoiceBalance,
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),
             'payments' => $payments,
+            'communications' => $communications,
             'ledgerRows' => $ledgerRows,
             'ledgerPayments' => (int) $ledgerRows->sum('amount'),
             'ledgerFees' => (int) $ledgerRows->sum('fee'),
