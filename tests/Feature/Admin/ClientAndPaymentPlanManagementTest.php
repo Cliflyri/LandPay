@@ -407,6 +407,35 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->assertSame('Default <medical>', AuditLog::query()->where('event', 'payment_plan.amended')->first()->after_values['plan']['termination_reason']);
     }
 
+    public function test_optional_closure_notes_and_history(): void
+    {
+        $user = User::factory()->create();
+        $data = $this->validPlanData($this->client($user));
+        $this->actingAs($user)->post(route('admin.plans.store'), $data)->assertSessionHasNoErrors();
+        $plan = PaymentPlan::query()->sole();
+        $plan->update(['termination_reason' => 'Previous termination']);
+        $edit = array_merge($data, ['status' => 'closed', 'invoice_day' => 1, 'effective_from' => today()->toDateString(), 'amendment_reason' => 'Close plan']);
+        $this->put(route('admin.plans.update', $plan), $edit)->assertSessionHasNoErrors();
+        $this->assertSame('closed', $plan->fresh()->status);
+        $this->assertNull($plan->fresh()->closure_notes);
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertDontSee('<strong>Plan closed</strong>', false);
+        $edit['closure_notes'] = "Closed successfully <client>\nDocuments received.";
+        $this->put(route('admin.plans.update', $plan), $edit)->assertSessionHasNoErrors();
+        $this->assertSame($edit['closure_notes'], $plan->fresh()->closure_notes);
+        $this->assertSame('Previous termination', $plan->fresh()->termination_reason);
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('<strong>Plan closed</strong>', false)->assertSee('Closed successfully &lt;client&gt;', false);
+        $this->get(route('admin.plans.edit', $plan))->assertOk()->assertSee('Closure notes (optional)')->assertSee('Documents received.');
+        $audit = AuditLog::query()->where('event', 'payment_plan.amended')->latest('id')->first();
+        $this->assertNull($audit->before_values['plan']['closure_notes']);
+        $this->assertSame($edit['closure_notes'], $audit->after_values['plan']['closure_notes']);
+        $notes = $edit['closure_notes'];
+        $edit['status'] = 'active';
+        $edit['closure_notes'] = '';
+        $this->put(route('admin.plans.update', $plan), $edit)->assertSessionHasNoErrors();
+        $this->assertSame($notes, $plan->fresh()->closure_notes);
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertDontSee('<strong>Plan closed</strong>', false);
+    }
+
     private function client(User $user, string $firstName = 'Maya'): Client
     {
         return Client::query()->create([

@@ -401,6 +401,7 @@ class PaymentPlanController extends Controller
             'previous_principal_paid' => ['nullable', 'decimal:0,2', 'min:0'],
             'status' => ['required', Rule::in(['draft', 'active', 'paused', 'terminated', 'closed'])],
             'termination_reason' => ['nullable', 'required_if:status,terminated', 'string', 'max:2000'],
+            'closure_notes' => ['nullable', 'string', 'max:2000'],
             'invoicing_resumes_on' => ['nullable', Rule::requiredIf($plan->status === 'terminated' && in_array($request->input('status'), ['active', 'paused'], true)), 'date', 'after_or_equal:today'],
             'contract_start_date' => ['required', 'date'],
             'first_payment_amount' => ['nullable', 'decimal:0,2', 'min:0'],
@@ -462,7 +463,7 @@ class PaymentPlanController extends Controller
         DB::transaction(function () use ($request, $plan, $terms, $data, $previousPaid, $stageOneDaysLate, $purchasePrice, $documentationFeeStandard, $documentationFeeWaived): void {
             $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             $lockedTerms = PaymentPlanBillingTerm::query()->lockForUpdate()->findOrFail($terms->id);
-            $before = ['plan' => $lockedPlan->only(['plan_number', 'title', 'asset_description', 'property_county', 'notes', 'status', 'termination_reason', 'invoicing_resumes_on', 'plan_start_date', 'first_payment_amount', 'first_due_date', 'purchase_price', 'documentation_fee_standard', 'documentation_fee_waived', 'documentation_fee_waiver_reason']), 'billing_terms' => $lockedTerms->getAttributes()];
+            $before = ['plan' => $lockedPlan->only(['plan_number', 'title', 'asset_description', 'property_county', 'notes', 'status', 'termination_reason', 'closure_notes', 'invoicing_resumes_on', 'plan_start_date', 'first_payment_amount', 'first_due_date', 'purchase_price', 'documentation_fee_standard', 'documentation_fee_waived', 'documentation_fee_waiver_reason']), 'billing_terms' => $lockedTerms->getAttributes()];
             $this->contractAmounts->amend($lockedPlan, $request->user(), $purchasePrice, $documentationFeeStandard, $documentationFeeWaived, $data['effective_from'], $data['amendment_reason'], $data['documentation_fee_waiver_reason'] ?? null);
             $this->openingPrincipalCredit->amend($lockedPlan, $request->user(), $previousPaid, $data['effective_from'], $data['amendment_reason']);
             $scheduled = Money::toCents($data['scheduled_payment_amount']);
@@ -481,6 +482,7 @@ class PaymentPlanController extends Controller
                 'hoa_term' => $lockedPlan->status === 'draft' ? ($data['hoa_term'] ?? null) : $lockedPlan->hoa_term, 'govdeals' => $lockedPlan->status === 'draft' ? $request->boolean('govdeals') : $lockedPlan->govdeals,
                 'termination_reason' => $data['status'] === 'terminated' ? trim($data['termination_reason']) : $lockedPlan->termination_reason,
                 'invoicing_resumes_on' => $lockedPlan->status === 'terminated' && in_array($data['status'], ['active', 'paused'], true) ? $data['invoicing_resumes_on'] : $lockedPlan->invoicing_resumes_on,
+                'closure_notes' => $data['status'] === 'closed' && array_key_exists('closure_notes', $data) ? (filled(trim((string) $data['closure_notes'])) ? trim((string) $data['closure_notes']) : null) : $lockedPlan->closure_notes,
                 'status' => $data['status'], 'first_payment_amount' => $firstPayment,
                 'first_due_date' => $data['first_payment_due_date'] ?? null, 'customary_monthly_payment' => $scheduled,
                 'monthly_service_fee' => $monthlyFee, 'monthly_due_day' => $data['invoice_day'],

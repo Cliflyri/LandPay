@@ -49,6 +49,8 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 </h1>
 @if($plan->status === 'terminated')
 <div class="alert alert-secondary mt-3"><strong>Servicing ended &mdash; historical balances excluded from receivables.</strong><div style="white-space:pre-wrap">{{ $plan->termination_reason ?: 'No termination reason recorded.' }}</div></div>
+@elseif($plan->status === 'closed' && filled($plan->closure_notes))
+<div class="alert alert-secondary mt-3"><strong>Plan closed</strong><div style="white-space:pre-wrap">{{ $plan->closure_notes }}</div></div>
 @endif
         <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }} @if(filled($plan->property_county))<span class="text-muted"> · County: {{$plan->property_county}}</span>@endif</p>
 
