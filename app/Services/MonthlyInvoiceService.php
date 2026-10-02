@@ -64,12 +64,10 @@ class MonthlyInvoiceService
                 throw ValidationException::withMessages(['payment_plan' => 'This payment plan is not eligible to generate an invoice.']);
             }
 
-            $generationSource = $automated ? 'system' : 'administrator';
             $existing = Invoice::query()
                 ->where('payment_plan_id', $lockedPlan->id)
                 ->whereDate('period_start', Carbon::parse($periodStart))
                 ->whereDate('period_end', Carbon::parse($periodEnd))
-                ->where('generation_source', $generationSource)
                 ->where('status', '!=', InvoiceStatus::Voided->value)
                 ->whereHas('items', fn ($query) => $query->where('item_type', InvoiceItemType::ScheduledPurchasePayment->value))
                 ->lockForUpdate()

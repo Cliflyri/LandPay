@@ -348,7 +348,6 @@ $primaryClientName = $primaryClient?->organization_name
             ->where('payment_plan_id', $plan->id)
             ->whereDate('period_start', $periodStart)
             ->whereDate('period_end', $periodEnd)
-            ->where('generation_source', 'administrator')
             ->where('status', '!=', InvoiceStatus::Voided->value)
             ->whereHas('items', fn ($query) => $query->where('item_type', 'scheduled_purchase_payment'))
             ->first();

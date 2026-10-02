@@ -134,9 +134,10 @@ class AutomaticInvoiceService
             return null;
         }
 
+        $existing = Invoice::query()->where('payment_plan_id', $plan->id)->pluck('invoice_number')->flip();
         for ($month = $from->copy()->startOfMonth(); $month->lte($from->copy()->addMonths(24)->startOfMonth()); $month->addMonth()) {
             $date = $this->dateForMonth($plan, $month);
-            if ($date && $date->gte($from) && ! $this->pausedOn($plan, $date)) {
+            if ($date && $date->gte($from) && ! $this->pausedOn($plan, $date) && ! $existing->has('INV-'.$plan->id.'-'.$date->format('Ym'))) {
                 return $date;
             }
         }

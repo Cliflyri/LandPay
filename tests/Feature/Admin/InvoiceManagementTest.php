@@ -519,6 +519,58 @@ class InvoiceManagementTest extends TestCase
             ->assertDontSee('Delete invoice</h2>', false);
     }
 
+    public function test_early_monthly_invoice_advances_next_date_and_is_not_issued_again(): void
+    {
+        Mail::fake();
+        [$user, $plan] = $this->activePlan();
+        $service = app(AutomaticInvoiceService::class);
+        $from = Carbon::parse('2026-08-28');
+        $this->assertSame('2026-09-01', $service->nextDate($plan, $from)->toDateString());
+
+        $this->actingAs($user)->post(route('admin.plans.invoices.store', $plan), [
+            'billing_month' => '2026-09', 'monthly_fee_waiver' => '0.00',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $invoice = Invoice::query()->sole();
+        $this->assertSame('2026-09-01', $invoice->issue_date->toDateString());
+        $this->assertSame('2026-09-06', $invoice->due_date->toDateString());
+        $this->assertSame('2026-10-01', $service->nextDate($plan, $from)->toDateString());
+
+        // Exercise the locked service check as well as the scheduler's number check.
+        $again = app(\App\Services\MonthlyInvoiceService::class)->issue(
+            $plan, $plan->billingTerms()->firstOrFail(), $user,
+            $invoice->invoice_number, '2026-09-01', '2026-09-30', '2026-09-01',
+            automated: true,
+        );
+        $this->assertSame($invoice->id, $again->id);
+        $this->assertSame('administrator', $again->generation_source);
+        $this->assertSame(0, $service->run(Carbon::parse('2026-09-01'))['created']);
+        $this->assertDatabaseCount('invoices', 1);
+        $this->assertDatabaseCount('invoice_items', 2);
+        $this->assertSame(52_500, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+
+        $this->delete(route('admin.invoices.destroy', $invoice), ['reason' => 'Skip this installment'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('2026-10-01', $service->nextDate($plan, $from)->toDateString());
+        $this->assertSame(0, $service->run(Carbon::parse('2026-09-01'))['created']);
+    }
+
+    public function test_admin_preview_and_submission_reuse_automatically_issued_month(): void
+    {
+        Mail::fake();
+        [$user, $plan] = $this->activePlan();
+        $this->assertSame(1, app(AutomaticInvoiceService::class)->run(Carbon::parse('2026-09-01'))['created']);
+        $invoice = Invoice::query()->sole();
+        $data = ['billing_month' => '2026-09', 'monthly_fee_waiver' => '0.00'];
+        $this->actingAs($user)->post(route('admin.plans.invoices.preview', $plan), $data)
+            ->assertOk()->assertSee('View existing invoice')->assertDontSee('>Issue invoice</button>', false);
+        $this->post(route('admin.plans.invoices.store', $plan), $data)
+            ->assertRedirect(route('admin.invoices.show', $invoice))->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('invoices', 1);
+        $this->assertDatabaseCount('invoice_items', 2);
+        $this->assertSame('system', $invoice->fresh()->generation_source);
+        $this->assertSame(52_500, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+    }
+
     private function activePlan(): array
     {
         $user = User::factory()->create();

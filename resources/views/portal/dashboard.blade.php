@@ -37,8 +37,12 @@
                 </div>
             </div>
 
-            <span class="dashboard-status {{ $status['class'] }}">
+            <span class="dashboard-status {{ $status['class'] }}" style="white-space: normal; line-height: 1.5;">
                 {{ $status['label'] }}
+    @if($amountDue <= 0 && $payments->isNotEmpty())
+        @php($lastPayment = $payments->first())
+        &mdash; Thank you for your last payment of {{ \App\Support\Money::format($lastPayment->gross_amount) }} on <a href="{{ route('portal.payments.show', $lastPayment) }}">{{ $lastPayment->received_date->format('M j, Y') }}</a>.
+    @endif               
             </span>
 
             @if ($openInvoiceRows->count() > 1)
