@@ -68,7 +68,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
         </form>
         <form method="post" action="{{route('admin.contract-setups.delete-draft',$plan)}}" onsubmit="return confirm('Permanently delete this draft plan and its temporary contracts? Client records will be kept.');">@csrf @method('DELETE')<button class="btn btn-outline-danger">Delete draft</button></form>
         @else
-        <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.create',$plan) }}">Review next invoice</a>
+        <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.create',$plan) }}">Review/Issue next invoice</a>
         <a class="btn btn-outline-brand" href="{{ route('admin.plans.invoices.manual.create',$plan) }}">Create invoice</a>
         <a class="btn btn-brand" href="{{ route('admin.plans.payments.create',$plan) }}">Record payment</a>
         @if($nextPayableInvoice)<button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#pay-invoice-full-{{$nextPayableInvoice->id}}-plan">Pay invoice in full</button>@endif
@@ -314,7 +314,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 </div>
 
 <div class="admin-next-card mt-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h2 class="mb-1">Invoices</h2><p class="text-muted mb-0">All invoices issued for this plan.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.create',$plan)}}">Review next invoice</a><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.manual.create',$plan)}}">Create invoice</a></div></div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h2 class="mb-1">Invoices</h2><p class="text-muted mb-0">All invoices issued for this plan.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.create',$plan)}}">Review/Issue next</a><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.manual.create',$plan)}}">Create invoice</a></div></div>
     @php
         $sortedInvoices = $plan->invoices->sortByDesc('issue_date');
         $currentInvoices = $sortedInvoices->reject(fn ($invoice) => $invoice->status->value === 'voided');
