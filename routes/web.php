@@ -235,6 +235,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('plans/{plan}/payments/preview', [PaymentController::class, 'preview'])->name('plans.payments.preview');
     Route::post('plans/{plan}/payments', [PaymentController::class, 'store'])->name('plans.payments.store');
     Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::put('payments/{payment}', [PaymentController::class, 'update'])->name('payments.update');
     Route::post('payments/{payment}/reverse', [PaymentController::class, 'reverse'])->name('payments.reverse');
     Route::post('payments/{payment}/receipt-email', [PaymentReceiptController::class, 'store'])->name('payments.receipt-email.store');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');

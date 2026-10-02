@@ -176,6 +176,38 @@ class PaymentController extends Controller
             ->with('success', 'Monthly service-fee satisfaction reversed.');
     }
 
+    public function update(Request $request, Payment $payment): RedirectResponse
+    {
+        $data = $request->validate([
+            'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
+            'external_reference' => ['nullable', 'string', 'max:150'],
+            'correction_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+        DB::transaction(function () use ($request, $payment, $data): void {
+            // Serialize against payment cancellation, which locks this transaction.
+            $transaction = \App\Models\FinancialTransaction::query()->lockForUpdate()->findOrFail($payment->financial_transaction_id);
+            $locked = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            if (\App\Models\FinancialTransaction::query()->where('reversal_of_transaction_id', $transaction->id)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Canceled payments cannot be edited.']);
+            }
+            if (in_array($locked->clientPaymentIntent?->provider, ['square', 'stripe'], true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Processor-recorded payment details cannot be edited.']);
+            }
+            $before = ['payment_method' => $locked->payment_method->value, 'external_reference' => $locked->external_reference];
+            $after = ['payment_method' => $data['payment_method'], 'external_reference' => filled($data['external_reference'] ?? null) ? trim($data['external_reference']) : null];
+            if ($before === $after) return;
+            // Deliberate metadata-only exception; retain the model's append-only guard.
+            DB::table('payments')->where('id', $locked->id)->update($after);
+            \App\Models\AuditLog::query()->create([
+                'actor_type' => 'administrator', 'actor_user_id' => $request->user()->id,
+                'event' => 'payment.details_corrected', 'auditable_type' => Payment::class, 'auditable_id' => $locked->id,
+                'before_values' => $before, 'after_values' => $after + ['reason' => filled($data['correction_reason'] ?? null) ? trim($data['correction_reason']) : null],
+                'ip_address' => $request->ip(), 'user_agent' => str($request->userAgent())->limit(500),
+            ]);
+        }, 3);
+        return redirect()->route('admin.payments.show', $payment)->with('success', 'Payment details updated.');
+    }
+
     public function show(Payment $payment): View
     {
         $payment->load(['financialTransaction.paymentPlan.memberships.client', 'financialTransaction.effects', 'allocations.invoice', 'allocations.invoiceItem', 'payer', 'emailDeliveries', 'clientPaymentIntent']);

@@ -51,6 +51,35 @@
                 @endif
             </dl>
 
+            @if(!$reversal && !in_array($payment->clientPaymentIntent?->provider, ['square', 'stripe'], true))
+                <details class="mb-4" @if($errors->any()) open @endif>
+                    <summary class="text-primary">Edit payment details</summary>
+                    <form method="post" action="{{ route('admin.payments.update', $payment) }}" class="mt-3">
+                        @csrf
+                        @method('PUT')
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit-payment-method">Payment method</label>
+                                <select class="form-select" id="edit-payment-method" name="payment_method" required>
+                                    @foreach(\App\Enums\PaymentMethod::cases() as $method)
+                                        <option value="{{ $method->value }}" @selected(old('payment_method', $payment->payment_method->value) === $method->value)>{{ str($method->value)->replace('_', ' ')->title() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit-payment-reference">Reference</label>
+                                <input class="form-control" id="edit-payment-reference" name="external_reference" maxlength="150" value="{{ old('external_reference', $payment->external_reference) }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="correction-reason">Reason for correction (optional)</label>
+                                <input class="form-control" id="correction-reason" name="correction_reason" maxlength="500" value="{{ old('correction_reason') }}">
+                            </div>
+                        </div>
+                        <button class="btn btn-brand mt-3" type="submit">Save payment details</button>
+                    </form>
+                </details>
+            @endif
+
             <hr>
             <h2>Allocation</h2>
             <div class="table-responsive mt-3">

@@ -250,6 +250,45 @@ class PaymentManagementTest extends TestCase
             ->assertSeeText('Deducted before the remainder is applied to invoices.');
     }
 
+    public function test_payment_details_can_be_corrected_without_a_reason_or_financial_changes(): void
+    {
+        [$user, $plan, $invoice] = $this->activePlanWithInvoice();
+        $payment = app(\App\Services\PaymentService::class)->postInvoiceInFull(
+            $invoice, $user, \App\Enums\PaymentMethod::Cash, '2026-08-08',
+        );
+        $allocations = $payment->allocations()->get()->toArray();
+        $transaction = $payment->financialTransaction->getAttributes();
+        $balance = app(FinancialBalanceService::class)->contractBalance($plan);
+        $this->put(route('admin.payments.update', $payment), [])->assertRedirect(route('admin.login'));
+        $this->actingAs($user)->get(route('admin.payments.show', $payment))
+            ->assertOk()->assertSee('Reason for correction (optional)');
+        foreach ([
+            ['payment_method' => 'check', 'external_reference' => '1234'],
+            ['payment_method' => 'check', 'external_reference' => '5678', 'correction_reason' => ''],
+        ] as $data) {
+            $this->put(route('admin.payments.update', $payment), $data)
+                ->assertRedirect(route('admin.payments.show', $payment))->assertSessionHasNoErrors();
+        }
+        $payment->refresh();
+        $this->assertSame('check', $payment->payment_method->value);
+        $this->assertSame('5678', $payment->external_reference);
+        $this->assertSame($allocations, $payment->allocations()->get()->toArray());
+        $this->assertSame($transaction, $payment->financialTransaction->getAttributes());
+        $this->assertSame($balance, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertSame(0, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+        $logs = \App\Models\AuditLog::query()->where('event', 'payment.details_corrected')->orderBy('id')->get();
+        $this->assertCount(2, $logs);
+        $this->assertSame('cash', $logs[0]->before_values['payment_method']);
+        $this->assertSame('check', $logs[0]->after_values['payment_method']);
+        $this->assertNull($logs[0]->after_values['reason']);
+        $this->put(route('admin.payments.update', $payment), ['payment_method' => 'invalid'])
+            ->assertSessionHasErrors('payment_method');
+        app(\App\Services\PaymentService::class)->reverse($payment, $user, 'Test cancellation');
+        $this->put(route('admin.payments.update', $payment), ['payment_method' => 'cash'])
+            ->assertSessionHasErrors('payment');
+        $this->assertSame('check', $payment->fresh()->payment_method->value);
+    }
+
     private function activePlanWithInvoice(): array
     {
         $user = User::factory()->create();
