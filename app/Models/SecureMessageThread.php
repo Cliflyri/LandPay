@@ -24,6 +24,8 @@ class SecureMessageThread extends Model
     }
 
     public function getRouteKeyName(): string { return 'uuid'; }
+    public function notesAnchor(): string { return $this->improvement_update_id ? '#notes-'.$this->improvement_update_id : '#notes'; }
+    public function improvement() { return $this->belongsTo(Improvement::class); }
     public function client(): BelongsTo { return $this->belongsTo(Client::class); }
     public function paymentPlan(): BelongsTo { return $this->belongsTo(PaymentPlan::class); }
     public function messages(): HasMany { return $this->hasMany(SecureMessage::class)->oldest(); }
@@ -38,7 +40,7 @@ class SecureMessageThread extends Model
     public function scopeUnreadByClient(Builder $query): Builder
     {
         return $query->whereHas('messages', fn (Builder $messages) =>
-            $messages->where('sender_type', 'admin')->whereNull('client_viewed_at')
+            $messages->where('hidden_from_client',false)->where('sender_type', 'admin')->whereNull('client_viewed_at')
         );
     }
 }

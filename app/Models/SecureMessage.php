@@ -18,6 +18,7 @@ class SecureMessage extends Model
     {
         return [
             'client_viewed_at' => 'datetime',
+            'hidden_from_client' => 'boolean',
             'admin_viewed_at' => 'datetime',
             'attachment_downloaded_at' => 'datetime',
             'attachment_size' => 'integer',

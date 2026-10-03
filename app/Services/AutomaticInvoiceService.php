@@ -210,7 +210,7 @@ class AutomaticInvoiceService
 
     private function notice(PaymentPlan $plan, ?Invoice $invoice, string $title, Throwable $e): void
     {
-        AdminNotice::query()->create(['type' => 'billing_automation_failure', 'title' => $title, 'message' => 'Plan '.$plan->plan_number.($invoice ? ', invoice '.$invoice->invoice_number : '').': '.str($e->getMessage())->limit(400)]);
+        AdminNotice::query()->create(['type' => 'billing_automation_failure', 'payment_plan_id' => $plan->id, 'invoice_id' => $invoice?->id, 'client_id' => $plan->memberships()->where('role','primary')->whereNull('effective_to')->whereDate('effective_from','<=',today())->value('client_id'), 'title' => $title, 'message' => 'Plan '.$plan->plan_number.($invoice ? ', invoice '.$invoice->invoice_number : '').': '.str($e->getMessage())->limit(400)]);
         report($e);
     }
 }

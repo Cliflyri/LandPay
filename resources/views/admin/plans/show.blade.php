@@ -313,6 +313,8 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
     </div>
 </div>
 
+@include('improvements.card',['admin'=>true])
+
 <div class="admin-next-card mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><div><h2 class="mb-1">Invoices</h2><p class="text-muted mb-0">All invoices issued for this plan.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.create',$plan)}}">Review/Issue next</a><a class="btn btn-outline-brand" href="{{route('admin.plans.invoices.manual.create',$plan)}}">Create invoice</a></div></div>
     @php

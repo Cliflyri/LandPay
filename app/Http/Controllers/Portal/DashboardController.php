@@ -72,7 +72,8 @@ $invoices = $allInvoices
         ]
     );
   
-  return view('portal.dashboard',compact('account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents','unreadMessageThreads')+$contactStatus);
+  $improvements=\App\Models\Improvement::forAccount($account)->with(['paymentPlan','latestUpdate'])->withCount(['updates as pending_updates_count'=>fn($q)=>$q->whereNull('received_at')])->latest('updated_at')->limit(3)->get();
+  return view('portal.dashboard',compact('improvements','account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents','unreadMessageThreads')+$contactStatus);
  
  
   }

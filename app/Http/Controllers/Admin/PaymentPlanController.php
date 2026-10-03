@@ -342,6 +342,7 @@ class PaymentPlanController extends Controller
         }
 
         return view('admin.plans.show', [
+            'improvements' => \App\Models\Improvement::where('payment_plan_id',$plan->id)->with(['paymentPlan','latestUpdate'])->withCount(['updates as pending_updates_count'=>fn($q)=>$q->whereNull('received_at')])->latest('updated_at')->get(),
             'plan' => $plan,
             'contractBalance' => $contractBalance,
             'estimatedPayoff' => $estimatedPayoff,
