@@ -14,5 +14,6 @@ enum PaymentMethod: string
     case Venmo = 'venmo';
     case Chime = 'chime';
     case Melio = 'melio';
+    case Govdeals = 'govdeals';
     case Other = 'other';
 }
