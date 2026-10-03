@@ -10,7 +10,16 @@
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Property tax invoices</h3><p>Import APNs, review matches, save drafts, and issue annual invoices.</p><a class='btn btn-brand' href={{route('admin.property-tax-batches.create')}}>Start a batch</a> <a class='btn btn-outline-brand' href={{route('admin.property-tax-batches.index')}}>View batches</a></div></div>
 </div>
 <h2 class='h4 mt-4'>Communicate</h2><div class='row g-4'>
-<div class='col-md-6'><div class='admin-next-card h-100'><h3>Client banner notification</h3><p>Create an announcement for client portals.</p><a class='btn btn-outline-brand' href={{route('admin.announcements.create')}}>Create announcement</a></div></div>
+<div class='col-md-6'><div class='admin-next-card h-100'><h3>Client banner notification</h3><p>Create an announcement for client portals.</p>
+<div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-brand" href="{{ route('admin.announcements.create') }}">
+        Create announcement
+    </a>
+    <a class="btn btn-outline-brand" href="{{ route('admin.announcements.index') }}">
+        View announcements
+    </a>
+</div>
+</div></div>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Secure client message</h3><p>Send a secure message to a client.</p><a class='btn btn-outline-brand' href={{route('admin.messages.create')}}>Compose message</a></div></div>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Admin Reminders</h3><p>Create and manage monthly operational reminders. {{$adminReminderCounts['due']}} due &middot; {{$adminReminderCounts['active']}} active.</p><a class='btn btn-outline-brand' href={{route('admin.reminders.index')}}>Manage reminders</a> &nbsp;&nbsp;&nbsp;  (email must be enabled in settings)</div></div>
 </div>
