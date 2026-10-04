@@ -19,6 +19,8 @@ class PaymentPlan extends Model
     protected function casts(): array
     {
         return [
+            'show_improvements_on_dashboard' => 'boolean',
+            'property_photos' => 'array',
             'first_scheduled_invoice_date' => 'date',
             'first_due_date' => 'date',
             'plan_start_date' => 'date',
@@ -81,6 +83,10 @@ class PaymentPlan extends Model
         }
 
         return $query;
+    }
+
+    public function hasPropertyDetails(): bool {
+        return $this->property_latitude !== null || filled($this->property_notes) || !empty($this->property_photos);
     }
 
     public function memberships(): HasMany

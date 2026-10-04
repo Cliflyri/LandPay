@@ -313,6 +313,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
     </div>
 </div>
 
+@include('property.card',['propertyPlan'=>$plan,'admin'=>true])
 @include('improvements.card',['admin'=>true])
 
 <div class="admin-next-card mt-4">

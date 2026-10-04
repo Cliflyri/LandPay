@@ -215,6 +215,25 @@ class ImprovementTest extends TestCase {
         $this->assertDatabaseHas('admin_notices',['secure_message_thread_id'=>$thread->id,'type'=>'secure_message_reply']);
     }
 
+
+    public function test_dashboard_toggle_hides_only_dashboard_and_defaults_on(): void {
+        [$admin,$client,$plan]=$this->records('DASHTOGGLE');
+        $account=$this->account($client);
+        $this->actingAs($account,'client')->get(route('portal.dashboard'))->assertOk()->assertSee('Your Improvements');
+        $this->post(route('portal.improvements.store'),['payment_plan_id'=>$plan->id,'title'=>'Hidden dashboard entry','body'=>'Plan'])->assertSessionHasNoErrors();
+        $improvement=Improvement::sole();
+        $this->actingAs($admin,'web')->patch(route('admin.improvements.dashboard-visibility',$plan),['show_improvements_on_dashboard'=>0])->assertSessionHas('success');
+        $this->get(route('admin.plans.show',$plan))->assertOk()->assertSee('Show on client dashboard')->assertSee('Hidden dashboard entry');
+        $this->actingAs($account,'client')->get(route('portal.dashboard'))->assertOk()->assertDontSee('Your Improvements')->assertDontSee('Hidden dashboard entry');
+        $this->get(route('portal.improvements.index'))->assertOk()->assertSee('Hidden dashboard entry');
+        $this->get(route('portal.improvements.show',$improvement))->assertOk();
+        $this->post(route('portal.improvements.update',$improvement),['body'=>'Still accessible'])->assertSessionHasNoErrors();
+        $this->actingAs($admin,'web')->patch(route('admin.improvements.dashboard-visibility',$plan),['show_improvements_on_dashboard'=>1])->assertSessionHas('success');
+        $this->actingAs($account,'client')->get(route('portal.dashboard'))->assertOk()->assertSee('Your Improvements')->assertSee('Hidden dashboard entry');
+        auth('web')->logout();
+        $this->patch(route('admin.improvements.dashboard-visibility',$plan),['show_improvements_on_dashboard'=>0])->assertRedirect(route('admin.login'));
+    }
+
     private function records(string $suffix, ?User $admin=null): array
     {
         $admin ??= User::factory()->create();

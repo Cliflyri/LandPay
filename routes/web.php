@@ -76,6 +76,7 @@ Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(func
 });
 
 Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.enabled', 'portal.read-only'])->group(function (): void {
+    Route::get('plans/{plan}/property/photos/{photo}', [\App\Http\Controllers\PropertyDetailsController::class, 'photo'])->name('property.photo');
     Route::get('improvements', [\App\Http\Controllers\ImprovementController::class, 'index'])->name('improvements.index');
     Route::post('improvements', [\App\Http\Controllers\ImprovementController::class, 'store'])->middleware('throttle:10,1')->name('improvements.store');
     Route::get('improvements/{improvement}', [\App\Http\Controllers\ImprovementController::class, 'show'])->name('improvements.show');
@@ -116,6 +117,10 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
+    Route::patch('plans/{plan}/improvements-dashboard', [\App\Http\Controllers\ImprovementController::class, 'dashboardVisibility'])->name('improvements.dashboard-visibility');
+    Route::get('plans/{plan}/property/photos/{photo}', [\App\Http\Controllers\PropertyDetailsController::class, 'photo'])->name('property.photo');
+    Route::get('plans/{plan}/property/edit', [\App\Http\Controllers\PropertyDetailsController::class, 'edit'])->name('property.edit');
+    Route::put('plans/{plan}/property', [\App\Http\Controllers\PropertyDetailsController::class, 'update'])->name('property.update');
     Route::patch('improvements/{improvement}/notes/{message}', [\App\Http\Controllers\ImprovementController::class, 'moderateNote'])->name('improvements.notes.visibility');
     Route::delete('improvements/{improvement}/notes/{message}', [\App\Http\Controllers\ImprovementController::class, 'moderateNote'])->name('improvements.notes.destroy');
     Route::get('improvements/{improvement}', [\App\Http\Controllers\ImprovementController::class, 'show'])->name('improvements.show');

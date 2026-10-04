@@ -9,6 +9,13 @@ use Illuminate\Validation\Rule;
 
 class ImprovementController extends Controller
 {
+
+    public function dashboardVisibility(Request $request, PaymentPlan $plan) {
+        $data=$request->validate(['show_improvements_on_dashboard'=>['required','boolean']]);
+        $plan->update($data);
+        return redirect()->to(route('admin.plans.show',$plan).'#improvements')->with('success','Client dashboard visibility updated.');
+    }
+
     private function plans(Request $request) {
         return PaymentPlan::whereIn('id',$request->user('client')->activePlanIds())
             ->whereIn('status',['active','paused'])->orderBy('plan_number')->get();
