@@ -1,10 +1,13 @@
 <div class="admin-next-card mt-4" id="improvements">
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><h2>{{$admin?'Improvements':'Your Improvements'}}</h2>
 @if($admin)
+<div class="d-flex flex-wrap align-items-center gap-3">
+@if(in_array($plan->status,['active','paused'],true))<a class="btn btn-sm btn-outline-brand" href="{{route('admin.improvements.create',$plan)}}">Add improvement</a>@endif
 <form method="post" action="{{route('admin.improvements.dashboard-visibility',$plan)}}" class="small">@csrf @method('PATCH')
 <input type="hidden" name="show_improvements_on_dashboard" value="0">
 <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="improvements-dashboard-{{$plan->id}}" name="show_improvements_on_dashboard" value="1" @checked($plan->show_improvements_on_dashboard) onchange="this.form.requestSubmit()"><label class="form-check-label" for="improvements-dashboard-{{$plan->id}}">Show on client dashboard</label></div>
 </form>
+</div>
 @endif
 @if(!$admin)<a class="btn btn-outline-brand" href="{{route('portal.improvements.index',['notify'=>1])}}#notify">Notify admin of planned improvement</a>@endif</div>
 @forelse($improvements as $improvement)

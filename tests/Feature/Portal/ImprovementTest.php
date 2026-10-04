@@ -234,6 +234,44 @@ class ImprovementTest extends TestCase {
         $this->patch(route('admin.improvements.dashboard-visibility',$plan),['show_improvements_on_dashboard'=>0])->assertRedirect(route('admin.login'));
     }
 
+
+    public function test_admin_records_client_notification_with_photos_and_receipt(): void {
+        Storage::fake('local');\Illuminate\Support\Facades\Mail::fake();
+        [$admin,$client,$plan]=$this->records('ADMINENTRY');
+        $account=$this->account($client);
+        $this->actingAs($admin,'web')->get(route('admin.improvements.create',$plan))->assertOk()->assertSee('Record improvement');
+        $this->post(route('admin.improvements.store',$plan),[
+            'title'=>'Gate reported by phone','body'=>'Client called October 4.',
+            'photos'=>[UploadedFile::fake()->image('gate.jpg')],
+        ])->assertSessionHasNoErrors()->assertSessionHas('success');
+        $improvement=Improvement::sole();$update=$improvement->updates()->sole();
+        $this->assertEquals($admin->id,$improvement->recorded_by_user_id);
+        $this->assertEquals($client->id,$improvement->client_id);
+        $this->assertEquals($admin->id,$update->received_by_user_id);
+        $this->assertNotNull($update->received_at);
+        Storage::disk('local')->assertExists($update->photos[0]['path']);
+        $this->assertSame(0,AdminNotice::where('type','improvement_updated')->count());
+        \Illuminate\Support\Facades\Mail::assertNothingSent();
+        $this->get(route('admin.improvements.show',$improvement))->assertOk()->assertSee('Recorded by')->assertSee('Admin received');
+        $this->actingAs($account,'client')->get(route('portal.improvements.show',$improvement))->assertOk()->assertSee('Gate reported by phone')->assertSee('on behalf of')->assertSee('Admin received');
+        $this->post(route('portal.improvements.update',$improvement),['body'=>'Progress after call'])->assertSessionHasNoErrors();
+        $this->assertNull($improvement->updates()->latest('id')->first()->received_at);
+        auth('web')->logout();
+        $this->post(route('admin.improvements.store',$plan),['title'=>'Forged','body'=>'No'])->assertRedirect(route('admin.login'));
+    }
+
+    public function test_admin_must_choose_current_plan_client_when_multiple(): void {
+        [$admin,$client,$plan]=$this->records('ADMINMULTI');
+        [,$second]=$this->records('ADMINSECOND',$admin);
+        [,$unrelated]=$this->records('ADMINOUTSIDE',$admin);
+        PaymentPlanClient::create(['payment_plan_id'=>$plan->id,'client_id'=>$second->id,'role'=>'co_client','effective_from'=>today(),'created_by_user_id'=>$admin->id]);
+        $this->actingAs($admin,'web')->get(route('admin.improvements.create',$plan))->assertOk()->assertSee('Select client');
+        $this->post(route('admin.improvements.store',$plan),['client_id'=>$unrelated->id,'title'=>'Wrong','body'=>'No'])->assertSessionHasErrors('client_id');
+        $this->post(route('admin.improvements.store',$plan),['client_id'=>$second->id,'title'=>'Co-client fence','body'=>'Email notification'])->assertSessionHasNoErrors();
+        $this->assertEquals($second->id,Improvement::sole()->client_id);
+        $this->actingAs($this->account($client),'client')->get(route('portal.improvements.show',Improvement::sole()))->assertNotFound();
+    }
+
     private function records(string $suffix, ?User $admin=null): array
     {
         $admin ??= User::factory()->create();

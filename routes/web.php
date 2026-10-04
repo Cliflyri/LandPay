@@ -117,6 +117,8 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
+    Route::get('plans/{plan}/improvements/create', [\App\Http\Controllers\ImprovementController::class, 'adminCreate'])->name('improvements.create');
+    Route::post('plans/{plan}/improvements', [\App\Http\Controllers\ImprovementController::class, 'adminStore'])->name('improvements.store');
     Route::patch('plans/{plan}/improvements-dashboard', [\App\Http\Controllers\ImprovementController::class, 'dashboardVisibility'])->name('improvements.dashboard-visibility');
     Route::get('plans/{plan}/property/photos/{photo}', [\App\Http\Controllers\PropertyDetailsController::class, 'photo'])->name('property.photo');
     Route::get('plans/{plan}/property/edit', [\App\Http\Controllers\PropertyDetailsController::class, 'edit'])->name('property.edit');

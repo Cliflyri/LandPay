@@ -7,6 +7,9 @@
 <a class="btn btn-outline-brand" href="{{$admin?route('admin.plans.show',$improvement->paymentPlan).'#improvements':route('portal.improvements.index')}}">{{$admin?'Back to plan':'My Improvements'}}</a></div>
 @if(session('success'))<div class="alert alert-success" role="status">{{session('success')}}</div>@endif
 @if($errors->any())<div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{$error}}</li>@endforeach</ul></div>@endif
+@if($improvement->recorded_by_user_id)
+<p class="small text-muted">Recorded by {{$improvement->recordedBy?->name ?? 'admin'}} on behalf of {{$improvement->client->organization_name ?: trim($improvement->client->first_name.' '.$improvement->client->last_name)}} &middot; {{$improvement->created_at->format('M j, Y g:i A')}}</p>
+@endif
 <p class="text-muted">Receipt acknowledgment records your notification; it is not an approval process.</p>
 @foreach($improvement->updates as $update)
 <article class="admin-next-card mt-4" id="update-{{$update->id}}">

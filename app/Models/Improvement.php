@@ -5,6 +5,7 @@ class Improvement extends Model {
     use Concerns\HasPublicUuid;
     protected $guarded = ['id','uuid'];
     public function getRouteKeyName(): string { return 'uuid'; }
+    public function recordedBy() { return $this->belongsTo(User::class,'recorded_by_user_id'); }
     public function paymentPlan() { return $this->belongsTo(PaymentPlan::class)->withTrashed(); }
     public function client() { return $this->belongsTo(Client::class); }
     public function messageThread() { return $this->hasOne(SecureMessageThread::class)->whereNull('improvement_update_id'); }

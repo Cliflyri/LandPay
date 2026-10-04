@@ -16,6 +16,30 @@ class ImprovementController extends Controller
         return redirect()->to(route('admin.plans.show',$plan).'#improvements')->with('success','Client dashboard visibility updated.');
     }
 
+
+    private function planClients(PaymentPlan $plan) {
+        return \App\Models\Client::whereHas('memberships',fn($q)=>$q->where('payment_plan_id',$plan->id)
+            ->whereNull('effective_to')->whereDate('effective_from','<=',today()))->orderBy('first_name')->get();
+    }
+
+    public function adminCreate(PaymentPlan $plan) {
+        abort_unless(in_array($plan->status,['active','paused'],true),403);
+        return view('improvements.admin-create',['plan'=>$plan,'clients'=>$this->planClients($plan)]);
+    }
+
+    public function adminStore(Request $request, PaymentPlan $plan) {
+        abort_unless(in_array($plan->status,['active','paused'],true),403);
+        $clients=$this->planClients($plan);
+        if($clients->count()===1) $request->merge(['client_id'=>$clients->first()->id]);
+        $data=$request->validate([
+            'client_id'=>['required','integer',Rule::in($clients->modelKeys())],
+            'title'=>['required','string','max:150'],
+        ]+$this->rules(true));
+        $data['payment_plan_id']=$plan->id;
+        $improvement=$this->save($request,$data);
+        return redirect()->route('admin.improvements.show',$improvement)->with('success','Improvement recorded on behalf of the client and receipt acknowledged.');
+    }
+
     private function plans(Request $request) {
         return PaymentPlan::whereIn('id',$request->user('client')->activePlanIds())
             ->whereIn('status',['active','paused'])->orderBy('plan_number')->get();
@@ -40,7 +64,7 @@ class ImprovementController extends Controller
     public function show(Request $request, Improvement $improvement) {
         $admin=$request->routeIs('admin.*');
         if (!$admin) $this->authorizeClient($request,$improvement);
-        $improvement->load(['paymentPlan','client','updates'=>fn($q)=>$q->orderBy('id')]);
+        $improvement->load(['paymentPlan','client','recordedBy','updates'=>fn($q)=>$q->orderBy('id')]);
         $canUpdate=!$admin && in_array($improvement->paymentPlan->status,['active','paused'],true);
 
         $visibleNotes=fn($query)=>$query->when(!$admin,fn($query)=>$query->where('hidden_from_client',false));
@@ -154,13 +178,16 @@ class ImprovementController extends Controller
             foreach ($request->file('photos',[]) as $file) $photos[]=app(SharedDocumentStorageService::class)->store($file);
             return DB::transaction(function() use($request,$data,$improvement,$photos) {
                 $initial=$improvement===null;
+                $recordingAdmin=$request->routeIs('admin.*')?$request->user()->id:null;
                 $improvement ??= Improvement::create([
-                    'client_id'=>$request->user('client')->client_id,
+                    'client_id'=>$recordingAdmin?$data['client_id']:$request->user('client')->client_id,
+                    'recorded_by_user_id'=>$recordingAdmin,
                     'payment_plan_id'=>$data['payment_plan_id'],'title'=>$data['title'],
                 ]);
-                $update=$improvement->updates()->create(['body'=>$data['body']??null,'photos'=>$photos]);
+                $update=$improvement->updates()->create(['body'=>$data['body']??null,'photos'=>$photos,
+                    'received_at'=>$recordingAdmin?now():null,'received_by_user_id'=>$recordingAdmin]);
                 $improvement->touch();
-                AdminNotice::create([
+                if (!$recordingAdmin) AdminNotice::create([
                     'type'=>'improvement_updated','improvement_update_id'=>$update->id,
                     'client_id'=>$improvement->client_id,'payment_plan_id'=>$improvement->payment_plan_id,
                     'title'=>$initial?'Planned improvement notification':'Improvement update',

@@ -17,9 +17,7 @@
 @else
 <select class="form-select mb-3" id="payment_plan_id" name="payment_plan_id" required><option value="">Select a plan</option>@foreach($plans as $plan)<option value="{{$plan->id}}" @selected(old('payment_plan_id')==$plan->id)>{{$plan->plan_number}} &middot; {{$plan->title}}</option>@endforeach</select>
 @endif
-<label class="form-label" for="title">Improvement title</label><input class="form-control mb-3" id="title" name="title" maxlength="150" placeholder="For example, install entrance gate" value="{{old('title')}}" required>
-<label class="form-label" for="body">Tell us what you're planning</label><textarea class="form-control" id="body" name="body" rows="4" maxlength="10000" required>{{old('body')}}</textarea>
-@include('improvements.photos-input')
+@include('improvements.form-fields')
 <button class="btn btn-brand mt-3">Notify admin</button>
 </form>
 @else<p class="text-muted mb-0">An active or paused plan is needed to submit a new improvement.</p>@endif
