@@ -181,6 +181,40 @@ class ImprovementTest extends TestCase {
         $this->assertDatabaseMissing('secure_messages',['id'=>$clientNote->id]);
     }
 
+
+    public function test_note_photos_preview_privacy_and_deletion(): void {
+        Storage::fake('local'); \Illuminate\Support\Facades\Mail::fake();
+        [$admin,$client,$plan]=$this->records('NOTEPHOTO');
+        $account=$this->account($client);
+        $this->actingAs($account,'client')->post(route('portal.improvements.store'),['payment_plan_id'=>$plan->id,'title'=>'Gate','body'=>'Plan']);
+        $improvement=Improvement::sole();$section=$improvement->updates()->sole();
+        $this->actingAs($admin,'web')->post(route('admin.improvements.notes.store',$improvement),[
+            'improvement_update_id'=>$section->id,'attachments'=>[UploadedFile::fake()->image('reference.jpg')]
+        ])->assertSessionHasNoErrors()->assertSessionHas('success');
+        $thread=$section->messageThread;$note=$thread->messages()->sole();$photo=$note->attachments()->sole();
+        Storage::disk('local')->assertExists($photo->path);
+        $this->get(route('admin.improvements.show',$improvement))->assertOk()->assertSee('data-bs-target="#secureMessageImageModal"',false)->assertSee('reference.jpg');
+        $url=route('portal.messages.files.download',[$thread,$note,$photo]);
+        $this->actingAs($account,'client')->get($url.'?inline=1')->assertOk()->assertHeader('Content-Type','image/jpeg');
+        $this->get($url)->assertOk();
+        $this->get(route('portal.improvements.show',$improvement))->assertOk()->assertSee('reference.jpg');
+        $this->actingAs($admin,'web')->patch(route('admin.improvements.notes.visibility',[$improvement,$note]),['hidden_from_client'=>1])->assertSessionHas('success');
+        $this->actingAs($account,'client')->get($url.'?inline=1')->assertNotFound();
+        $this->get($url)->assertNotFound();
+        $this->get(route('portal.improvements.show',$improvement))->assertOk()->assertDontSee('reference.jpg');
+        $this->actingAs($admin,'web')->get(route('admin.messages.files.download',[$thread,$note,$photo]).'?inline=1')->assertOk();
+        $this->delete(route('admin.improvements.notes.destroy',[$improvement,$note]))->assertSessionHas('success');
+        Storage::disk('local')->assertMissing($photo->path);
+        $this->assertDatabaseMissing('secure_message_attachments',['id'=>$photo->id]);
+        $this->post(route('admin.improvements.notes.store',$improvement),[
+            'improvement_update_id'=>$section->id,'attachments'=>[UploadedFile::fake()->create('bad.svg',1,'image/svg+xml')]
+        ])->assertSessionHasErrors('attachments.0');
+        $this->actingAs($account,'client')->post(route('portal.improvements.notes.store',$improvement),[
+            'improvement_update_id'=>$section->id,'attachments'=>[UploadedFile::fake()->image('progress.png')]
+        ])->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->assertDatabaseHas('admin_notices',['secure_message_thread_id'=>$thread->id,'type'=>'secure_message_reply']);
+    }
+
     private function records(string $suffix, ?User $admin=null): array
     {
         $admin ??= User::factory()->create();

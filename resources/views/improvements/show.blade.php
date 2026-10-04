@@ -38,4 +38,5 @@
 @include('improvements.notes',['noteSection'=>null,'notes'=>$improvement->messageThread->messages])
 @endif
 </div></section>
+@include('shared.secure-message-image-modal')
 @endsection

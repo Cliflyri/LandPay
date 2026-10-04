@@ -37,7 +37,7 @@ class ImprovementController extends Controller
         $canUpdate=!$admin && in_array($improvement->paymentPlan->status,['active','paused'],true);
 
         $visibleNotes=fn($query)=>$query->when(!$admin,fn($query)=>$query->where('hidden_from_client',false));
-        $improvement->load(['messageThread.messages'=>$visibleNotes,'updates.messageThread.messages'=>$visibleNotes]);
+        $improvement->load(['messageThread.messages'=>$visibleNotes,'messageThread.messages.attachments','updates.messageThread.messages'=>$visibleNotes,'updates.messageThread.messages.attachments']);
         $threads=$improvement->updates->pluck('messageThread')->filter();
         if ($improvement->messageThread) $threads->push($improvement->messageThread);
         foreach ($threads as $thread) {
@@ -63,7 +63,12 @@ class ImprovementController extends Controller
     public function note(Request $request, Improvement $improvement) {
         $admin=$request->routeIs('admin.*');
         if (!$admin) $this->authorizeClient($request,$improvement);
-        $data=$request->validate(['note'=>['required','string','max:2000'],'improvement_update_id'=>['nullable','integer']]);
+        $data=$request->validate([
+            'note'=>['required_without:attachments','nullable','string','max:2000'],
+            'improvement_update_id'=>['nullable','integer'],
+            'attachments'=>['nullable','array','max:5'],
+            'attachments.*'=>['required','file','image','mimes:jpg,jpeg,png','mimetypes:image/jpeg,image/png','max:10240'],
+        ]);
         $section=isset($data['improvement_update_id'])?$improvement->updates()->findOrFail($data['improvement_update_id']):null;
         abort_unless($section || $improvement->messageThread()->exists(),422);
         $context=$section
@@ -79,12 +84,13 @@ class ImprovementController extends Controller
                 'subject'=>\Illuminate\Support\Str::limit('Improvement: '.$locked->title,75,'').' - '.$context,
                 'category'=>'general','latest_message_at'=>now(),
             ]);
-            $thread->messages()->create([
+            $message=$thread->messages()->create([
                 'sender_type'=>$admin?'admin':'client',
                 'sender_user_id'=>$admin?$request->user()->id:null,
                 'sender_client_id'=>$admin?null:$locked->client_id,
-                'body'=>$data['note'],
+                'body'=>$data['note']??'',
             ]);
+            app(\App\Services\SecureMessageFileService::class)->attach($message,$request->file('attachments',[]),[],[],[]);
             $thread->update(['latest_message_at'=>now()]);
             if (!$admin) AdminNotice::create([
                 'type'=>'secure_message_reply','client_id'=>$locked->client_id,
@@ -110,6 +116,9 @@ class ImprovementController extends Controller
         if ($request->isMethod('delete')) {
             DB::transaction(function() use($message,$thread) {
                 $thread->newQuery()->whereKey($thread->id)->lockForUpdate()->firstOrFail();
+                foreach ($message->attachments as $attachment) {
+                    abort_unless(app(\App\Services\SecureMessageFileService::class)->deleteAttachmentFile($attachment),500,'Photo could not be deleted.');
+                }
                 $message->delete();
                 $thread->update(['latest_message_at'=>$thread->messages()->max('created_at') ?? $thread->created_at]);
             });
