@@ -11,6 +11,7 @@ class SecureMessageNotificationService
 {
     public function send(SecureMessageThread $thread, bool $reminder = false): bool
     {
+        if ($thread->getAttribute('improvement_id') !== null) return false;
         $email = $thread->client->email;
         if (blank($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $thread->update(['notification_status' => 'unavailable']);
