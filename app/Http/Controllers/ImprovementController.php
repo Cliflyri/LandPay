@@ -29,10 +29,12 @@ class ImprovementController extends Controller
 
     public function adminStore(Request $request, PaymentPlan $plan) {
         abort_unless(in_array($plan->status,['active','paused'],true),403);
+        $request->merge(['admin_notified_on'=>$request->input('admin_notified_on',today()->toDateString())]);
         $clients=$this->planClients($plan);
         if($clients->count()===1) $request->merge(['client_id'=>$clients->first()->id]);
         $data=$request->validate([
             'client_id'=>['required','integer',Rule::in($clients->modelKeys())],
+            'admin_notified_on'=>['required','date_format:Y-m-d','before_or_equal:today'],
             'title'=>['required','string','max:150'],
         ]+$this->rules(true));
         $data['payment_plan_id']=$plan->id;
@@ -179,13 +181,15 @@ class ImprovementController extends Controller
             return DB::transaction(function() use($request,$data,$improvement,$photos) {
                 $initial=$improvement===null;
                 $recordingAdmin=$request->routeIs('admin.*')?$request->user()->id:null;
+                $submittedAt=$recordingAdmin?\Illuminate\Support\Carbon::parse($data['admin_notified_on'])->startOfDay():now();
                 $improvement ??= Improvement::create([
                     'client_id'=>$recordingAdmin?$data['client_id']:$request->user('client')->client_id,
                     'recorded_by_user_id'=>$recordingAdmin,
+                    'created_at'=>$submittedAt,
                     'payment_plan_id'=>$data['payment_plan_id'],'title'=>$data['title'],
                 ]);
                 $update=$improvement->updates()->create(['body'=>$data['body']??null,'photos'=>$photos,
-                    'received_at'=>$recordingAdmin?now():null,'received_by_user_id'=>$recordingAdmin]);
+                    'created_at'=>$submittedAt,'received_at'=>$recordingAdmin?$submittedAt:null,'received_by_user_id'=>$recordingAdmin]);
                 $improvement->touch();
                 if (!$recordingAdmin) AdminNotice::create([
                     'type'=>'improvement_updated','improvement_update_id'=>$update->id,

@@ -6,7 +6,7 @@
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">{{$plan->plan_number}}</span><h1>Add improvement</h1><p class="mb-0">{{$plan->title}}</p></div><a class="btn btn-outline-brand" href="{{route('admin.plans.show',$plan)}}#improvements">Back to plan</a></div>
 @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{$error}}</li>@endforeach</ul></div>@endif
 <div class="admin-next-card">
-<p class="small text-muted">Record a notification received by phone, email, text, or in person. Include how and when the client notified you in the description. Receipt will be acknowledged automatically; no email will be sent.</p>
+<p class="small text-muted">Record a notification received by phone, email, text, or in person. Include how the client notified you in the description. Receipt will be acknowledged automatically; no email will be sent.</p>
 @if($clients->isNotEmpty())
 <form method="post" action="{{route('admin.improvements.store',$plan)}}" enctype="multipart/form-data">@csrf
 <label class="form-label" for="client_id">Client</label>
@@ -15,6 +15,8 @@
 @else
 <select class="form-select mb-3" name="client_id" id="client_id" required><option value="">Select client</option>@foreach($clients as $client)<option value="{{$client->id}}" @selected(old('client_id')==$client->id)>{{$client->organization_name ?: trim($client->first_name.' '.$client->last_name)}}</option>@endforeach</select>
 @endif
+<label class="form-label" for="admin-notified-on">Admin notified on</label>
+<input class="form-control mb-3" style="max-width:14rem" type="date" id="admin-notified-on" name="admin_notified_on" value="{{old('admin_notified_on',today()->toDateString())}}" max="{{today()->toDateString()}}" required>
 @include('improvements.form-fields',['descriptionLabel'=>'Improvement description / notification details'])
 <button class="btn btn-brand mt-3">Record improvement</button>
 </form>

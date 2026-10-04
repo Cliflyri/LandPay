@@ -8,13 +8,13 @@
 @if(session('success'))<div class="alert alert-success" role="status">{{session('success')}}</div>@endif
 @if($errors->any())<div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{$error}}</li>@endforeach</ul></div>@endif
 @if($improvement->recorded_by_user_id)
-<p class="small text-muted">Recorded by {{$improvement->recordedBy?->name ?? 'admin'}} on behalf of {{$improvement->client->organization_name ?: trim($improvement->client->first_name.' '.$improvement->client->last_name)}} &middot; {{$improvement->created_at->format('M j, Y g:i A')}}</p>
+<p class="small text-muted">Recorded by {{$improvement->recordedBy?->name ?? 'admin'}} on behalf of {{$improvement->client->organization_name ?: trim($improvement->client->first_name.' '.$improvement->client->last_name)}}</p>
 @endif
 <p class="text-muted">Receipt acknowledgment records your notification; it is not an approval process.</p>
 @foreach($improvement->updates as $update)
 <article class="admin-next-card mt-4" id="update-{{$update->id}}">
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><h2 class="mb-0">{{$loop->first?'Planned improvement':'Progress update'}}</h2>@include('improvements.badge',['update'=>$update])</div>
-<small class="text-muted">Submitted {{$update->created_at->format('M j, Y g:i A')}}</small>
+<small class="text-muted">@if($loop->first && $improvement->recorded_by_user_id)Admin notified on {{$update->created_at->format('M j, Y')}}@else Submitted {{$update->created_at->format('M j, Y g:i A')}}@endif</small>
 @if($update->body)<p class="mt-3" style="white-space:pre-wrap;overflow-wrap:anywhere">{{$update->body}}</p>@endif
 @if($update->photos)<div class="row g-3 mt-1">
 @foreach($update->photos as $photo)

@@ -272,6 +272,23 @@ class ImprovementTest extends TestCase {
         $this->actingAs($this->account($client),'client')->get(route('portal.improvements.show',Improvement::sole()))->assertNotFound();
     }
 
+
+    public function test_admin_notification_date_uses_existing_timestamps(): void {
+        [$admin,$client,$plan]=$this->records('BACKDATE');
+        $date=today()->subDays(7)->toDateString();
+        $this->actingAs($admin,'web')->post(route('admin.improvements.store',$plan),[
+            'title'=>'Earlier notification','body'=>'Received by phone','admin_notified_on'=>$date,
+        ])->assertSessionHasNoErrors();
+        $improvement=Improvement::sole();$update=$improvement->updates()->sole();
+        $this->assertSame($date,$improvement->created_at->toDateString());
+        $this->assertSame($date,$update->created_at->toDateString());
+        $this->assertSame($date,$update->received_at->toDateString());
+        $this->get(route('admin.improvements.show',$improvement))->assertOk()->assertSee('Admin notified on')->assertDontSee('12:00 AM');
+        $this->post(route('admin.improvements.store',$plan),[
+            'title'=>'Future','body'=>'Invalid','admin_notified_on'=>today()->addDay()->toDateString(),
+        ])->assertSessionHasErrors('admin_notified_on');
+    }
+
     private function records(string $suffix, ?User $admin=null): array
     {
         $admin ??= User::factory()->create();
