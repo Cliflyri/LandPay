@@ -26,7 +26,7 @@
 @if($hasMap)
 @php($coordinates=$propertyPlan->property_latitude.','.$propertyPlan->property_longitude)
 <div class="{{$photos?'col-md-6':'col-12'}}">
-<iframe class="rounded w-100 border-0" height="240" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map of {{$propertyPlan->title}}" src="https://maps.google.com/maps?q={{urlencode($coordinates)}}&amp;z=15&amp;output=embed"></iframe>
+<iframe class="rounded w-100 border-0" height="305" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map of {{$propertyPlan->title}}" src="https://maps.google.com/maps?q={{urlencode($coordinates)}}&amp;z=15&amp;output=embed"></iframe>
 <a class="small d-inline-block mt-2" href="https://www.google.com/maps/search/?api=1&amp;query={{urlencode($coordinates)}}" target="_blank" rel="noopener noreferrer">Open in Google Maps &nearr;</a>
 </div>
 @endif
