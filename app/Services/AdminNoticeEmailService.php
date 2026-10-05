@@ -26,8 +26,6 @@ class AdminNoticeEmailService
 
     public function send(AdminNotice $notice): bool
     {
-        if ($notice->getAttribute('improvement_update_id') !== null) return false;
-        if ($notice->secure_message_thread_id && ! \App\Models\SecureMessageThread::whereKey($notice->secure_message_thread_id)->exists()) return false;
         $category = self::CATEGORIES[$notice->type] ?? null;
         if ($category === null || ! $this->enabled($category)) return false;
 

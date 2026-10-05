@@ -12,18 +12,6 @@ class SecureMessageThread extends Model
 {
     use HasPublicUuid;
 
-
-    protected static function booted(): void
-    {
-        // Main cannot enforce improvement-specific access/visibility rules.
-        // Global scope also protects implicit route binding for every action.
-        static::addGlobalScope('main_supported_threads', function (Builder $query): void {
-            if ($query->getModel()->getConnection()->getSchemaBuilder()->hasColumn('secure_message_threads', 'improvement_id')) {
-                $query->whereNull('secure_message_threads.improvement_id');
-            }
-        });
-    }
-
     protected $guarded = ['id', 'uuid'];
 
     protected function casts(): array
