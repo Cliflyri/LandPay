@@ -19,7 +19,7 @@ class AdminNoticeController extends Controller
             : 'open';
 
         $query = AdminNotice::query()
-            ->with(['client', 'paymentPlan', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread', 'sharedDocument', 'invoice', 'dismissedBy'])
+            ->with(['client', 'paymentPlan', 'changeRequest', 'paymentIntent.payment', 'secureMessageThread', 'sharedDocument', 'improvementUpdate.improvement', 'invoice', 'dismissedBy'])
             ->latest();
 
         if ($filter === 'open') {

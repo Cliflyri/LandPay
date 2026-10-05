@@ -16,6 +16,7 @@ class AdminNoticeMail extends Mailable
         public readonly string $noticeSubject,
         public readonly string $noticeMessage,
         public readonly ?string $adminUrl,
+        public readonly ?\App\Models\AdminNotice $notice = null,
     ) {}
 
     public function envelope(): Envelope

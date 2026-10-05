@@ -76,6 +76,13 @@ Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(func
 });
 
 Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.enabled', 'portal.read-only'])->group(function (): void {
+    Route::get('plans/{plan}/property/photos/{photo}', [\App\Http\Controllers\PropertyDetailsController::class, 'photo'])->name('property.photo');
+    Route::get('improvements', [\App\Http\Controllers\ImprovementController::class, 'index'])->name('improvements.index');
+    Route::post('improvements', [\App\Http\Controllers\ImprovementController::class, 'store'])->middleware('throttle:10,1')->name('improvements.store');
+    Route::get('improvements/{improvement}', [\App\Http\Controllers\ImprovementController::class, 'show'])->name('improvements.show');
+    Route::post('improvements/{improvement}/notes', [\App\Http\Controllers\ImprovementController::class, 'note'])->middleware('throttle:10,1')->name('improvements.notes.store');
+    Route::get('improvements/{improvement}/updates/{update}/photos/{photo}', [\App\Http\Controllers\ImprovementController::class, 'photo'])->name('improvements.photo');
+    Route::post('improvements/{improvement}/updates', [\App\Http\Controllers\ImprovementController::class, 'update'])->middleware('throttle:10,1')->name('improvements.update');
     Route::get('/', PortalDashboardController::class)->name('dashboard');
     Route::get('invoices', [PortalInvoiceController::class, 'index'])->name('invoices.index');
     Route::get('invoices/{invoice}', [PortalInvoiceController::class, 'show'])->name('invoices.show');
@@ -110,6 +117,18 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
+    Route::get('plans/{plan}/improvements/create', [\App\Http\Controllers\ImprovementController::class, 'adminCreate'])->name('improvements.create');
+    Route::post('plans/{plan}/improvements', [\App\Http\Controllers\ImprovementController::class, 'adminStore'])->name('improvements.store');
+    Route::patch('plans/{plan}/improvements-dashboard', [\App\Http\Controllers\ImprovementController::class, 'dashboardVisibility'])->name('improvements.dashboard-visibility');
+    Route::get('plans/{plan}/property/photos/{photo}', [\App\Http\Controllers\PropertyDetailsController::class, 'photo'])->name('property.photo');
+    Route::get('plans/{plan}/property/edit', [\App\Http\Controllers\PropertyDetailsController::class, 'edit'])->name('property.edit');
+    Route::put('plans/{plan}/property', [\App\Http\Controllers\PropertyDetailsController::class, 'update'])->name('property.update');
+    Route::patch('improvements/{improvement}/notes/{message}', [\App\Http\Controllers\ImprovementController::class, 'moderateNote'])->name('improvements.notes.visibility');
+    Route::delete('improvements/{improvement}/notes/{message}', [\App\Http\Controllers\ImprovementController::class, 'moderateNote'])->name('improvements.notes.destroy');
+    Route::get('improvements/{improvement}', [\App\Http\Controllers\ImprovementController::class, 'show'])->name('improvements.show');
+    Route::post('improvements/{improvement}/notes', [\App\Http\Controllers\ImprovementController::class, 'note'])->middleware('throttle:10,1')->name('improvements.notes.store');
+    Route::get('improvements/{improvement}/updates/{update}/photos/{photo}', [\App\Http\Controllers\ImprovementController::class, 'photo'])->name('improvements.photo');
+    Route::post('improvements/{improvement}/updates/{update}/acknowledge', [\App\Http\Controllers\ImprovementController::class, 'acknowledge'])->name('improvements.acknowledge');
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('formatting-preview', FormattingPreviewController::class)->name('formatting-preview');
     Route::get('actions', AdminActionController::class)->name('actions.index');

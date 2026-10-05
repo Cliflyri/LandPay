@@ -34,7 +34,7 @@
             <h2>Payment details</h2>
             <dl class="row g-2 mb-4 mt-3">
                 <dt class="col-sm-2">Method</dt>
-                <dd class="col-sm-4">{{ str($payment->payment_method->value)->replace('_',' ')->title() }}</dd>
+                <dd class="col-sm-4">{{ str($payment->payment_method->value)->replace('_',' ')->title() }}@if($payment->payment_method->value === 'card' && in_array(strtoupper(trim($payment->clientPaymentIntent?->card_type ?? '')), ['CREDIT', 'DEBIT'], true)) - {{ str($payment->clientPaymentIntent->card_type)->trim()->lower()->title() }}@endif</dd>
                 <dt class="col-sm-2">Payer</dt>
                 <dd class="col-sm-4">{{ $payment->payer?->organization_name ?: trim(($payment->payer?->first_name ?? '').' '.($payment->payer?->last_name ?? '')) ?: 'Not specified' }}</dd>
                 @if(in_array($payment->clientPaymentIntent?->provider, ['square', 'stripe'], true))
@@ -48,6 +48,10 @@
                 @if($payment->overpayment_amount>0)
                     <dt class="col-sm-2">Overpayment</dt>
                     <dd class="col-sm-4">{{ \App\Support\Money::format($payment->overpayment_amount) }} to {{ str($payment->overpayment_disposition->value)->replace('_',' ') }}</dd>
+                @endif
+                @if(filled($payment->clientPaymentIntent?->client_note))
+                    <dt class="col-sm-2">Client notes</dt>
+                    <dd class="col-sm-10 mb-0" style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ $payment->clientPaymentIntent->client_note }}</dd>
                 @endif
             </dl>
 

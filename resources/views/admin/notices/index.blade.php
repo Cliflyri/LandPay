@@ -32,10 +32,12 @@
         'online_payment_received','provider_payment_exception','square_payment_anomaly','client_payment_announced' => 'Payment',
         'secure_message_reply' => 'Secure message',
         'shared_document_uploaded' => 'Document',
+        'improvement_updated' => 'Improvement',
         'client_contact_change','portal_invitation_accepted' => 'Account / portal',
         default => 'System',
     };
     $url = match(true) {
+        (bool) $notice->improvementUpdate => route('admin.improvements.show',$notice->improvementUpdate->improvement).'#update-'.$notice->improvement_update_id,
         (bool) $notice->invoice => route('admin.invoices.show',$notice->invoice),
         (bool) $notice->paymentIntent?->payment => route('admin.payments.show',$notice->paymentIntent->payment),
         'draft_contract_setup' => 'Plan',

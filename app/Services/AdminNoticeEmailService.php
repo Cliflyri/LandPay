@@ -43,6 +43,7 @@ class AdminNoticeEmailService
                 $this->subject($notice),
                 $notice->message,
                 $url,
+                $notice,
             ));
             return true;
         } catch (Throwable $exception) {

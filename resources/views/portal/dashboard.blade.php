@@ -112,6 +112,12 @@
 </a>&nbsp;&nbsp;
     <span class="dashboard-status status-due">{{str($pending->status)->replace('_',' ')->title()}}</span></p>@endforeach</div>@endif
 @if($planSummaries->isNotEmpty())<div class="admin-next-card mt-4"><h2>{{$planSummaries->count()>1?'Your Plans':'Your Plan'}}</h2>@foreach($planSummaries as $summary)<div class="mb-3"><strong>{{$summary['plan']->plan_number}}</strong> &middot; {{$summary['plan']->title}}<p class="mb-1">Your payment plan payments are <strong>{{\App\Support\Money::format($summary['monthly_payment'])}} per month</strong>.</p></div>@endforeach<small class="text-muted d-block mt-3">Larger payments may be sent at any time and 100% of the extra goes toward principal balance or next invoice. Additional payments can be made at any time; there are no pre-payment penalties.</small></div>@endif
+@foreach($planSummaries as $summary)
+@include('property.card',['propertyPlan'=>$summary['plan'],'admin'=>false])
+@endforeach
+@if($showImprovementsCard)
+@include('improvements.card',['admin'=>false])
+@endif
 <div class="row g-4 mt-2"><div class="col-lg-7"><div class="admin-next-card"><div class="d-flex justify-content-between"><div><h2>Recent invoices</h2><small class="text-muted">Payment is due upon receipt.</small></div><a href="{{route('portal.invoices.index')}}">View all</a></div><table class="table"><thead><tr><th>Invoice</th><th>Late after</th><th class="text-end">Balance</th></tr></thead><tbody>@forelse($invoices as $row)<tr><td><a href="{{route('portal.invoices.show',$row['invoice'])}}">{{$row['invoice']->invoice_number}}</a></td><td>{{$row['invoice']->due_date->format('M j, Y')}}</td><td class="money-cell">{{\App\Support\Money::format($row['balance'])}}</td></tr>@empty<tr><td colspan="3">No invoices yet.</td></tr>@endforelse</tbody></table></div></div>
 <div class="col-lg-5"><div class="admin-next-card"><div class="d-flex justify-content-between"><h2>Recent payments</h2><a href="{{route('portal.payments.index')}}">View all</a></div><table class="table"><thead><tr><th>Date</th><th class="text-end">Amount</th></tr></thead><tbody>@forelse($payments as $payment)<tr><td><a href="{{route('portal.payments.show',$payment)}}">{{$payment->received_date->format('M j, Y')}}</a></td><td class="money-cell">{{\App\Support\Money::format($payment->gross_amount)}}</td></tr>@empty<tr><td colspan="2">No payments yet.</td></tr>@endforelse</tbody></table></div></div></div></div></section>
 @endsection

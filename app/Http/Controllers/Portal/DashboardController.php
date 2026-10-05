@@ -72,7 +72,11 @@ $invoices = $allInvoices
         ]
     );
   
-  return view('portal.dashboard',compact('account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents','unreadMessageThreads')+$contactStatus);
+  $dashboardImprovementPlanIds=$plans->where('show_improvements_on_dashboard',true)->modelKeys();
+  $showImprovementsCard=count($dashboardImprovementPlanIds)>0;
+  $improvementsCount=\App\Models\Improvement::forAccount($account)->whereIn('payment_plan_id',$dashboardImprovementPlanIds)->count();
+  $improvements=\App\Models\Improvement::forAccount($account)->whereIn('payment_plan_id',$dashboardImprovementPlanIds)->with(['paymentPlan','latestUpdate'])->withCount(['updates as pending_updates_count'=>fn($q)=>$q->whereNull('received_at')])->latest('created_at')->latest('id')->limit(1)->get();
+  return view('portal.dashboard',compact('showImprovementsCard','improvementsCount','improvements','account','planSummaries','invoices','openInvoiceRows','payments','amountDue','accountCredit','accountBalance','status','oldestDue','pendingPaymentIntents','unreadMessageThreads')+$contactStatus);
  
  
   }
