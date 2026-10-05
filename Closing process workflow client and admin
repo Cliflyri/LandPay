@@ -1,0 +1,50 @@
+Would like to implement a 'closing' process/feature/workflow for both admin and client sides on landpay. 
+
+This process would be triggered by 2 conditions:
+1) the original contract amount has been satisfied (note that additional invoices added after or in addition to the original contract should not count toward this condition's satisfaction)
+2) Admin
+
+on the admin condition, admin would review, and add some information as shown below in  brackets [ ] and when ready clicking a toggle to start the closing workflow process on the client end.  There should be an admin checkbox to "notify client" which would send an email and/or sms based on client preferences notifying them to login to their client area.
+
+In the client portal the following should happen:
+When condition 1 is met client should receive a yellow notice at the top of their portal which says "Your plan xx-xx-xxx may be ready for closing.  Please watch for information which will guide you through the closing process."
+When condition 2 is met, a card should appear above the current top "Your monthly payments" card that is titled "Your Closing Process" and would include the information, form to fill out or to download, admin notes etc.  Secure messages related to this closing process should display directly in this area in the same manner (only last 2 showing, with a drawer for all previous).
+
+
+
+When triggered by admin, the "Your Closing Process" card should display with  appropriate information from the following guidelines in an easy to read, numbered section much like the edit plan form.  If the section is filled, that numbered section should collapse (can be re-opened by click).  Perhaps on the admin side, admin can check boxes indicating a section is completed or not (open by default or collapsed by default).
+
+
+Suggested outline for the client area shown when both conditions are met:
+
+
+
+Congratulations!  Your plan is PAID OFF.  Please review these next steps:
+
+1) Please fill out the following information telling us how you would like your paperwork prepared:
+--form--
+[info drawer showing info on vesting]
+
+2) Many counties require a signed notarized affidavit.  Please follow the instructions below to comply with this requirement.  Please note in most cases, this requires an original wet signature and notarization to be physically mailed to us.  Please follow the directions below carefully.
+
+[admin notes]
+[Download for admin provided form]
+
+3) You may request optional additions for the following special cases:
+  a) Married persons that do not want the spouse to have legal rights to the property.
+     Note: Spouses may have legal rights even if not on the deed
+  b) Designating a beneficiary for this land should you pass away
+  c) Other special cases
+
+For any of these cases we can prepare the additional paperwork required in order to accomplish your wishes for the property for a small additional fee.  Please discuss your case with us for details.
+
+4) Upon completion and receipt of all required paperwork:
+	We will file all required recordings with the county offices as required.  The applicable county will mail your recorded deed directly to you at the address you provided.
+
+One last note:
+ **Many times the current years property taxes will be sent to us instead of the new owner, even several months after recording your deed.  In this case we will simply invoice you for the property taxes as we have done throughout your payment plan so that you do not end up with delinquent taxes.     
+
+
+
+ -----------------------------------------------
+ on the admin side, there would need to be a workflow in the plan detail page
