@@ -52,7 +52,7 @@ class PaymentPlanController extends Controller
         $plans = PaymentPlan::query()
             ->forAdminListing($planStatus, $planSearch)
             ->with([
-                'memberships.client.portalAccount',
+                'memberships.client.portalAccount', 'closing',
                 'currentBillingTerms',
                 'invoices.items',
                 'invoices.emailDeliveries',
@@ -66,10 +66,12 @@ class PaymentPlanController extends Controller
                 fn ($invoice) => max(0, $this->balances->invoiceBalance($invoice))
             );
 
+            $closingContractBalance = $this->balances->contractBalance($plan);
+            $plan->setAttribute('closing_eligible', in_array($plan->status, ['active', 'paused'], true) && $closingContractBalance <= 0);
             $plan->setAttribute(
                 'ready_to_close',
                 in_array($plan->status, ['active', 'paused'], true)
-                    && $this->balances->contractBalance($plan) <= 0
+                    && $closingContractBalance <= 0
                     && $outstandingInvoiceBalance <= 0
             );
         });

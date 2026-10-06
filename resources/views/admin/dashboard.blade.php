@@ -2,6 +2,7 @@
 @section('title', 'Payment plan dashboard | LandPay')
 @section('body_class', 'admin-page')
 @section('content')
+@include('closing.assets')
 
 <section class="admin-section dashboard-section">
     <div class="container-fluid dashboard-container px-2">
@@ -34,6 +35,7 @@
 
     @include('admin.partials.dashboard-reminders')
     @include('admin.partials.dashboard-notices')
+    @include('closing.notices')
 
     <div class="mb-3">
         <h2 class="mb-1">Payment plans</h2>
@@ -232,13 +234,14 @@
         class="text-decoration-none"
         title="Change plan status"
     >
-        <span class="dashboard-status status-ready-to-close">
-            &#10003; Ready to close
+        <span class="dashboard-status status-fully-satisfied">
+            &#10003; Fully Satisfied
         </span>
     </a>
 </div>
                             @endif
-                            @if ($row['plan']->accelerated_testing_mode)
+                            @include('closing.badge', ['badgePlan'=>$row['plan'], 'closingEligible'=>$row['closing_eligible']])
+@if ($row['plan']->accelerated_testing_mode)
                                 <div class="mt-1">
                                     <a
                                         href="{{ route('admin.plans.edit', $row['plan']) }}#accelerated_testing_mode"

@@ -100,6 +100,8 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 </div>
 
 @if(session('success'))<div class="alert alert-success mt-4">{{session('success')}}</div>@endif
+@if($errors->any())<div class="alert alert-danger mt-3" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+@include('closing.admin')
 <ul class="nav nav-tabs mt-4">
     <li class="nav-item"><a class="nav-link {{ ! in_array(request('tab'), ['ledger', 'communications']) ? 'active' : '' }}" href="{{ route('admin.plans.show', $plan) }}">Plan overview</a></li>
     <li class="nav-item"><a class="nav-link {{ request('tab') === 'ledger' ? 'active' : '' }}" href="{{ route('admin.plans.show', ['plan' => $plan, 'tab' => 'ledger']) }}">Account ledger</a></li>

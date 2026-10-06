@@ -21,6 +21,8 @@
 </div>
 @endif
 
+@include('closing.client')
+
 <div class="row g-4 mt-2">
     <div class="col-12">
         <article class="admin-summary-card">
@@ -111,7 +113,13 @@
     for plan {{ $pending->paymentPlan->plan_number }}
 </a>&nbsp;&nbsp;
     <span class="dashboard-status status-due">{{str($pending->status)->replace('_',' ')->title()}}</span></p>@endforeach</div>@endif
-@if($planSummaries->isNotEmpty())<div class="admin-next-card mt-4"><h2>{{$planSummaries->count()>1?'Your Plans':'Your Plan'}}</h2>@foreach($planSummaries as $summary)<div class="mb-3"><strong>{{$summary['plan']->plan_number}}</strong> &middot; {{$summary['plan']->title}}<p class="mb-1">Your payment plan payments are <strong>{{\App\Support\Money::format($summary['monthly_payment'])}} per month</strong>.</p></div>@endforeach<small class="text-muted d-block mt-3">Larger payments may be sent at any time and 100% of the extra goes toward principal balance or next invoice. Additional payments can be made at any time; there are no pre-payment penalties.</small></div>@endif
+@if($planSummaries->isNotEmpty())<div class="admin-next-card mt-4"><h2>{{$planSummaries->count()>1?'Your Plans':'Your Plan'}}</h2>@foreach($planSummaries as $summary)<div class="mb-3"><strong>{{$summary['plan']->plan_number}}</strong> &middot; {{$summary['plan']->title}}
+@if($summary['plan']->closing?->compactProgress())
+<div id="closing-{{$summary['plan']->id}}">
+@include('closing.progress',['closing'=>$summary['plan']->closing,'compact'=>true,'showUndo'=>false])
+</div>
+@endif
+<p class="mb-1">Your payment plan payments are <strong>{{\App\Support\Money::format($summary['monthly_payment'])}} per month</strong>.</p></div>@endforeach<small class="text-muted d-block mt-3">Larger payments may be sent at any time and 100% of the extra goes toward principal balance or next invoice. Additional payments can be made at any time; there are no pre-payment penalties.</small></div>@endif
 @foreach($planSummaries as $summary)
 @include('property.card',['propertyPlan'=>$summary['plan'],'admin'=>false])
 @endforeach

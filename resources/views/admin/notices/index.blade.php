@@ -33,10 +33,12 @@
         'secure_message_reply' => 'Secure message',
         'shared_document_uploaded' => 'Document',
         'improvement_updated' => 'Improvement',
+        'closing_submission' => 'Closing paperwork',
         'client_contact_change','portal_invitation_accepted' => 'Account / portal',
         default => 'System',
     };
     $url = match(true) {
+        $notice->type === 'closing_submission' && (bool) $notice->paymentPlan => route('admin.plans.show',$notice->paymentPlan).'#closing',
         (bool) $notice->improvementUpdate => route('admin.improvements.show',$notice->improvementUpdate->improvement).'#update-'.$notice->improvement_update_id,
         (bool) $notice->invoice => route('admin.invoices.show',$notice->invoice),
         (bool) $notice->paymentIntent?->payment => route('admin.payments.show',$notice->paymentIntent->payment),

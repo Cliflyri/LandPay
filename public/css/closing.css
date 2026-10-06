@@ -1,0 +1,31 @@
+.closing-card{background:#fff;border:1px solid #dbe3e7;border-radius:16px;padding:clamp(1rem,3vw,2rem);margin:1.5rem 0;scroll-margin-top:2rem}
+.closing-card h3{font-size:1.1rem}.closing-step{border:1px solid #dbe3e7;border-radius:12px;margin:1rem 0;overflow:hidden}
+.closing-step>summary{padding:1rem;background:#f5f8fa;cursor:pointer;font-weight:650;list-style:none;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.closing-step>summary:before{content:'+';font-size:1.2rem}.closing-step[open]>summary:before{content:'−'}
+.closing-step-content{padding:1rem}.closing-status{font-size:.8rem;border-radius:20px;background:#e8edf1;padding:.25rem .65rem;margin-left:auto;font-weight:500}
+.closing-status.complete,.closing-status.not_required{background:#dff3e4;color:#205d37}.closing-status.submitted{background:#fff1c6;color:#755500}
+.closing-owner{border:1px solid #dbe3e7;padding:1rem;border-radius:10px;margin:1rem 0;min-width:0}
+.closing-owner legend{float:none;font-size:1rem;width:auto;padding:0 .35rem}.closing-card label{display:block;margin-bottom:.8rem}
+.closing-progress{display:flex;list-style:none;padding:0;gap:.5rem;margin:1.5rem 0}.closing-progress li{flex:1;position:relative;padding:1rem .6rem;border-top:4px solid #dbe3e7;background:#f5f7f9;color:#65717c;border-radius:5px}
+.closing-progress li.done{border-color:#398251;color:#205d37;background:#edf7f0}.closing-progress li.current{border-color:#b58715;color:#624b08;background:#fff5d9}
+.closing-progress small{display:block;margin-top:.4rem}.closing-message{background:#f5f8fa;padding:.8rem;border-radius:8px;margin:.6rem 0}.closing-message p{white-space:pre-wrap;margin:.4rem 0 0;overflow-wrap:anywhere}
+.closing-instructions li{padding:.4rem 0 .4rem .4rem;white-space:pre-wrap}.closing-balance{border-left:4px solid #c58c17}
+.closing-card textarea{min-height:80px}.closing-history{max-height:320px;overflow:auto}.closing-history pre{white-space:pre-wrap;font-size:.8rem}
+.dashboard-status.status-fully-satisfied{background:#dff3e4!important;color:#245c35!important;border-color:#badcc4!important}
+@media(max-width:640px){.closing-progress{flex-direction:column}.closing-progress li{border-top:0;border-left:4px solid #dbe3e7}.closing-status{margin-left:0}}
+
+/* Keep each admin action aligned under its own progress segment. */
+.closing-progress-admin{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:start}
+.closing-progress.closing-progress-admin>li{padding:0;border:0;background:transparent;min-width:0}
+.closing-progress-admin .closing-progress-marker{min-height:104px;padding:.8rem .6rem;border-top:4px solid #dbe3e7;border-radius:5px;background:#f5f7f9}
+.closing-progress-admin .done .closing-progress-marker{border-color:#398251;background:#edf7f0}
+.closing-progress-admin .current .closing-progress-marker{border-color:#b58715;background:#fff5d9}
+.closing-progress-admin .badge{white-space:normal;line-height:1.3}
+.closing-progress-controls{padding:.65rem .2rem 0;color:#34424c}
+.closing-progress-controls label{font-size:.8rem;margin-bottom:.6rem;line-height:1.4}
+.closing-progress-controls fieldset{min-width:0}
+.closing-progress-controls input[type=date]{width:100%;min-width:0}
+.closing-progress-controls textarea{min-height:56px}
+.closing-progress-controls .btn{white-space:normal}
+.closing-progress-controls .closing-progress-undo{padding:0 .2rem;font-size:.75rem;color:#65717c}
+@media(max-width:640px){.closing-progress-admin{grid-template-columns:1fr}.closing-progress-admin .closing-progress-marker{min-height:0;border-top:0;border-left:4px solid #dbe3e7}.closing-progress-controls{padding:.6rem .8rem 1rem}}

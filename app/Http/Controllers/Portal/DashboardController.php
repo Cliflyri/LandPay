@@ -16,7 +16,8 @@ class DashboardController extends Controller {
  public function __invoke(Request $request): View {
   $account=$request->user('client')->load('client');$planIds=$account->activePlanIds();
   $contactStatus=$this->contactStatus->forClient($account->client);
-  $plans=PaymentPlan::query()->whereIn('id',$planIds)->with(['invoices','currentBillingTerms'])->orderBy('plan_number')->get();
+  $plans=PaymentPlan::query()->whereIn('id',$planIds)->with(['invoices','currentBillingTerms','closing.documents'])->orderBy('plan_number')->get();
+  foreach ($plans as $closingPlan) { if ($closingPlan->closing) app(\App\Services\VestingGuideService::class)->ensureAssigned($closingPlan->closing); }
   $allInvoices=Invoice::query()->whereIn('payment_plan_id',$planIds)->where('status','!=','voided')->with('paymentPlan')->latest('issue_date')->get();
   $invoiceBalances=$allInvoices->mapWithKeys(fn(Invoice $invoice)=>[$invoice->id=>$this->balances->invoiceBalance($invoice)]);
   $accountCredit=(int)$plans->sum(fn(PaymentPlan $plan)=>max(0,$this->balances->clientCredit($plan)));

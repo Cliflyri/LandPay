@@ -76,6 +76,9 @@ Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(func
 });
 
 Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.enabled', 'portal.read-only'])->group(function (): void {
+    Route::get('plans/{plan}/closing/documents/{document}', [\App\Http\Controllers\ClosingController::class, 'download'])->name('closing.documents.download');
+    Route::post('plans/{plan}/closing/messages', [\App\Http\Controllers\ClosingController::class, 'message'])->middleware('throttle:10,1')->name('closing.messages');
+    Route::post('plans/{plan}/closing', [\App\Http\Controllers\ClosingController::class, 'client'])->middleware('throttle:20,1')->name('closing.update');
     Route::get('plans/{plan}/property/photos/{photo}', [\App\Http\Controllers\PropertyDetailsController::class, 'photo'])->name('property.photo');
     Route::get('improvements', [\App\Http\Controllers\ImprovementController::class, 'index'])->name('improvements.index');
     Route::post('improvements', [\App\Http\Controllers\ImprovementController::class, 'store'])->middleware('throttle:10,1')->name('improvements.store');
@@ -117,6 +120,12 @@ Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.ena
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (): void {
+    Route::get('plans/{plan}/closing/documents/{document}', [\App\Http\Controllers\ClosingController::class, 'download'])->name('closing.documents.download');
+    Route::post('plans/{plan}/closing/messages', [\App\Http\Controllers\ClosingController::class, 'message'])->middleware('throttle:10,1')->name('closing.messages');
+    Route::post('plans/{plan}/closing', [\App\Http\Controllers\ClosingController::class, 'admin'])->name('closing.update');
+    Route::post('plans/{plan}/closing/dismiss', [\App\Http\Controllers\ClosingController::class, 'dismiss'])->name('closing.dismiss');
+    Route::post('plans/{plan}/closing/documents', [\App\Http\Controllers\ClosingController::class, 'upload'])->name('closing.documents.upload');
+    Route::delete('plans/{plan}/closing/documents/{document}', [\App\Http\Controllers\ClosingController::class, 'removeDocument'])->name('closing.documents.remove');
     Route::get('plans/{plan}/improvements/create', [\App\Http\Controllers\ImprovementController::class, 'adminCreate'])->name('improvements.create');
     Route::post('plans/{plan}/improvements', [\App\Http\Controllers\ImprovementController::class, 'adminStore'])->name('improvements.store');
     Route::patch('plans/{plan}/improvements-dashboard', [\App\Http\Controllers\ImprovementController::class, 'dashboardVisibility'])->name('improvements.dashboard-visibility');
@@ -227,6 +236,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::delete('invoices/{invoice}/secure-link', [InvoiceAccessLinkController::class, 'destroy'])->name('invoices.secure-link.destroy');
     Route::post('invoices/{invoice}/reminders', [InvoiceReminderController::class, 'store'])->name('invoices.reminders.store');
     Route::post('invoices/{invoice}/sms-reminder', [\App\Http\Controllers\Admin\InvoiceSmsController::class, 'store'])->name('invoices.sms-reminder.store');
+    Route::post('settings/closing/vesting', [\App\Http\Controllers\Admin\ClosingDefaultsController::class, 'update'])->name('closing-defaults.update');
+    Route::get('settings/closing/vesting', [\App\Http\Controllers\Admin\ClosingDefaultsController::class, 'download'])->name('closing-defaults.download');
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('settings/payment-methods', [PaymentMethodSettingsController::class, 'index'])->name('payment-methods.index');
     Route::put('settings/payment-methods/general', [PaymentMethodSettingsController::class, 'updateGeneral'])->name('payment-methods.general.update');

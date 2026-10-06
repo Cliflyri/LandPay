@@ -26,6 +26,7 @@ class SecureMessageThread extends Model
     public function getRouteKeyName(): string { return 'uuid'; }
     public function notesAnchor(): string { return $this->improvement_update_id ? '#notes-'.$this->improvement_update_id : '#notes'; }
     public function improvement() { return $this->belongsTo(Improvement::class); }
+    public function closing(): BelongsTo { return $this->belongsTo(PlanClosing::class, 'plan_closing_id'); }
     public function client(): BelongsTo { return $this->belongsTo(Client::class); }
     public function paymentPlan(): BelongsTo { return $this->belongsTo(PaymentPlan::class); }
     public function messages(): HasMany { return $this->hasMany(SecureMessage::class)->oldest(); }

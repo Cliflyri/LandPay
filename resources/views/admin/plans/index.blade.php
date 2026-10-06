@@ -4,6 +4,7 @@
 @section('body_class', 'admin-page')
 
 @section('content')
+@include('closing.assets')
 <section class="admin-section">
     <div class="container-fluid dashboard-container px-2">
 
@@ -224,14 +225,15 @@
         class="text-decoration-none"
         title="Change plan status"
     >
-        <span class="dashboard-status status-ready-to-close">
-            &#10003; Ready to close
+        <span class="dashboard-status status-fully-satisfied">
+            &#10003; Fully Satisfied
         </span>
     </a>
 </div>
                                     @endif
 
-                                    @if ($plan->accelerated_testing_mode)
+                                    @include('closing.badge', ['badgePlan'=>$plan, 'closingEligible'=>$plan->closing_eligible])
+@if ($plan->accelerated_testing_mode)
                                         <div class="mt-1">
                                             <a
                                                 href="{{ route('admin.plans.edit', $plan) }}#accelerated-testing-mode"

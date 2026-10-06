@@ -44,7 +44,7 @@ class DashboardController extends Controller
             ->select('payment_plans.*')
             ->with([
                 'memberships' => fn ($query) => $query->whereNull('effective_to')->with('client.portalAccount'),
-                'currentBillingTerms', 'billingTerms', 'pauses',
+                'currentBillingTerms', 'billingTerms', 'pauses', 'closing',
                 'invoices' => fn ($query) => $query->with(['items', 'reminders'])->orderBy('due_date'),
             ])
             ->orderByRaw("CASE
@@ -67,6 +67,7 @@ class DashboardController extends Controller
         )->values());
 
         return view('admin.dashboard', [
+            'closingNotices' => app(\App\Services\ClosingWorkflowService::class)->notices($request->user()->id),
             'clientCount' => Client::query()->whereNull('archived_at')->count(),
             'planCount' => PaymentPlan::query()->whereIn('status', ['active', 'paused'])->count(),
             'openInvoiceCount' => Invoice::query()->whereHas('paymentPlan', fn ($query) => $query->where('status', '!=', 'terminated'))->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])->count(),
@@ -153,6 +154,7 @@ class DashboardController extends Controller
             'current_payoff' => $this->payoffs->amount($plan),
             'current_balance_due' => $currentBalanceDue,
             'client_credit' => max(0, $this->balances->clientCredit($plan)),
+            'closing_eligible' => in_array($plan->status, ['active', 'paused'], true) && $contractBalance <= 0,
             'ready_to_close' => in_array($plan->status, ['active', 'paused'], true)
                 && $contractBalance <= 0
                 && $currentBalanceDue <= 0,

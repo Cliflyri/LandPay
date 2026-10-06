@@ -89,6 +89,8 @@ class PaymentPlan extends Model
         return $this->property_latitude !== null || filled($this->property_notes) || !empty($this->property_photos);
     }
 
+    public function closing(): HasOne { return $this->hasOne(PlanClosing::class); }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(PaymentPlanClient::class);

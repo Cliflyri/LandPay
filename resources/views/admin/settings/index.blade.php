@@ -8,6 +8,7 @@
 @if($errors->any())<div class="alert alert-danger mt-4">{{$errors->first()}}</div>@endif
 <ul class="nav nav-tabs settings-tabs mt-4" id="settingsTabs" role="tablist">
 <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#company-settings" type="button" role="tab">Company</button></li>
+<li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#closing-settings" type="button" role="tab">Closing defaults</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#billing-settings" type="button" role="tab">Billing Defaults</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#smtp-settings" type="button" role="tab">SMTP</button></li>
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#notification-settings" type="button" role="tab">Admin Notifications</button></li>
@@ -19,6 +20,7 @@
 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#security-settings" type="button" role="tab">Security</button></li>
 </ul>
 <div class="tab-content settings-tab-content" id="settingsTabContent">
+@include('closing.defaults')
 <div class="tab-pane fade show active" id="company-settings" role="tabpanel" tabindex="0">
 <div class="admin-next-card mt-4"><h2>Company and email identity</h2><form method="post" action="{{route('admin.settings.company.update')}}" class="row g-3">@csrf @method('put')
 <div class="col-md-6"><label class="form-label" for="company_name">Company name</label><input class="form-control" id="company_name" name="company_name" value="{{old('company_name',$settings['company_name'])}}" required></div>
@@ -275,6 +277,9 @@
 @push('scripts')
 <script>
 const settingsParams = new URLSearchParams(window.location.search);
+if (settingsParams.get('section') === 'closing' && window.bootstrap) {
+    bootstrap.Tab.getOrCreateInstance(document.querySelector('[data-bs-target="#closing-settings"]')).show();
+}
 if (settingsParams.get('section') === 'test-data' && window.bootstrap) {
     const testDataTab = document.querySelector('[data-bs-target="#test-data-settings"]');
     if (testDataTab) window.bootstrap.Tab.getOrCreateInstance(testDataTab).show();

@@ -49,9 +49,10 @@
 
             @include('shared.secure-message-image-modal')
 
+            @if(!$thread->plan_closing_id || $thread->closing?->status === 'active')
             <form
                 method="post"
-                action="{{ route('portal.messages.reply', $thread) }}"
+                action="{{ $thread->plan_closing_id ? route('portal.closing.messages',$thread->paymentPlan) : route('portal.messages.reply', $thread) }}"
                 enctype="multipart/form-data"
             >
                 @csrf
@@ -69,12 +70,13 @@
                     required
                 >{{ old('body') }}</textarea>
 
-                @include('shared.message-file-picker',['pickerId'=>'portal-reply-files','fixedClientId'=>$thread->client_id])
+                @if(!$thread->plan_closing_id) @include('shared.message-file-picker',['pickerId'=>'portal-reply-files','fixedClientId'=>$thread->client_id]) @endif
 
                 <button class="btn btn-brand mt-3">
                     Send reply
                 </button>
             </form>
+            @endif
 
         </div>
     </div>

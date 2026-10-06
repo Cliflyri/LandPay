@@ -101,6 +101,7 @@ class SecureMessageController extends Controller
 
     public function show(SecureMessageThread $thread): View|RedirectResponse
     {
+        if ($thread->plan_closing_id) return redirect()->to(route('admin.plans.show',$thread->paymentPlan).'#closing-messages');
         if ($thread->improvement_id) return redirect()->to(route('admin.improvements.show',$thread->improvement).$thread->notesAnchor());
         $thread->messages()->where('sender_type', 'client')->whereNull('admin_viewed_at')->update(['admin_viewed_at' => now()]);
         AdminNotice::query()->where('secure_message_thread_id', $thread->id)->whereNull('dismissed_at')->update([
@@ -114,7 +115,7 @@ class SecureMessageController extends Controller
 
     public function reply(Request $request, SecureMessageThread $thread): RedirectResponse
     {
-        abort_if($thread->improvement_id,404);
+        abort_if($thread->improvement_id || $thread->plan_closing_id,404);
         $data = $this->validateMessage($request, false);
         $this->validateDocumentReferences($thread->client_id, $data['shared_document_ids'] ?? []);
         try {
