@@ -24,6 +24,8 @@ $ownOld = (string) old('closing_plan') === (string) $plan->id;
 if ($ownOld && in_array(old('action'), ['details','draft'], true)) $details = array_replace($details, old());
 $statusLabels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiting review','complete'=>'Complete','not_required'=>'Not required'];
 $editable = $closing->status === 'active' && !$closing->submitted_on;
+$requestsSubmitted = !empty($closing->details['combined_submission']);
+$requestsEditable = $editable && !$requestsSubmitted;
 $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
 @endphp
 <article class="closing-card" id="closing-{{ $plan->id }}">
@@ -45,13 +47,17 @@ $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
     @else
     <form method="post" action="{{ route('portal.closing.update',$plan) }}" data-closing-owners data-combined-closing>
         @csrf <input type="hidden" name="version" value="{{ $closing->version }}"><input type="hidden" name="closing_plan" value="{{ $plan->id }}">
+        @if($requestsSubmitted)
+        <p class="small">Your paperwork details and requests have been submitted and are awaiting admin review.</p>
+        @else
         <p class="small">Complete sections 1 and 2, then submit them together below.</p>
-    <details class="closing-step" @if($closing->details_status !== 'complete') open @endif>
+        @endif
+    <details class="closing-step" @if(!$requestsSubmitted && $closing->details_status !== 'complete') open @endif>
         <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->details_status }}">{{ $statusLabels[$closing->details_status] }}</span></summary>
         <div class="closing-step-content">
             <p>We need a few details in order to draft your paperwork.</p>
             @include('closing.vesting-preview')
-                <fieldset @disabled(!$editable)>
+                <fieldset @disabled(!$requestsEditable)>
                 <label>How would you like the property titled?
                     <textarea name="titling" class="form-control" required maxlength="3000">{{ $details['titling'] ?? '' }}</textarea>
                 </label>
@@ -72,13 +78,13 @@ $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
         </div>
     </details>
 
-    <details class="closing-step" @if(!in_array($closing->extras_status,['complete','not_required'])) open @endif>
+    <details class="closing-step" @if(!$requestsSubmitted && !in_array($closing->extras_status,['complete','not_required'])) open @endif>
         <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $statusLabels[$closing->extras_status] }}</span></summary>
         <div class="closing-step-content">
             <p>Are you married with a spouse not listed on this paperwork?<br>Would you like to assign a beneficiary who receives the land should you pass away?<br>Do you have any other special cases or questions?</p>
             <p>We can prepare additional paperwork <u>for an additional fee</u>. Please discuss your request with us prior to signing.</p>
             @if(($details['beneficiary'] ?? '') === 'yes')<div class="alert alert-info">You requested a beneficiary deed in step 1. Please discuss the details below.</div>@endif
-                <fieldset @disabled(!$editable)>
+                <fieldset @disabled(!$requestsEditable)>
                 @php($choice = $ownOld ? old('extras_choice',$closing->extras_choice) : $closing->extras_choice)
                 <label><input type="radio" name="extras_choice" value="none" required @checked($choice==='none')> No additional paperwork needed</label>
                 <label><input type="radio" name="extras_choice" value="request" required @checked($choice==='request')> I'd like to discuss a special request</label>
@@ -87,7 +93,7 @@ $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
         </div>
     </details>
 
-        @if($editable)
+        @if($requestsEditable)
         <div class="border rounded p-3 mb-3">
             <label><input type="checkbox" name="confirmed" value="1" required> I have reviewed my paperwork details and additional-paperwork choices in sections 1 and 2 and confirm they are correct.</label>
             <button class="btn btn-outline-brand" name="action" value="draft" formnovalidate>Save draft</button>

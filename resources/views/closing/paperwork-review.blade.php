@@ -1,9 +1,4 @@
-@if($closing->paperworkReviewed())
-<div class="d-flex align-items-center gap-2">
-    <span class="closing-status complete ms-0">Details and requests approved</span>
-    <button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-paperwork">Reopen details and requests</button>
-</div>
-@elseif($closing->status !== 'completed')
+@if(!$closing->paperworkReviewed() && $closing->status !== 'completed')
 <form method="post" action="{{ route('admin.closing.update',$plan) }}">
     @csrf <input type="hidden" name="action" value="review_paperwork"><input type="hidden" name="version" value="{{ $closing->version }}">
     <button class="btn btn-outline-brand">Approve paperwork details and requests</button>

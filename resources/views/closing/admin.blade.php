@@ -4,6 +4,12 @@ $closingService = app(\App\Services\ClosingWorkflowService::class);
 $closing = $plan->closing ?? new \App\Models\PlanClosing(['payment_plan_id'=>$plan->id,'status'=>'review','version'=>0,'details_status'=>'needed','extras_status'=>'needed','forms_status'=>'needed','show_hold_notice'=>true]);
 $closingBalances = $closingService->balances($plan);
 $hasClosingBalance = $closingBalances['contract'] > 0 || $closingBalances['outstanding'] > 0;
+$formsComplete = in_array($closing->forms_status, ['complete','not_required']);
+$formsReopened = !empty($closing->details['reopen_steps'][3]);
+$formsOpen = !$formsComplete && (!$closing->released_at || $closing->forms_status === 'submitted' || $formsReopened);
+$formsSummary = $formsComplete ? 'Paperwork accepted' : ($closing->forms_status === 'submitted'
+    ? 'Client reports paperwork mailed - awaiting receipt'
+    : ($closing->released_at ? 'Packet released - awaiting client paperwork' : $closing->formsLabel(true)));
 $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiting review','complete'=>'Complete','not_required'=>'Not required'];
 @endphp
 <details class="closing-card" id="closing" @if($closing->status !== 'review' || $closing->eligible_at || $closingService->eligible($plan)) open @endif>
@@ -49,7 +55,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
         </form>
     </div></details>
 
-    <details class="closing-step" @if($closing->details_status !== 'complete') open @endif>
+    <details class="closing-step" id="closing-admin-details" @if($closing->details_status !== 'complete') open @endif>
         <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->details_status }}">{{ $labels[$closing->details_status] }}</span></summary>
         <div class="closing-step-content">
             @include('closing.vesting-admin')
@@ -68,8 +74,9 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
             @else <p>No details submitted yet.</p> @endif
         </div>
     </details>
-    <details class="closing-step" @if(!in_array($closing->extras_status,['complete','not_required'])) open @endif>
-        <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $labels[$closing->extras_status] }}</span></summary>
+    <details class="closing-step" id="closing-admin-extras" @if(!in_array($closing->extras_status,['complete','not_required'])) open @endif>
+        <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $closing->paperworkReviewed() ? 'Details and requests approved' : $labels[$closing->extras_status] }}</span>
+        @if($closing->paperworkReviewed())<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-paperwork">Reopen details and requests</button>@endif</summary>
         <div class="closing-step-content">
             <p>{{ $closing->extras_choice === 'request' ? 'Client requests discussion of additional paperwork for an additional fee.' : ($closing->extras_choice === 'none' ? 'Client selected no additional paperwork.' : 'No request submitted yet.') }}</p>
             <p style="white-space:pre-wrap">{{ $closing->extras_comments }}</p>
@@ -77,11 +84,14 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
             @include('closing.paperwork-review')
         </div>
     </details>
-    <details class="closing-step" @if(!in_array($closing->forms_status,['complete','not_required'])) open @endif>
-        <summary>3. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $closing->formsLabel(true) }}</span> @if(in_array($closing->forms_status,['complete','not_required']))<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-forms">Reopen</button>@endif</summary>
+    <details class="closing-step" id="closing-admin-forms" @if($formsOpen) open @endif>
+        <summary>3. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $formsSummary }}</span> @if(in_array($closing->forms_status,['complete','not_required']))<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-forms">Reopen</button>@endif</summary>
         <div class="closing-step-content">
             <p>{{ $closing->released_at ? 'Signing packet released '.$closing->released_at->format('M j, Y g:i A').'.' : 'Signing forms remain private until you release the final packet.' }}</p>
             @if($closing->forms_status === 'submitted')<div class="alert alert-info">Client reports mailing originals. Confirm receipt and acceptance before completing this step.</div>@endif
+            <details id="closing-admin-packet" class="mb-3" @if(!$closing->released_at || $formsReopened) open @endif>
+                <summary>Signing packet files and instructions</summary>
+                <div class="mt-3">
             <h3>Upload signing forms</h3>
             @include('closing.documents',['documentKind'=>'signing'])
             <form method="post" action="{{ route('admin.closing.update',$plan) }}" class="mb-3">
@@ -109,6 +119,8 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
                 <button class="btn btn-brand" @disabled(count($releaseRequirements) > 0) @if($releaseRequirements) aria-describedby="closing-release-requirements" @endif>Release final signing packet</button>
             </form>
             @endif
+                </div>
+            </details>
             @include('closing.review',['section'=>'forms'])
         </div>
     </details>

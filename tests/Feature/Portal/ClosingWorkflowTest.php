@@ -56,15 +56,18 @@ class ClosingWorkflowTest extends TestCase
         $this->assertSame('submitted', $plan->fresh()->closing->extras_status);
         $this->assertTrue($plan->fresh()->closing->details['combined_submission']);
         $this->get(route('portal.dashboard'))->assertOk()->assertDontSee('Not yet submitted.');
-        $response = $this->get(route('portal.dashboard'))->assertOk()->assertSee('Submit paperwork details and requests')
-            ->assertDontSee('Submit request for review');
+        $response = $this->get(route('portal.dashboard'))->assertOk()->assertDontSee('Submit paperwork details and requests')
+            ->assertDontSee('Save draft')->assertDontSee('name="confirmed"', false)
+            ->assertSee('awaiting admin review')->assertDontSee('Submit request for review');
         $dom = new \DOMDocument;
         @$dom->loadHTML($response->getContent());
         $xpath = new \DOMXPath($dom);
         $this->assertSame(1, $xpath->query('//form[@data-combined-closing]')->length);
         $this->assertSame(1, $xpath->query('//form[@data-combined-closing]//select[@name="beneficiary"]')->length);
         $this->assertSame(2, $xpath->query('//form[@data-combined-closing]//input[@name="extras_choice"]')->length);
-        $this->assertSame(1, $xpath->query('//form[@data-combined-closing]//button[@value="details"]')->length);
+        $this->assertSame(0, $xpath->query('//form[@data-combined-closing]//button[@value="details"]')->length);
+        $this->assertSame(0, $xpath->query('//form[@data-combined-closing]//details[@open]')->length);
+        $this->assertSame(2, $xpath->query('//form[@data-combined-closing]//fieldset[@disabled]')->length);
     }
 
     public function test_existing_active_closing_gets_missing_guide_once_before_titling(): void
@@ -285,6 +288,34 @@ class ClosingWorkflowTest extends TestCase
             ->assertSee('name="instructions_text"', false)->assertSee($text)->assertDontSee('name="instructions[0]"', false);
     }
 
+    public function test_admin_packet_collapses_after_release_and_expands_for_receipt_or_reopening(): void
+    {
+        [$admin, , $plan, $account] = $this->records('ADMINCOLLAPSE');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'active', 'details_status' => 'complete',
+            'extras_status' => 'not_required', 'released_at' => now()]);
+        $check = function (bool $formsOpen, bool $packetOpen) use ($admin, $plan) {
+            $page = $this->actingAs($admin, 'web')->get(route('admin.plans.show', $plan))->assertOk();
+            $dom = new \DOMDocument;
+            @$dom->loadHTML($page->getContent());
+            $xpath = new \DOMXPath($dom);
+            foreach (['closing-admin-details' => false, 'closing-admin-extras' => false,
+                'closing-admin-forms' => $formsOpen, 'closing-admin-packet' => $packetOpen] as $id => $open) {
+                $this->assertSame($open ? 1 : 0, $xpath->query('//details[@id="'.$id.'"][@open]')->length);
+            }
+            return $page;
+        };
+        $check(false, false)->assertSee('Packet released - awaiting client paperwork');
+        $closing->update(['forms_status' => 'submitted']);
+        $check(true, false)->assertSee('Client reports paperwork mailed - awaiting receipt')
+            ->assertSee('Originals received and accepted');
+        $this->action($admin, $plan, 'review_forms', ['section_status' => 'complete'])->assertSessionHasNoErrors();
+        $check(false, false)->assertSee('Paperwork accepted');
+        $this->action($admin, $plan, 'reopen_step', ['section' => 'forms',
+            'reopen_instruction' => 'Please sign again.'])->assertSessionHasNoErrors();
+        $check(true, true)->assertSee('Please sign again.');
+    }
+
     private function guideFile(string $name = 'vesting.pdf'): UploadedFile
     {
         return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF");
@@ -501,7 +532,7 @@ class ClosingWorkflowTest extends TestCase
 
         $this->actingAs($account, 'client')->get(route('portal.closing.documents.download', [$plan, $document]))->assertForbidden();
         $this->action($admin, $plan, 'release')->assertSessionHasNoErrors();
-        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Awaiting signed forms');
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Packet released - awaiting client paperwork');
         $this->actingAs($account, 'client')->get(route('portal.closing.documents.download', [$plan, $document]))->assertOk();
         $this->get(route('portal.dashboard'))->assertOk()->assertSee('Obtain notarization')->assertSee('section 2')->assertSee('affidavit.pdf')->assertSee('Ready to sign and mail');
         $this->post(route('portal.closing.update', $plan), ['version' => $plan->fresh()->closing->version] + $this->details())->assertSessionHasErrors('closing');

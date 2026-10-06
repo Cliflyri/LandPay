@@ -2,7 +2,11 @@
     <div class="d-flex align-items-center gap-4"><h2 class="mb-0">Notices</h2><span class="dashboard-status status-due position-relative" style="top: 8px;">{{$notices->count()}} open</span></div>
     @foreach($notices as $notice)
         <div class="amendment-entry"><div class="amendment-entry-heading"><div>
-            <strong>{{$notice->title}}</strong>
+            @if($notice->type === 'closing_submission' || $notice->secureMessageThread?->plan_closing_id)
+                @include('closing.notice-heading', ['noticeClient'=>$notice->client, 'noticePlan'=>$notice->paymentPlan ?? $notice->secureMessageThread?->paymentPlan])
+            @else
+                <strong>{{$notice->title}}</strong>
+            @endif
             @if($notice->type === 'billing_automation_failure')
                 @include('shared.billing-failure-notice')
             @elseif($notice->type === 'shared_document_uploaded' && $notice->client && $notice->sharedDocument)

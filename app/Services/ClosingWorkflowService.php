@@ -43,7 +43,7 @@ class ClosingWorkflowService
             }
         });
 
-        return PlanClosing::with('paymentPlan')->whereNotNull('eligible_at')->where('status', '!=', 'completed')
+        return PlanClosing::with('paymentPlan.memberships.client')->whereNotNull('eligible_at')->where('status', '!=', 'completed')
             ->whereHas('paymentPlan')->whereNotIn('id', DB::table('closing_notice_dismissals')->where('user_id', $userId)->select('plan_closing_id'))
             ->orderBy('eligible_at')->get();
     }
