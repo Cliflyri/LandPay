@@ -8,6 +8,7 @@ $documentsEditable = $documentKind !== 'signing' || (!$closing->submitted_on && 
     <label>{{ $documentLabels[$documentKind] }} <span class="text-muted">({{ $documentKind === 'vesting' ? 'PDF' : 'PDF, Word, JPG or PNG' }}; up to 10 MB)</span>
         <input class="form-control" type="file" name="document" accept="{{ $documentKind === 'vesting' ? '.pdf' : '.pdf,.docx,.jpg,.jpeg,.png' }}" required>
     </label>
+    @if($documentKind === 'signing')<p class="small">Uploading a new signing form replaces all previous signing forms. Upload the complete signing packet as one file.</p>@endif
     <button class="btn btn-outline-brand">Upload {{ strtolower($documentLabels[$documentKind]) }}</button>
 </form>
 @endif

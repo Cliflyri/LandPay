@@ -113,3 +113,5 @@ Undoing paperwork acceptance or reopening a client step restores the full card a
 Client section visibility: show combined steps 1-2 until reviewed, then replace them with a single contact-us sentence above step 3. Hide future recording sections; accepted paperwork continues to use compact progress beneath the plan number. Explicit reopening restores the applicable client phase.
 
 Admin now approves details and additional-paperwork requests atomically via review_paperwork, with one combined reopen action. Previously released signing packets remain visible as a hold notice when requests are reopened; downloads and mailing confirmation remain blocked until explicit re-release. A packet_previously_released flag in existing details JSON survives drafts and resubmission; no migration required.
+
+Signing uploads replace all prior signing document references under the closing lock, then delete old private files after successful transaction. The new packet remains private until explicit release. Stale or invalid uploads preserve the existing form. Admin upload help requests one complete signing packet file.

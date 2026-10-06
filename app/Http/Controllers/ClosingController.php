@@ -288,13 +288,16 @@ class ClosingController extends Controller
         ]);
         $closing = $this->workflow->closing($plan);
         $path = $request->file('document')->store('closing/'.$closing->id, 'local');
+        $replacedPaths = [];
         try {
-            DB::transaction(function () use ($request, $closing, $data, $path) {
+            DB::transaction(function () use ($request, $closing, $data, $path, &$replacedPaths) {
                 $closing = PlanClosing::whereKey($closing->id)->lockForUpdate()->firstOrFail();
                 $this->workflow->require((int) $closing->version === (int) $data['version'], 'Closing changed. Refresh before uploading.');
                 if ($data['kind'] === 'signing') {
                     $this->workflow->require(! $closing->submitted_on && $closing->status !== 'completed', 'Reopen the paperwork review before changing a packet submitted to the county.');
                     $this->workflow->reopenPaperwork($closing);
+                    $replacedPaths = $closing->documents()->where('kind', 'signing')->pluck('path')->all();
+                    $closing->documents()->where('kind', 'signing')->delete();
                 }
                 if ($data['kind'] === 'vesting') {
                     app(VestingGuideService::class)->removeReferences($closing);
@@ -302,14 +305,20 @@ class ClosingController extends Controller
                 $document = $closing->documents()->create(['kind' => $data['kind'], 'path' => $path, 'name' => basename($request->file('document')->getClientOriginalName())]);
                 $closing->version++;
                 $closing->save();
-                $this->workflow->log($closing, 'Document uploaded', ['name' => $document->name, 'kind' => $document->kind], $request->user()->id);
+                $this->workflow->log($closing, 'Document uploaded', ['name' => $document->name, 'kind' => $document->kind, 'replaced_count' => count($replacedPaths)], $request->user()->id);
             });
         } catch (\Throwable $e) {
             Storage::disk('local')->delete($path);
             throw $e;
         }
 
-        return redirect()->to(route('admin.plans.show', $plan).'#closing')->with('success', 'Document uploaded. Signing packet changes require release again.');
+        if ($replacedPaths) {
+            Storage::disk('local')->delete($replacedPaths);
+        }
+
+        return redirect()->to(route('admin.plans.show', $plan).'#closing')->with('success',
+            $data['kind'] === 'signing' ? 'Signing form uploaded. Any previous signing forms were replaced. Release the packet again when ready.'
+                : 'Document uploaded.');
     }
 
     public function removeDocument(Request $request, PaymentPlan $plan, ClosingDocument $document)

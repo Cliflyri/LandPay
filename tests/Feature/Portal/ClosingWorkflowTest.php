@@ -233,6 +233,40 @@ class ClosingWorkflowTest extends TestCase
         $this->assertNull($closing->fresh()->recorded_on);
     }
 
+    public function test_signing_upload_replaces_existing_forms_and_withdraws_release(): void
+    {
+        Storage::fake('local');
+        [$admin, , $plan, $account] = $this->records('REPLACEFORM');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'active', 'released_at' => now(),
+            'details_status' => 'complete', 'extras_status' => 'not_required']);
+        foreach (['old.pdf', 'older.pdf'] as $name) {
+            Storage::disk('local')->put('closing/'.$name, 'old');
+            $closing->documents()->create(['kind' => 'signing', 'name' => $name, 'path' => 'closing/'.$name]);
+        }
+        $vesting = $closing->documents()->create(['kind' => 'vesting', 'name' => 'guide.pdf', 'path' => 'closing/guide.pdf']);
+        $this->actingAs($admin, 'web')->post(route('admin.closing.documents.upload', $plan), [
+            'version' => $closing->fresh()->version, 'kind' => 'signing', 'document' => $this->guideFile('replacement.pdf'),
+        ])->assertSessionHasNoErrors();
+        $closing->refresh();
+        $this->assertNull($closing->released_at);
+        $this->assertSame(1, $closing->documents()->where('kind', 'signing')->count());
+        $new = $closing->documents()->where('kind', 'signing')->sole();
+        $this->assertSame('replacement.pdf', $new->name);
+        Storage::disk('local')->assertExists($new->path);
+        Storage::disk('local')->assertMissing(['closing/old.pdf', 'closing/older.pdf']);
+        $this->assertNotNull($vesting->fresh());
+        $this->actingAs($account, 'client')->get(route('portal.closing.documents.download', [$plan, $new]))->assertForbidden();
+        $this->actingAs($admin, 'web')->post(route('admin.closing.documents.upload', $plan), [
+            'version' => $closing->version - 1, 'kind' => 'signing', 'document' => $this->guideFile('stale.pdf'),
+        ])->assertSessionHasErrors('closing');
+        $this->assertSame($new->id, $closing->documents()->where('kind', 'signing')->sole()->id);
+        Storage::disk('local')->assertExists($new->path);
+        $this->action($admin, $plan, 'release')->assertSessionHasNoErrors();
+        $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
+            ->assertSee('Download replacement.pdf')->assertDontSee('Download old.pdf')->assertDontSee('Download older.pdf');
+    }
+
     private function guideFile(string $name = 'vesting.pdf'): UploadedFile
     {
         return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF");
