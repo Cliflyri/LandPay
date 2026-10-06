@@ -109,3 +109,5 @@ Completed segments show a small Undo control below the marker. Balance safeguard
 Client progress moves beneath the plan as soon as paperwork is accepted (step 3 complete), rather than
 waiting for county submission. Undoing readiness or county submission keeps this compact view.
 Undoing paperwork acceptance or reopening a client step restores the full card and action instructions.
+
+Client section visibility: show combined steps 1-2 until reviewed, then replace them with a single contact-us sentence above step 3. Hide future recording sections; accepted paperwork continues to use compact progress beneath the plan number. Explicit reopening restores the applicable client phase.

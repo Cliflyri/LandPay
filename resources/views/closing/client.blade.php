@@ -40,11 +40,7 @@ $editable = $closing->status === 'active' && !$closing->submitted_on;
     @if($closing->status === 'completed')<div class="alert alert-success">Your recording has been confirmed and your closing is complete.</div>@endif
 
     @if($closing->paperworkReviewed())
-    <div class="border rounded p-3 my-3">
-        <h3>1–2. Paperwork details and requests</h3>
-        <p>To make changes to your submitted paperwork requests, please contact us by secure message or other means.</p>
-        <a href="#closing-messages-{{ $plan->id }}">Send secure message</a>
-    </div>
+    <p class="my-3">To make changes to your <u>prior submitted requests</u>, please contact us by <a href="#closing-messages-{{ $plan->id }}">secure message</a> or other means.</p>
     @else
     <form method="post" action="{{ route('portal.closing.update',$plan) }}" data-closing-owners data-combined-closing>
         @csrf <input type="hidden" name="version" value="{{ $closing->version }}"><input type="hidden" name="closing_plan" value="{{ $plan->id }}">
@@ -101,13 +97,7 @@ $editable = $closing->status === 'active' && !$closing->submitted_on;
     </form>
 
     @endif
-    @if(in_array($closing->forms_status,['complete','not_required']))
-    <div class="border rounded p-3 my-3">
-        <h3>3. Required paperwork accepted</h3>
-        <p>Your required paperwork has been accepted. Please contact us with any questions.</p>
-        <a href="#closing-messages-{{ $plan->id }}">Send secure message</a>
-    </div>
-    @else
+    @if($closing->paperworkReviewed() && !in_array($closing->forms_status,['complete','not_required']))
     <details class="closing-step" @if($closing->details_status === 'complete' && in_array($closing->extras_status,['complete','not_required']) && !in_array($closing->forms_status,['complete','not_required'])) open @endif>
         <summary>3. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $closing->formsLabel() }}</span></summary>
         <div class="closing-step-content">
@@ -133,18 +123,6 @@ $editable = $closing->status === 'active' && !$closing->submitted_on;
     </details>
 
     @endif
-    <details class="closing-step" @if($closing->paperwork_accepted_at && $closing->status !== 'completed') open @endif>
-        <summary>4. Recording and Your Deed <span class="closing-status {{ $closing->status === 'completed' ? 'complete' : '' }}">{{ $closing->status === 'completed' ? 'Complete' : 'Admin will update' }}</span></summary>
-        <div class="closing-step-content">
-            @if($closing->paperwork_accepted_at && $closing->status !== 'completed')<p>Your required paperwork has been accepted. We will update you as your closing progresses.</p>@endif
-            @include('closing.progress')
-            <p>We will file the required paperwork with the county. The county will mail your recorded deed to the mailing address you provided, or your legal address if no separate mailing address was supplied.</p>
-            @if($closing->status === 'completed')
-                @foreach($closing->documents->where('kind','recorded') as $document)<p><a href="{{ route('portal.closing.documents.download',[$plan,$document]) }}">Download {{ $document->name }}</a></p>@endforeach
-            @endif
-            <p class="small"><strong>Property taxes:</strong> Current-year property tax bills may still be sent to us, even several months after recording. If that happens, we will invoice you as we did during your payment plan so you can avoid delinquent taxes.</p>
-        </div>
-    </details>
     @include('closing.messages',['admin'=>false])
 </article>
 @elseif($eligible)

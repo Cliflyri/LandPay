@@ -128,12 +128,16 @@ class ClosingWorkflowTest extends TestCase
         $this->action($admin, $plan, 'reopen_step', ['section' => 'forms', 'reopen_instruction' => 'Please sign the corrected form.'])->assertSessionHasNoErrors();
         $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
             ->assertSee('Step 3 reopened: Please sign the corrected form.')
-            ->assertSee('Print the revised form.')->assertSee('I have mailed the original paperwork');
+            ->assertSee('Print the revised form.')->assertSee('I have mailed the original paperwork')
+            ->assertSee('To make changes to your submitted requests, please contact us by')
+            ->assertDontSee('1. Confirm Your Paperwork Details')->assertDontSee('2. Request Additional Paperwork')
+            ->assertDontSee('4. Recording and Your Deed');
         $this->assertNotNull($closing->fresh()->released_at);
         $this->action($admin, $plan, 'reopen_step', ['section' => 'extras', 'reopen_instruction' => 'Please clarify your beneficiary request.'])->assertSessionHasNoErrors();
         $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
             ->assertSee('Step 2 reopened: Please clarify your beneficiary request.')
-            ->assertSee('name="titling"', false)->assertSee('Submit paperwork details and requests');
+            ->assertSee('name="titling"', false)->assertSee('Submit paperwork details and requests')
+            ->assertDontSee('3. Complete and Sign Required Forms')->assertDontSee('4. Recording and Your Deed');
         $this->assertNull($closing->fresh()->released_at);
         $this->action($admin, $plan, 'review_extras', ['section_status' => 'complete'])->assertSessionHasErrors('closing');
     }
@@ -336,7 +340,7 @@ class ClosingWorkflowTest extends TestCase
         $this->actingAs($admin, 'web')->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Start closing')->assertSee('Outstanding balances');
         $this->action($admin, $plan, 'start')->assertSessionHasNoErrors();
         $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()->assertSeeInOrder(['Your Closing Process', 'Your Monthly Payments'])
-            ->assertSee('Chris A EARLY')->assertSee('Forms being prepared')->assertSee('for an additional fee');
+            ->assertSee('Chris A EARLY')->assertDontSee('3. Complete and Sign Required Forms')->assertDontSee('4. Recording and Your Deed')->assertSee('for an additional fee');
         [,, $other,$outsider] = $this->records('OTHER');
         $this->actingAs($outsider, 'client')->post(route('portal.closing.update', $plan), ['action' => 'draft', 'version' => 1])->assertNotFound();
         $this->action($admin, $plan, 'disable', ['show_hold_notice' => 1, 'client_note' => 'Waiting for tax confirmation.'])->assertSessionHasNoErrors();

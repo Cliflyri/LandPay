@@ -30,7 +30,7 @@ if ($readIds) \App\Models\SecureMessage::whereIn('id', $readIds)->whereNull($adm
         </label>
         @endif
         <label>Message<textarea name="body" class="form-control" required maxlength="10000"></textarea></label>
-        <button class="btn btn-outline-brand">Send closing message</button>
+        <button class="btn btn-outline-brand">Send message</button>
     </form>
     @endif
 </div>
