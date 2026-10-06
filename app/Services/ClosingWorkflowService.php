@@ -74,13 +74,18 @@ class ClosingWorkflowService
 
     public function reopenPaperwork(PlanClosing $closing): void
     {
+        if ($closing->released_at) {
+            $details = $closing->details ?? [];
+            $details['packet_previously_released'] = true;
+            $closing->details = $details;
+        }
         $closing->fill(['released_at' => null, 'forms_status' => 'needed', 'paperwork_accepted_at' => null,
             'ready_on' => null, 'submitted_on' => null, 'recorded_on' => null, 'recording_reference' => null]);
     }
 
     public function reopenStep(PlanClosing $closing, string $section, ?string $instruction = null): void
     {
-        $step = ['details' => '1', 'extras' => '2', 'forms' => '3'][$section];
+        $step = ['paperwork' => '1-2', 'details' => '1', 'extras' => '2', 'forms' => '3'][$section];
         $details = $closing->details ?? [];
         $notes = $details['reopen_steps'] ?? [];
         if ($section === 'forms') {
@@ -89,7 +94,10 @@ class ClosingWorkflowService
             $default = 'Please review the signing instructions and complete step 3 again. Contact us with any questions.';
         } else {
             $this->reopenPaperwork($closing);
-            $closing->{$section.'_status'} = 'needed';
+            $details['packet_previously_released'] = ! empty($closing->details['packet_previously_released']);
+            $closing->details_status = 'needed';
+            $closing->extras_status = 'needed';
+            unset($notes[1], $notes[2], $notes['1-2']);
             $details['confirmed'] = false;
             $details['combined_submission'] = false;
             unset($notes[3]);

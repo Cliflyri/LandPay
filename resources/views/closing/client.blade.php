@@ -24,6 +24,7 @@ $ownOld = (string) old('closing_plan') === (string) $plan->id;
 if ($ownOld && in_array(old('action'), ['details','draft'], true)) $details = array_replace($details, old());
 $statusLabels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiting review','complete'=>'Complete','not_required'=>'Not required'];
 $editable = $closing->status === 'active' && !$closing->submitted_on;
+$packetPreviouslyReleased = $closing->packetPreviouslyReleased();
 @endphp
 <article class="closing-card" id="closing-{{ $plan->id }}">
     <div class="d-flex flex-wrap justify-content-between gap-2"><h2>Your Closing Process</h2><strong>Plan {{ $plan->plan_number }}</strong></div>
@@ -35,7 +36,7 @@ $editable = $closing->status === 'active' && !$closing->submitted_on;
     @if($closing->nextAction())
     <div class="alert alert-warning border-warning mt-3" role="status"><strong>{{ $closing->nextAction() }}</strong></div>
     @endif
-    <p>Please review and complete the steps below so we can prepare your paperwork.</p>
+    <p><strong>Please review and complete the steps below so we can prepare your paperwork.</strong></p>
     @if($closing->admin_notes)<div class="alert alert-info" style="white-space:pre-wrap">{{ $closing->admin_notes }}</div>@endif
     @if($closing->status === 'completed')<div class="alert alert-success">Your recording has been confirmed and your closing is complete.</div>@endif
 
@@ -74,8 +75,8 @@ $editable = $closing->status === 'active' && !$closing->submitted_on;
     <details class="closing-step" @if(!in_array($closing->extras_status,['complete','not_required'])) open @endif>
         <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $statusLabels[$closing->extras_status] }}</span></summary>
         <div class="closing-step-content">
-            <p>Are you married with a spouse not listed on this paperwork? Would you like to assign a beneficiary who receives the land should you pass? Do you have any other special cases or questions?</p>
-            <p>We can prepare additional paperwork <strong>for an additional fee</strong>. Please discuss your request with us before signing.</p>
+            <p>Are you married with a spouse not listed on this paperwork?<br>Would you like to assign a beneficiary who receives the land should you pass away?<br>Do you have any other special cases or questions?</p>
+            <p>We can prepare additional paperwork <u>for an additional fee</u>. Please discuss your request with us prior to signing.</p>
             @if(($details['beneficiary'] ?? '') === 'yes')<div class="alert alert-info">You requested a beneficiary deed in step 1. Please discuss the details below.</div>@endif
                 <fieldset @disabled(!$editable)>
                 @php($choice = $ownOld ? old('extras_choice',$closing->extras_choice) : $closing->extras_choice)
@@ -97,11 +98,13 @@ $editable = $closing->status === 'active' && !$closing->submitted_on;
     </form>
 
     @endif
-    @if($closing->paperworkReviewed() && !in_array($closing->forms_status,['complete','not_required']))
-    <details class="closing-step" @if($closing->details_status === 'complete' && in_array($closing->extras_status,['complete','not_required']) && !in_array($closing->forms_status,['complete','not_required'])) open @endif>
+    @if(($closing->paperworkReviewed() || $packetPreviouslyReleased) && !in_array($closing->forms_status,['complete','not_required']))
+    <details class="closing-step" open>
         <summary>3. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $closing->formsLabel() }}</span></summary>
         <div class="closing-step-content">
             @if($closing->forms_status === 'not_required')<p>No signed forms are required for this closing.</p>
+            @elseif(!$closing->released_at && $packetPreviouslyReleased)
+                <div class="alert alert-warning">Your paperwork details are being reviewed. Please wait for an updated signing packet before signing or mailing forms.</div>
             @elseif(!$closing->released_at)<p>Forms being prepared. We will make the final signing packet available here after reviewing your details and any additional paperwork requests.</p>
             @else
                 <ol type="a" class="closing-instructions">

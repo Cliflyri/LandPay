@@ -55,6 +55,12 @@ class PlanClosing extends Model
         return $this->details_status === 'complete' && in_array($this->extras_status, ['complete', 'not_required'], true);
     }
 
+    public function packetPreviouslyReleased(): bool
+    {
+        return (bool) $this->released_at || ! empty($this->details['packet_previously_released'])
+            || $this->events()->where('action', 'release')->exists();
+    }
+
     public function compactProgress(): bool
     {
         return $this->visible() && (bool) $this->paperwork_accepted_at;

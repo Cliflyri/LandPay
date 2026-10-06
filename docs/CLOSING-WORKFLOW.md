@@ -111,3 +111,5 @@ waiting for county submission. Undoing readiness or county submission keeps this
 Undoing paperwork acceptance or reopening a client step restores the full card and action instructions.
 
 Client section visibility: show combined steps 1-2 until reviewed, then replace them with a single contact-us sentence above step 3. Hide future recording sections; accepted paperwork continues to use compact progress beneath the plan number. Explicit reopening restores the applicable client phase.
+
+Admin now approves details and additional-paperwork requests atomically via review_paperwork, with one combined reopen action. Previously released signing packets remain visible as a hold notice when requests are reopened; downloads and mailing confirmation remain blocked until explicit re-release. A packet_previously_released flag in existing details JSON survives drafts and resubmission; no migration required.

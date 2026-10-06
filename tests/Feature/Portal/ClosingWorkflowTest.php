@@ -107,6 +107,47 @@ class ClosingWorkflowTest extends TestCase
         Mail::assertSent(ClosingNotificationMail::class, 1);
     }
 
+    public function test_combined_approval_and_reopened_packet_require_explicit_release(): void
+    {
+        [$admin, , $plan, $account] = $this->records('COMBINEDREVIEW');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'active']);
+        $this->action($admin, $plan, 'review_paperwork')->assertSessionHasErrors('closing');
+        $closing->update(['details' => $this->details() + ['combined_submission' => true],
+            'details_status' => 'submitted', 'extras_status' => 'submitted', 'extras_choice' => 'none']);
+        $this->actingAs($admin, 'web')->get(route('admin.plans.show', $plan))->assertOk()
+            ->assertSee('Approve paperwork details and requests')
+            ->assertDontSee('value="review_details"', false)->assertDontSee('value="review_extras"', false);
+        $this->action($admin, $plan, 'review_paperwork')->assertSessionHasNoErrors();
+        $this->assertTrue($closing->fresh()->paperworkReviewed());
+        $document = $closing->documents()->create(['kind' => 'signing', 'name' => 'forms.pdf', 'path' => 'closing/test-forms.pdf']);
+        $this->action($admin, $plan, 'release')->assertSessionHasNoErrors();
+        $this->action($admin, $plan, 'reopen_step', ['section' => 'paperwork',
+            'reopen_instruction' => 'Please correct your legal name.'])->assertSessionHasNoErrors();
+        $this->assertSame('needed', $closing->fresh()->details_status);
+        $this->assertSame('needed', $closing->fresh()->extras_status);
+        $details = $closing->fresh()->details;
+        unset($details['packet_previously_released']);
+        $closing->update(['details' => $details]);
+        $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
+            ->assertSee('Please correct your legal name.')
+            ->assertSee('3. Complete and Sign Required Forms')
+            ->assertSee('Please wait for an updated signing packet before signing or mailing forms.')
+            ->assertDontSee('Download forms.pdf')->assertDontSee('I have mailed the original paperwork');
+        $this->get(route('portal.closing.documents.download', [$plan, $document]))->assertForbidden();
+        $this->post(route('portal.closing.update', $plan), ['action' => 'mailed',
+            'version' => $closing->fresh()->version])->assertSessionHasErrors('closing');
+        $this->post(route('portal.closing.update', $plan), $this->details() + [
+            'action' => 'details', 'version' => $closing->fresh()->version])->assertSessionHasNoErrors();
+        $this->assertTrue($closing->fresh()->details['packet_previously_released']);
+        $this->action($admin, $plan, 'review_paperwork')->assertSessionHasNoErrors();
+        $this->assertNull($closing->fresh()->released_at);
+        $this->action($admin, $plan, 'release')->assertSessionHasNoErrors();
+        $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
+            ->assertSee('Download forms.pdf')->assertSee('I have mailed the original paperwork')
+            ->assertDontSee('Please wait for an updated signing packet');
+    }
+
     public function test_approved_client_controls_stay_hidden_until_explicitly_reopened(): void
     {
         [$admin, , $plan,$account] = $this->records('REOPENFLOW');
@@ -129,7 +170,7 @@ class ClosingWorkflowTest extends TestCase
         $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
             ->assertSee('Step 3 reopened: Please sign the corrected form.')
             ->assertSee('Print the revised form.')->assertSee('I have mailed the original paperwork')
-            ->assertSee('To make changes to your submitted requests, please contact us by')
+            ->assertSee('To make changes to your')->assertSee('prior submitted requests')
             ->assertDontSee('1. Confirm Your Paperwork Details')->assertDontSee('2. Request Additional Paperwork')
             ->assertDontSee('4. Recording and Your Deed');
         $this->assertNotNull($closing->fresh()->released_at);
@@ -137,7 +178,7 @@ class ClosingWorkflowTest extends TestCase
         $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
             ->assertSee('Step 2 reopened: Please clarify your beneficiary request.')
             ->assertSee('name="titling"', false)->assertSee('Submit paperwork details and requests')
-            ->assertDontSee('3. Complete and Sign Required Forms')->assertDontSee('4. Recording and Your Deed');
+            ->assertSee('3. Complete and Sign Required Forms')->assertSee('Please wait for an updated signing packet before signing or mailing forms.')->assertDontSee('I have mailed the original paperwork')->assertDontSee('4. Recording and Your Deed');
         $this->assertNull($closing->fresh()->released_at);
         $this->action($admin, $plan, 'review_extras', ['section_status' => 'complete'])->assertSessionHasErrors('closing');
     }

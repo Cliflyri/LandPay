@@ -43,9 +43,9 @@ class ClosingController extends Controller
     public function admin(Request $request, PaymentPlan $plan)
     {
         $data = $request->validate([
-            'action' => ['required', Rule::in(['save', 'start', 'resume', 'disable', 'review_details', 'review_extras', 'review_forms', 'release', 'ready', 'submit', 'complete', 'reopen', 'use_default_vesting', 'reopen_step', 'undo_progress'])],
+            'action' => ['required', Rule::in(['save', 'start', 'resume', 'disable', 'review_paperwork', 'review_details', 'review_extras', 'review_forms', 'release', 'ready', 'submit', 'complete', 'reopen', 'use_default_vesting', 'reopen_step', 'undo_progress'])],
             'version' => ['required', 'integer', 'min:0'],
-            'section' => ['required_if:action,reopen_step', Rule::in(['details', 'extras', 'forms'])],
+            'section' => ['required_if:action,reopen_step', Rule::in(['paperwork', 'details', 'extras', 'forms'])],
             'milestone' => ['required_if:action,undo_progress', Rule::in(['paperwork', 'ready', 'submitted', 'recorded'])],
             'reopen_instruction' => ['nullable', 'string', 'max:3000'],
             'admin_notes' => ['nullable', 'string', 'max:10000'],
@@ -104,6 +104,16 @@ class ClosingController extends Controller
             } elseif ($action === 'reopen') {
                 $this->workflow->require($closing->status === 'completed', 'Only completed closings can be reopened.');
                 $closing->fill(['status' => 'active', 'recorded_on' => null]);
+            } elseif ($action === 'review_paperwork') {
+                $this->workflow->require($closing->status !== 'completed', 'Reopen closing before changing an approval.');
+                $this->workflow->require(! empty($closing->details['combined_submission']) && ! empty($closing->details['confirmed'])
+                    && $closing->details_status !== 'draft' && filled($closing->extras_choice),
+                    'Await the combined confirmed client submission before approval.');
+                $details = $closing->details;
+                unset($details['reopen_steps'][1], $details['reopen_steps'][2], $details['reopen_steps']['1-2']);
+                $closing->fill(['details' => $details, 'details_status' => 'complete',
+                    'extras_status' => $closing->extras_choice === 'none' ? 'not_required' : 'complete']);
+                $context = ['section' => 'paperwork', 'details' => $details, 'extras_choice' => $closing->extras_choice];
             } elseif (str_starts_with($action, 'review_')) {
                 $this->workflow->require($closing->status !== 'completed', 'Reopen closing before changing an approval.');
                 $section = substr($action, 7);
@@ -227,12 +237,14 @@ class ClosingController extends Controller
             if (in_array($action, ['details', 'draft'], true)) {
                 $this->workflow->require(! $closing->paperworkReviewed(), 'Your requests are approved. Please contact us to request changes.');
                 $reopenNotes = $closing->details['reopen_steps'] ?? [];
+                $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
                 if ($action === 'details') {
                     $this->workflow->require(($data['beneficiary'] ?? '') !== 'yes' || $data['extras_choice'] === 'request',
                         'You requested a beneficiary deed. Select a special request in step 2, or update your beneficiary answer.');
                 }
                 $closing->details = ['titling' => $data['titling'] ?? '', 'owners' => array_values($data['owners']),
                     'beneficiary' => $data['beneficiary'] ?? '', 'confirmed' => $action === 'details',
+                    'packet_previously_released' => $packetPreviouslyReleased,
                     'combined_submission' => $action === 'details', 'reopen_steps' => $action === 'draft' ? $reopenNotes : []];
                 $closing->fill([
                     'details_status' => $action === 'details' ? 'submitted' : 'draft',

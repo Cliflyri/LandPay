@@ -50,7 +50,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
     </div></details>
 
     <details class="closing-step" @if($closing->details_status !== 'complete') open @endif>
-        <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->details_status }}">{{ $labels[$closing->details_status] }}</span> @if(in_array($closing->details_status,['complete','not_required']))<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-details">Reopen</button>@endif</summary>
+        <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->details_status }}">{{ $labels[$closing->details_status] }}</span></summary>
         <div class="closing-step-content">
             @include('closing.vesting-admin')
             @include('closing.documents',['documentKind'=>'vesting'])
@@ -72,16 +72,15 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
             <p>Beneficiary deed requested: {{ ucfirst($closing->details['beneficiary'] ?? 'Not answered') }}</p>
             <p>Client confirmation: {{ !empty($closing->details['confirmed']) ? 'Submitted and confirmed' : 'Draft only' }}</p>
             @else <p>No details submitted yet.</p> @endif
-            @include('closing.review',['section'=>'details'])
         </div>
     </details>
     <details class="closing-step" @if(!in_array($closing->extras_status,['complete','not_required'])) open @endif>
-        <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $labels[$closing->extras_status] }}</span> @if(in_array($closing->extras_status,['complete','not_required']))<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-extras">Reopen</button>@endif</summary>
+        <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $labels[$closing->extras_status] }}</span></summary>
         <div class="closing-step-content">
             <p>{{ $closing->extras_choice === 'request' ? 'Client requests discussion of additional paperwork for an additional fee.' : ($closing->extras_choice === 'none' ? 'Client selected no additional paperwork.' : 'No request submitted yet.') }}</p>
             <p style="white-space:pre-wrap">{{ $closing->extras_comments }}</p>
             <p class="small">Resolve special requirements and any fees before marking this step complete.</p>
-            @include('closing.review',['section'=>'extras'])
+            @include('closing.paperwork-review')
         </div>
     </details>
     <details class="closing-step" @if(!in_array($closing->forms_status,['complete','not_required'])) open @endif>
@@ -103,8 +102,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
             @php
             $releaseRequirements = [];
             if ($closing->status !== 'active') $releaseRequirements[] = 'Start or resume closing.';
-            if ($closing->details_status !== 'complete') $releaseRequirements[] = 'Approve the paperwork details in step 1.';
-            if (!in_array($closing->extras_status,['complete','not_required'])) $releaseRequirements[] = 'Resolve and approve additional paperwork in step 2.';
+            if (!$closing->paperworkReviewed()) $releaseRequirements[] = 'Approve paperwork details and requests in steps 1 and 2.';
             if ($closing->documents->where('kind','signing')->isEmpty()) $releaseRequirements[] = 'Upload at least one signing form above.';
             @endphp
             @if($releaseRequirements)
