@@ -267,6 +267,24 @@ class ClosingWorkflowTest extends TestCase
             ->assertSee('Download replacement.pdf')->assertDontSee('Download old.pdf')->assertDontSee('Download older.pdf');
     }
 
+    public function test_multiline_signing_instructions_preserve_format_and_release(): void
+    {
+        [$admin, , $plan, $account] = $this->records('MULTILINE');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'active', 'details_status' => 'complete',
+            'extras_status' => 'not_required', 'released_at' => now()]);
+        $this->assertStringContainsString("a) Please print", $closing->instructionsText());
+        $this->assertStringContainsString("\nb) Obtain", $closing->instructionsText());
+        $text = "a) Print both pages.\nb) Sign before a notary.\n\nMailing notes:\nUse the address on page 2.\nd) Keep a copy.";
+        $released = $closing->released_at->toDateTimeString();
+        $this->action($admin, $plan, 'save', ['instructions_text' => $text])->assertSessionHasNoErrors();
+        $this->assertSame($text, $closing->fresh()->instructionsText());
+        $this->assertSame($released, $closing->fresh()->released_at->toDateTimeString());
+        $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()->assertSee($text);
+        $this->actingAs($admin, 'web')->get(route('admin.plans.show', $plan))->assertOk()
+            ->assertSee('name="instructions_text"', false)->assertSee($text)->assertDontSee('name="instructions[0]"', false);
+    }
+
     private function guideFile(string $name = 'vesting.pdf'): UploadedFile
     {
         return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF");

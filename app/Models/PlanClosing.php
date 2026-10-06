@@ -139,6 +139,15 @@ class PlanClosing extends Model
         };
     }
 
+    public function instructionsText(): string
+    {
+        if (isset($this->signing_instructions['text'])) {
+            return $this->signing_instructions['text'];
+        }
+
+        return collect($this->instructions())->map(fn ($line, $i) => chr(97 + $i).') '.$line)->implode("\n");
+    }
+
     public function instructions(): array
     {
         return $this->signing_instructions ?? [

@@ -1,8 +1,5 @@
 @php($vestingDocuments = $closing->documents->where('kind','vesting'))
 <p>Please review the vesting form and contact us with any questions before submitting.</p>
-@if($closing->vesting_notes)
-<details class="mb-3"><summary>Vesting information</summary><p style="white-space:pre-wrap">{{ $closing->vesting_notes }}</p></details>
-@endif
 @forelse($vestingDocuments as $document)
     @php($guideUrl = route('portal.closing.documents.download',[$plan,$document]))
     @if(strtolower(pathinfo($document->name, PATHINFO_EXTENSION)) === 'pdf')

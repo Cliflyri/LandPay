@@ -107,9 +107,7 @@ $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
                 <div class="alert alert-warning">Your paperwork details are being reviewed. Please wait for an updated signing packet before signing or mailing forms.</div>
             @elseif(!$closing->released_at)<p>Forms being prepared. We will make the final signing packet available here after reviewing your details and any additional paperwork requests.</p>
             @else
-                <ol type="a" class="closing-instructions">
-                    @foreach($closing->instructions() as $instruction)<li>{{ $instruction }}</li>@endforeach
-                </ol>
+                <div class="closing-instructions mb-3" style="white-space:pre-wrap">{{ $closing->instructionsText() }}</div>
                 @foreach($closing->documents->where('kind','signing') as $document)
                     <p><a class="btn btn-outline-brand" href="{{ route('portal.closing.documents.download',[$plan,$document]) }}">Download {{ $document->name }}</a></p>
                 @endforeach

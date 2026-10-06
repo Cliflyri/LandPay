@@ -50,6 +50,7 @@ class ClosingController extends Controller
             'reopen_instruction' => ['nullable', 'string', 'max:3000'],
             'admin_notes' => ['nullable', 'string', 'max:10000'],
             'vesting_notes' => ['nullable', 'string', 'max:10000'],
+            'instructions_text' => ['sometimes', 'required', 'string', 'max:10000'],
             'instructions' => ['sometimes', 'array', 'size:3'],
             'instructions.*' => ['required', 'string', 'max:3000'],
             'client_note' => ['nullable', 'string', 'max:3000'],
@@ -87,7 +88,9 @@ class ClosingController extends Controller
                         $closing->{$field} = $data[$field];
                     }
                 }
-                if (array_key_exists('instructions', $data)) {
+                if (array_key_exists('instructions_text', $data)) {
+                    $closing->signing_instructions = ['text' => $data['instructions_text']];
+                } elseif (array_key_exists('instructions', $data)) {
                     $closing->signing_instructions = $data['instructions'];
                 }
             } elseif (in_array($action, ['start', 'resume'], true)) {

@@ -53,12 +53,6 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
         <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->details_status }}">{{ $labels[$closing->details_status] }}</span></summary>
         <div class="closing-step-content">
             @include('closing.vesting-admin')
-            @include('closing.documents',['documentKind'=>'vesting'])
-            <form method="post" action="{{ route('admin.closing.update',$plan) }}" class="mb-3">
-                @csrf <input type="hidden" name="version" value="{{ $closing->version }}"><input type="hidden" name="action" value="save">
-                <label>Vesting information<textarea name="vesting_notes" class="form-control" maxlength="10000">{{ old('vesting_notes',$closing->vesting_notes) }}</textarea></label>
-                <button class="btn btn-outline-brand">Save vesting information</button>
-            </form>
             @if($closing->details)
             <p><strong>Requested titling:</strong> {{ $closing->details['titling'] ?? '' }}</p>
             @foreach($closing->details['owners'] ?? [] as $owner)
@@ -93,9 +87,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
             <form method="post" action="{{ route('admin.closing.update',$plan) }}" class="mb-3">
                 @csrf <input type="hidden" name="version" value="{{ $closing->version }}"><input type="hidden" name="action" value="save">
             <h3>Review signing and mailing instructions</h3>
-            @foreach($closing->instructions() as $i => $instruction)
-            <label>{{ chr(97+$i) }})<textarea class="form-control" name="instructions[{{ $i }}]" required maxlength="3000">{{ old('instructions.'.$i,$instruction) }}</textarea></label>
-            @endforeach
+            <textarea class="form-control form-control-sm mb-2" name="instructions_text" rows="4" required maxlength="10000" aria-label="Signing and mailing instructions">{{ old('instructions_text',$closing->instructionsText()) }}</textarea>
                 <button class="btn btn-outline-brand">Save signing instructions</button>
             </form>
             @if(!$closing->released_at && $closing->status !== 'completed')
