@@ -76,7 +76,7 @@ class PaymentPlanController extends Controller
             );
         });
         $plans->setCollection($plans->getCollection()->sortByDesc(
-            fn (PaymentPlan $plan) => ((int) $plan->ready_to_close * 2) + (int) $plan->accelerated_testing_mode
+            fn (PaymentPlan $plan) => ((int) $plan->ready_to_close * 4) + ((int) $plan->closing_eligible * 2) + (int) $plan->accelerated_testing_mode
         )->values());
 
         return view('admin.plans.index', compact('plans', 'planStatus', 'planSearch'));

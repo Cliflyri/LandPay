@@ -405,6 +405,26 @@ class ClosingWorkflowTest extends TestCase
         return $invoice;
     }
 
+    public function test_ready_with_extra_invoice_sorts_between_satisfied_and_other_plans(): void
+    {
+        [$admin, , $ready] = $this->records('ZZREADY');
+        $this->extraInvoice($admin, $ready);
+        [, , $satisfied] = $this->records('ZSATISFIED');
+        [, , $other] = $this->records('AAAOTHER', false);
+        $other->update(['accelerated_testing_mode' => true]);
+        $expected = [$satisfied->id, $ready->id, $other->id];
+        $dashboard = $this->actingAs($admin, 'web')->get(route('admin.dashboard'))->assertOk();
+        $rows = $dashboard->viewData('plans')->getCollection();
+        $this->assertSame($expected, $rows->map(fn ($row) => $row['plan']->id)->all());
+        $readyRow = $rows->first(fn ($row) => $row['plan']->id === $ready->id);
+        $this->assertTrue($readyRow['closing_eligible']);
+        $this->assertFalse($readyRow['ready_to_close']);
+        $index = $this->get(route('admin.plans.index'))->assertOk();
+        $plans = $index->viewData('plans')->getCollection();
+        $this->assertSame($expected, $plans->pluck('id')->all());
+        $this->assertFalse($plans->firstWhere('id', $ready->id)->ready_to_close);
+    }
+
     public function test_trigger_ignores_extra_invoice_and_dismissal_is_per_admin(): void
     {
         [$admin,,$plan,$account] = $this->records();

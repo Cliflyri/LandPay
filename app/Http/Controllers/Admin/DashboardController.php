@@ -63,7 +63,7 @@ class DashboardController extends Controller
         $nextReminders = $this->reminderAutomation->eligible(Carbon::today(), true)->groupBy(fn ($item) => $item['invoice']->payment_plan_id);
         $plans->getCollection()->transform(fn (PaymentPlan $plan) => $this->dashboardRow($plan, $nextReminders->get($plan->id)?->first()));
         $plans->setCollection($plans->getCollection()->sortByDesc(
-            fn (array $row) => ((int) $row['ready_to_close'] * 2) + (int) $row['plan']->accelerated_testing_mode
+            fn (array $row) => ((int) $row['ready_to_close'] * 4) + ((int) $row['closing_eligible'] * 2) + (int) $row['plan']->accelerated_testing_mode
         )->values());
 
         return view('admin.dashboard', [
