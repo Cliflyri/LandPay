@@ -20,13 +20,13 @@ $adminProgress = $showUndo ?? false;
         <div class="closing-progress-controls">
             @if($date)
             <form method="post" action="{{ route('admin.closing.update',$plan) }}"
-                onsubmit="return confirm('Undo this milestone and clear later recording milestones? Undoing paperwork acceptance also reopens client step 3. The history will be retained.');">
+                onsubmit="return confirm('Undo this milestone and clear later recording milestones? Undoing paperwork acceptance also reopens client step 2. The history will be retained.');">
                 @csrf <input type="hidden" name="action" value="undo_progress"><input type="hidden" name="version" value="{{ $closing->version }}">
                 <input type="hidden" name="milestone" value="{{ ['paperwork','ready','submitted','recorded'][$index] }}">
                 <button class="btn btn-link btn-sm closing-progress-undo" aria-label="Undo {{ $label }}">Undo</button>
             </form>
             @elseif($index === 0)
-                <small>Accept the required paperwork in step 3 above.</small>
+                <small>Accept the required paperwork in step 2 above.</small>
             @elseif($closing->status === 'active')
                 @php
                 $milestone = [1=>'ready',2=>'submit',3=>'complete'][$index];

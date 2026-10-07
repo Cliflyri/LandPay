@@ -15,7 +15,7 @@ class ClosingNotificationService
     {
         $results = [];
         $nextStep = $closing->released_at && $closing->forms_status === 'needed'
-            ? 'Your signing packet is ready. Please review and complete step 3.'
+            ? 'Your signing packet is ready. Please review and complete step 2.'
             : 'Closing information is available. Please review your next steps.';
         $clients = $closing->paymentPlan->memberships()->whereNull('effective_to')->whereDate('effective_from', '<=', today())
             ->with('client')->get()->pluck('client')->unique('id');

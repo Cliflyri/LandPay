@@ -32,7 +32,7 @@ $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
     <div class="d-flex flex-wrap justify-content-between gap-2"><h2>Your Closing Process</h2><strong>Plan {{ $plan->plan_number }}</strong></div>
     @if($closing->details_status === 'draft' || $closing->extras_status === 'draft')
     <div class="alert alert-warning border-warning mt-3" role="status">
-        <strong>Not yet submitted.</strong> Complete sections 1 and 2, then submit them together below.
+        <strong>Not yet submitted.</strong> Complete your paperwork details and requests, then submit below.
     </div>
     @endif
     @if($closing->nextAction())
@@ -50,63 +50,62 @@ $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
         @if($requestsSubmitted)
         <p class="small">Your paperwork details and requests have been submitted and are awaiting admin review.</p>
         @else
-        <p class="small">Complete sections 1 and 2, then submit them together below.</p>
+        <p class="small">Complete your paperwork details and requests, then submit below.</p>
         @endif
-    <details class="closing-step" @if(!$requestsSubmitted && $closing->details_status !== 'complete') open @endif>
-        <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->details_status }}">{{ $statusLabels[$closing->details_status] }}</span></summary>
+    <details class="closing-step" @if(!$requestsSubmitted) open @endif>
+        <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->paperworkDisplayStatus() }}">{{ $statusLabels[$closing->paperworkDisplayStatus()] }}</span></summary>
         <div class="closing-step-content">
             <p>We need a few details in order to draft your paperwork.</p>
+            <h3>a) How would you like the property titled?</h3>
             @include('closing.vesting-preview')
                 <fieldset @disabled(!$requestsEditable)>
-                <label>How would you like the property titled?
+                <label>Requested titling <span class="text-muted">(required)</span>
                     <textarea name="titling" class="form-control" required maxlength="3000">{{ $details['titling'] ?? '' }}</textarea>
                 </label>
+                <hr class="my-3">
+                <h3>b) Proposed owner information</h3>
+                <p class="small">Provide the details below for each proposed owner. Mailing address is optional.</p>
                 <div data-owner-list>
                     @foreach($details['owners'] ?? [] as $ownerIndex => $owner) @include('closing.owner') @endforeach
                 </div>
                 <template>@include('closing.owner',['ownerIndex'=>'__INDEX__','owner'=>[]])</template>
                 <button type="button" class="btn btn-sm btn-outline-brand mb-3" data-add-owner>Add another proposed owner</button>
-                <label>Would you also like an additional beneficiary deed prepared for an additional fee?
-                    <select name="beneficiary" class="form-select" required>
-                        <option value="">Please choose</option>
-                        <option value="yes" @selected(($details['beneficiary'] ?? '') === 'yes')>Yes</option>
-                        <option value="no" @selected(($details['beneficiary'] ?? '') === 'no')>No</option>
-                    </select>
-                </label>
-                <p class="small">A beneficiary deed names someone to receive the land should you pass. We will discuss your request and the additional fee in step 2 before preparing paperwork.</p>
                 </fieldset>
-        </div>
-    </details>
-
-    <details class="closing-step" @if(!$requestsSubmitted && !in_array($closing->extras_status,['complete','not_required'])) open @endif>
-        <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $statusLabels[$closing->extras_status] }}</span></summary>
-        <div class="closing-step-content">
-            <p>Are you married with a spouse not listed on this paperwork?<br>Would you like to assign a beneficiary who receives the land should you pass away?<br>Do you have any other special cases or questions?</p>
-            <p>We can prepare additional paperwork <u>for an additional fee</u>. Please discuss your request with us prior to signing.</p>
-            @if(($details['beneficiary'] ?? '') === 'yes')<div class="alert alert-info">You requested a beneficiary deed in step 1. Please discuss the details below.</div>@endif
+            <hr class="my-3">
+            <h3>c) Would you like a beneficiary deed or other special paperwork prepared for an additional fee?</h3>
+            <p class="mb-1">Examples include:</p>
+            <ul>
+                <li>Naming someone to receive your property should you pass away.</li>
+                <li>Addressing paperwork for a spouse who is not listed.</li>
+                <li>Other special circumstances or questions.</li>
+            </ul>
+            <p>We'll discuss any requirements and fees with you before preparing additional paperwork. Please contact us with questions before signing.</p>
                 <fieldset @disabled(!$requestsEditable)>
-                @php($choice = $ownOld ? old('extras_choice',$closing->extras_choice) : $closing->extras_choice)
-                <label><input type="radio" name="extras_choice" value="none" required @checked($choice==='none')> No additional paperwork needed</label>
-                <label><input type="radio" name="extras_choice" value="request" required @checked($choice==='request')> I'd like to discuss a special request</label>
-                <label>Comments <span class="text-muted">(required for a special request)</span><textarea name="extras_comments" class="form-control" maxlength="5000">{{ $ownOld ? old('extras_comments',$closing->extras_comments) : $closing->extras_comments }}</textarea></label>
+                @php($choice = $ownOld ? old('extras_choice') : ((!empty($details['beneficiary']) && $details['beneficiary'] === 'yes' && empty($details['special_paperwork_question'])) ? 'request' : $closing->extras_choice))
+                <p class="small">Please select Yes or No (required).</p>
+                <label><input type="radio" name="extras_choice" value="none" required @checked($choice==='none')> No additional paperwork requested</label>
+                <label><input type="radio" name="extras_choice" value="request" required @checked($choice==='request')> Yes, I'd like to discuss additional paperwork</label>
+                <label>Comments <span class="text-muted">(required for Yes; optional for No)</span><textarea name="extras_comments" class="form-control" maxlength="5000">{{ $ownOld ? old('extras_comments',$closing->extras_comments) : $closing->extras_comments }}</textarea></label>
                 </fieldset>
-        </div>
-    </details>
 
         @if($requestsEditable)
+        <h3>d) Review and submit</h3>
         <div class="border rounded p-3 mb-3">
-            <label><input type="checkbox" name="confirmed" value="1" required> I have reviewed my paperwork details and additional-paperwork choices in sections 1 and 2 and confirm they are correct.</label>
+            
+            <label><input type="checkbox" name="confirmed" value="1" required> I have reviewed my paperwork details and additional-paperwork choices and confirm they are correct.</label>
             <button class="btn btn-outline-brand" name="action" value="draft" formnovalidate>Save draft</button>
             <button class="btn btn-brand" name="action" value="details">Submit paperwork details and requests</button>
-            <p class="small text-muted mt-2 mb-0">Saving a draft does not submit your information. Changes after submission require review of both sections again before signing.</p>
+            <p class="small text-muted mt-2 mb-0">Saving a draft does not submit your information. Changes after submission require review again before signing.</p>
         </div>
         @endif
+        </div>
+    </details>
     </form>
 
     @endif
     @if(($closing->paperworkReviewed() || $packetPreviouslyReleased) && !in_array($closing->forms_status,['complete','not_required']))
     <details class="closing-step" open>
-        <summary>3. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $closing->formsLabel() }}</span></summary>
+        <summary>2. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $closing->formsLabel() }}</span></summary>
         <div class="closing-step-content">
             @if($closing->forms_status === 'not_required')<p>No signed forms are required for this closing.</p>
             @elseif(!$closing->released_at && $packetPreviouslyReleased)

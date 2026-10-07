@@ -55,12 +55,15 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
         </form>
     </div></details>
 
-    <details class="closing-step" id="closing-admin-details" @if($closing->details_status !== 'complete') open @endif>
-        <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->details_status }}">{{ $labels[$closing->details_status] }}</span></summary>
+    <details class="closing-step" id="closing-admin-details" @if(!$closing->paperworkReviewed()) open @endif>
+        <summary>1. Confirm Your Paperwork Details <span class="closing-status {{ $closing->paperworkDisplayStatus() }}">{{ $closing->paperworkReviewed() ? 'Details and requests approved' : $labels[$closing->paperworkDisplayStatus()] }}</span>
+        @if($closing->paperworkReviewed())<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-paperwork">Reopen details and requests</button>@endif</summary>
         <div class="closing-step-content">
+            <h3>a) How would you like the property titled?</h3>
             @include('closing.vesting-admin')
             @if($closing->details)
             <p><strong>Requested titling:</strong> {{ $closing->details['titling'] ?? '' }}</p>
+            <h3>b) Proposed owner information</h3>
             @foreach($closing->details['owners'] ?? [] as $owner)
             <div class="closing-owner">
                 <strong>{{ $owner['name'] ?? '' }}</strong>
@@ -69,23 +72,21 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
                 <p>Married: {{ ucfirst($owner['married'] ?? 'Not answered') }}</p>
             </div>
             @endforeach
-            <p>Beneficiary deed requested: {{ ucfirst($closing->details['beneficiary'] ?? 'Not answered') }}</p>
+            @if(!empty($closing->details['beneficiary']))
+            <p class="small">Previous beneficiary deed answer: {{ ucfirst($closing->details['beneficiary']) }}. Retained for reference; review the current request below.</p>
+            @endif
             <p>Client confirmation: {{ !empty($closing->details['confirmed']) ? 'Submitted and confirmed' : 'Draft only' }}</p>
             @else <p>No details submitted yet.</p> @endif
-        </div>
-    </details>
-    <details class="closing-step" id="closing-admin-extras" @if(!in_array($closing->extras_status,['complete','not_required'])) open @endif>
-        <summary>2. Request Additional Paperwork <span class="closing-status {{ $closing->extras_status }}">{{ $closing->paperworkReviewed() ? 'Details and requests approved' : $labels[$closing->extras_status] }}</span>
-        @if($closing->paperworkReviewed())<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-paperwork">Reopen details and requests</button>@endif</summary>
-        <div class="closing-step-content">
-            <p>{{ $closing->extras_choice === 'request' ? 'Client requests discussion of additional paperwork for an additional fee.' : ($closing->extras_choice === 'none' ? 'Client selected no additional paperwork.' : 'No request submitted yet.') }}</p>
+            <hr class="my-3">
+            <h3>c) Beneficiary deed or other special paperwork</h3>
+            <p>{{ ($closing->extras_choice === 'request' || (($closing->details['beneficiary'] ?? '') === 'yes' && empty($closing->details['special_paperwork_question']))) ? 'Client requests discussion of additional paperwork for an additional fee.' : ($closing->extras_choice === 'none' ? 'Client selected no additional paperwork.' : 'No request submitted yet.') }}</p>
             <p style="white-space:pre-wrap">{{ $closing->extras_comments }}</p>
             <p class="small">Resolve special requirements and any fees before marking this step complete.</p>
             @include('closing.paperwork-review')
         </div>
     </details>
     <details class="closing-step" id="closing-admin-forms" @if($formsOpen) open @endif>
-        <summary>3. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $formsSummary }}</span> @if(in_array($closing->forms_status,['complete','not_required']))<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-forms">Reopen</button>@endif</summary>
+        <summary>2. Complete and Sign Required Forms <span class="closing-status {{ $closing->forms_status }}">{{ $formsSummary }}</span> @if(in_array($closing->forms_status,['complete','not_required']))<button type="button" class="btn btn-sm btn-outline-secondary" data-closing-reopen="closing-reopen-forms">Reopen</button>@endif</summary>
         <div class="closing-step-content">
             <p>{{ $closing->released_at ? 'Signing packet released '.$closing->released_at->format('M j, Y g:i A').'.' : 'Signing forms remain private until you release the final packet.' }}</p>
             @if($closing->forms_status === 'submitted')<div class="alert alert-info">Client reports mailing originals. Confirm receipt and acceptance before completing this step.</div>@endif
@@ -104,7 +105,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
             @php
             $releaseRequirements = [];
             if ($closing->status !== 'active') $releaseRequirements[] = 'Start or resume closing.';
-            if (!$closing->paperworkReviewed()) $releaseRequirements[] = 'Approve paperwork details and requests in steps 1 and 2.';
+            if (!$closing->paperworkReviewed()) $releaseRequirements[] = 'Approve paperwork details and requests in step 1.';
             if ($closing->documents->where('kind','signing')->isEmpty()) $releaseRequirements[] = 'Upload at least one signing form above.';
             @endphp
             @if($releaseRequirements)
@@ -115,7 +116,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
             @endif
             <form method="post" action="{{ route('admin.closing.update',$plan) }}" class="mb-3">
                 @csrf <input type="hidden" name="action" value="release"><input type="hidden" name="version" value="{{ $closing->version }}">
-                <label><input type="checkbox" name="notify_client" value="1" @disabled(count($releaseRequirements) > 0)> Notify client by email and eligible SMS that step 3 is ready</label>
+                <label><input type="checkbox" name="notify_client" value="1" @disabled(count($releaseRequirements) > 0)> Notify client by email and eligible SMS that step 2 is ready</label>
                 <button class="btn btn-brand" @disabled(count($releaseRequirements) > 0) @if($releaseRequirements) aria-describedby="closing-release-requirements" @endif>Release final signing packet</button>
             </form>
             @endif
@@ -126,7 +127,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
     </details>
 
     <details class="closing-step" @if($closing->paperwork_accepted_at) open @endif>
-        <summary>4. Recording and Your Deed</summary><div class="closing-step-content">
+        <summary>3. Recording and Your Deed</summary><div class="closing-step-content">
         @include('closing.progress',['showUndo'=>true])
         <h3>Recorded documents</h3>
         @include('closing.documents',['documentKind'=>'recorded'])

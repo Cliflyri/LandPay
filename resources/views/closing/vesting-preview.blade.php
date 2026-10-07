@@ -1,10 +1,20 @@
 @php($vestingDocuments = $closing->documents->where('kind','vesting'))
-<p>Please review the vesting form and contact us with any questions before submitting.</p>
+<p>Please review the vesting guide and contact us with any questions before submitting.</p>
 @forelse($vestingDocuments as $document)
     @php($guideUrl = route('portal.closing.documents.download',[$plan,$document]))
     @if(strtolower(pathinfo($document->name, PATHINFO_EXTENSION)) === 'pdf')
-    <button type="button" class="btn btn-outline-brand mb-3" data-bs-toggle="modal" data-bs-target="#vesting-guide-{{ $document->id }}">View vesting guide</button>
-    <a class="btn btn-outline-brand mb-3" href="{{ $guideUrl }}">Download PDF</a>
+<button type="button" class="btn btn-brand mb-3"
+    style="padding:3px 8px; font-size:13px;"
+    data-bs-toggle="modal"
+    data-bs-target="#vesting-guide-{{ $document->id }}">
+    View vesting guide
+</button>
+
+<a class="btn btn-outline-brand mb-3"
+    style="padding:3px 8px; font-size:13px;"
+    href="{{ $guideUrl }}">
+    Download PDF
+</a>
     <div class="modal fade" id="vesting-guide-{{ $document->id }}" tabindex="-1" aria-labelledby="vesting-title-{{ $document->id }}" aria-hidden="true" data-vesting-modal>
         <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-sm-down"><div class="modal-content">
             <div class="modal-header">

@@ -91,7 +91,7 @@ class ClosingWorkflowService
         if ($section === 'forms') {
             $closing->fill(['forms_status' => 'needed', 'paperwork_accepted_at' => null,
                 'ready_on' => null, 'submitted_on' => null, 'recorded_on' => null, 'recording_reference' => null]);
-            $default = 'Please review the signing instructions and complete step 3 again. Contact us with any questions.';
+            $default = 'Please review the signing instructions and complete step 2 again. Contact us with any questions.';
         } else {
             $this->reopenPaperwork($closing);
             $details['packet_previously_released'] = ! empty($closing->details['packet_previously_released']);
@@ -101,7 +101,7 @@ class ClosingWorkflowService
             $details['confirmed'] = false;
             $details['combined_submission'] = false;
             unset($notes[3]);
-            $default = 'Please review and correct section '.$step.', then submit sections 1 and 2 together again.';
+            $default = 'Please review and correct your paperwork details and requests, then submit again.';
         }
         $notes[$step] = filled($instruction) ? $instruction : $default;
         $details['reopen_steps'] = $notes;

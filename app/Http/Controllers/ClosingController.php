@@ -108,7 +108,7 @@ class ClosingController extends Controller
                 $this->workflow->require($closing->status === 'completed', 'Only completed closings can be reopened.');
                 $closing->fill(['status' => 'active', 'recorded_on' => null]);
             } elseif ($action === 'review_paperwork') {
-                $this->workflow->require($closing->status !== 'completed', 'Reopen closing before changing an approval.');
+                $this->workflow->require($closing->status === 'active', 'Start or resume closing before approving paperwork.');
                 $this->workflow->require(! empty($closing->details['combined_submission']) && ! empty($closing->details['confirmed'])
                     && $closing->details_status !== 'draft' && filled($closing->extras_choice),
                     'Await the combined confirmed client submission before approval.');
@@ -223,7 +223,7 @@ class ClosingController extends Controller
                 'owners.*.address' => [$required, 'string', 'max:2000'],
                 'owners.*.mailing_address' => ['nullable', 'string', 'max:2000'],
                 'owners.*.married' => [$required, Rule::in(['yes', 'no'])],
-                'beneficiary' => [$required, Rule::in(['yes', 'no'])],
+                'beneficiary' => ['nullable', Rule::in(['yes', 'no'])],
                 'extras_choice' => [$required, Rule::in(['none', 'request'])],
                 'extras_comments' => $action === 'details'
                     ? ['nullable', 'required_if:extras_choice,request', 'string', 'max:5000']
@@ -243,10 +243,11 @@ class ClosingController extends Controller
                 $packetPreviouslyReleased = $closing->packetPreviouslyReleased();
                 if ($action === 'details') {
                     $this->workflow->require(($data['beneficiary'] ?? '') !== 'yes' || $data['extras_choice'] === 'request',
-                        'You requested a beneficiary deed. Select a special request in step 2, or update your beneficiary answer.');
+                        'You requested a beneficiary deed. Select a special request below, or update your beneficiary answer.');
                 }
                 $closing->details = ['titling' => $data['titling'] ?? '', 'owners' => array_values($data['owners']),
-                    'beneficiary' => $data['beneficiary'] ?? '', 'confirmed' => $action === 'details',
+                    'beneficiary' => $data['beneficiary'] ?? ($closing->details['beneficiary'] ?? ''),
+                    'special_paperwork_question' => !array_key_exists('beneficiary', $data), 'confirmed' => $action === 'details',
                     'packet_previously_released' => $packetPreviouslyReleased,
                     'combined_submission' => $action === 'details', 'reopen_steps' => $action === 'draft' ? $reopenNotes : []];
                 $closing->fill([
@@ -271,8 +272,8 @@ class ClosingController extends Controller
                     'type' => 'closing_submission', 'client_id' => $request->user('client')->client_id,
                     'payment_plan_id' => $closing->payment_plan_id, 'title' => 'Closing paperwork update',
                     'message' => $action === 'mailed'
-                        ? 'Client reports mailing signed forms. Please confirm receipt and review step 3.'
-                        : 'Client submitted sections 1 and 2. Please review.',
+                        ? 'Client reports mailing signed forms. Please confirm receipt and review step 2.'
+                        : 'Client submitted step 1. Please review.',
                 ]);
             }
         });

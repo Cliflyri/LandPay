@@ -16,7 +16,7 @@
         @csrf <input type="hidden" name="action" value="reopen_step"><input type="hidden" name="section" value="{{ $section }}">
         <input type="hidden" name="version" value="{{ $closing->version }}">
         <label>Instructions for the client
-            <textarea class="form-control" name="reopen_instruction" maxlength="3000" required>{{ $section === 'forms' ? 'Please review the signing instructions and complete step 3 again. Contact us with any questions.' : 'Please review and correct section '.($section === 'details' ? '1' : '2').', then submit sections 1 and 2 together again.' }}</textarea>
+            <textarea class="form-control" name="reopen_instruction" maxlength="3000" required>{{ $section === 'forms' ? 'Please review the signing instructions and complete step 2 again. Contact us with any questions.' : 'Please review and correct your paperwork details and requests, then submit again.' }}</textarea>
         </label>
         <p class="small">Reopening restores the client controls and yellow instruction banner, and clears later recording milestones. History is retained.</p>
         <button class="btn btn-outline-brand">Reopen step and show client instructions</button>

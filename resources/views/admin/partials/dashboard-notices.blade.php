@@ -26,9 +26,9 @@
                 <p class="mb-0"><a href="{{route('admin.clients.show',$notice->client)}}">{{$noticeClientName}}</a> has draft plan
                     <a href="{{route('admin.plans.show',$notice->paymentPlan)}}">{{$notice->paymentPlan->plan_number}}</a> awaiting activation.
                 </p>
-                <p class="mb-0">{{$notice->message}}</p>
+                <p class="mb-0">{{ $notice->type === 'closing_submission' ? \App\Models\PlanClosing::currentStepWording($notice->message) : $notice->message }}</p>
             @else
-                <p class="mb-0">{{$notice->message}}</p>
+                <p class="mb-0">{{ $notice->type === 'closing_submission' ? \App\Models\PlanClosing::currentStepWording($notice->message) : $notice->message }}</p>
             @endif
             @if($notice->paymentIntent?->overpayment_disposition)<p class="mb-0 mt-1"><strong>Client overpayment instruction:</strong> {{$notice->paymentIntent->overpayment_disposition === 'next_invoice_credit' ? 'Keep extra as account credit.' : 'Apply extra to principal.'}}</p>@endif
             @if(filled($notice->paymentIntent?->client_note))

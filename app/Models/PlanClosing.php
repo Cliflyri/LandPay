@@ -50,6 +50,27 @@ class PlanClosing extends Model
         return in_array($this->status, ['active', 'completed'], true);
     }
 
+    public function paperworkDisplayStatus(): string
+    {
+        if ($this->paperworkReviewed()) return 'complete';
+        foreach (['needed', 'draft', 'submitted'] as $status) {
+            if (in_array($status, [$this->details_status, $this->extras_status], true)) return $status;
+        }
+        return 'needed';
+    }
+
+    public static function currentStepWording(string $text): string
+    {
+        return strtr($text, [
+            'complete step 3 again' => 'complete step 2 again',
+            'review step 3.' => 'review step 2.',
+            'sections 1 and 2 together again' => 'your paperwork details and requests again',
+            'sections 1 and 2' => 'step 1',
+            'correct section 2,' => 'correct your paperwork requests,',
+            'correct section 1,' => 'correct your paperwork details,',
+        ]);
+    }
+
     public function paperworkReviewed(): bool
     {
         return $this->details_status === 'complete' && in_array($this->extras_status, ['complete', 'not_required'], true);
@@ -77,7 +98,7 @@ class PlanClosing extends Model
         $reopened = $this->details['reopen_steps'] ?? [];
         if ($reopened) {
             return ($admin ? 'Awaiting client action. ' : '').collect($reopened)->map(
-                fn ($note, $step) => 'Step '.$step.' reopened: '.$note
+                fn ($note, $step) => 'Step '.((string) $step === '3' ? '2' : '1').' reopened: '.self::currentStepWording($note)
             )->implode(' ');
         }
         $reviews = [];
@@ -89,7 +110,7 @@ class PlanClosing extends Model
         }
         if ($reviews) {
             return $admin
-                ? 'Client submitted sections '.implode(' and ', $reviews).'. Please review below.'
+                ? 'Client submitted step 1. Please review below.'
                 : 'Your paperwork details and requests have been submitted. Please wait for admin review.';
         }
         if ($this->details_status !== 'complete' || ! in_array($this->extras_status, ['complete', 'not_required'], true)) {
@@ -97,34 +118,34 @@ class PlanClosing extends Model
                 return null;
             }
 
-            return $admin ? 'Client information incomplete — awaiting combined submission of sections 1 and 2.'
-                : 'Please complete sections 1 and 2, then submit them together below.';
+            return $admin ? 'Client information incomplete — awaiting combined submission of step 1.'
+                : 'Please complete your paperwork details and requests, then submit below.';
         }
         if ($this->paperwork_accepted_at) {
             if ($admin) {
                 return $this->submitted_on
-                    ? 'County paperwork submitted. Confirm recording in step 4 when available.'
-                    : ($this->ready_on ? 'Ready for recording. Submit the county paperwork and update step 4.'
-                        : 'Required paperwork accepted. Review balances and complete the recording steps in step 4.');
+                    ? 'County paperwork submitted. Confirm recording in step 3 when available.'
+                    : ($this->ready_on ? 'Ready for recording. Submit the county paperwork and update step 3.'
+                        : 'Required paperwork accepted. Review balances and complete the recording steps in step 3.');
             }
 
             return $this->submitted_on
-                ? 'Your paperwork has been submitted to the county. View the recording progress in step 4.'
-                : 'Your required paperwork has been accepted. View the next stage in step 4; no further paperwork action is needed now.';
+                ? 'Your paperwork has been submitted to the county. View the recording progress in step 3.'
+                : 'Your required paperwork has been accepted. View the next stage in step 3; no further paperwork action is needed now.';
         }
         if ($this->forms_status === 'submitted') {
             return $admin
-                ? 'Client reports mailing signed forms. Please confirm receipt and review step 3.'
+                ? 'Client reports mailing signed forms. Please confirm receipt and review step 2.'
                 : 'Your mailing update was received. Please wait for confirmation that your signed forms have been accepted.';
         }
         if ($this->released_at) {
             return $admin
-                ? 'Signing packet released. Awaiting the client’s signed forms for step 3.'
-                : 'Your signing packet is ready. Please review and complete step 3 below.';
+                ? 'Signing packet released. Awaiting the client’s signed forms for step 2.'
+                : 'Your signing packet is ready. Please review and complete step 2 below.';
         }
 
-        return $admin ? 'Client information approved. Prepare and release the signing packet in step 3.'
-            : 'Your paperwork details and requests have been reviewed. We are preparing your signing packet for step 3.';
+        return $admin ? 'Client information approved. Prepare and release the signing packet in step 2.'
+            : 'Your paperwork details and requests have been reviewed. We are preparing your signing packet for step 2.';
     }
 
     public function formsLabel(bool $admin = false): string

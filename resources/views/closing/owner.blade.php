@@ -1,15 +1,15 @@
 <fieldset class="closing-owner" data-owner>
-    <legend>Proposed owner</legend>
-    <label>Full legal name <span class="text-muted">(including middle name, if present)</span>
+    <legend><strong>Proposed owner</strong></legend>
+    <label>Full legal name (required) <span class="text-muted">(including middle name, if present)</span>
         <input class="form-control" name="owners[{{ $ownerIndex }}][name]" value="{{ $owner['name'] ?? '' }}" maxlength="255" required autocomplete="name">
     </label>
-    <label>Full legal address
+    <label>Full legal address (required)
         <textarea class="form-control" name="owners[{{ $ownerIndex }}][address]" maxlength="2000" required>{{ $owner['address'] ?? '' }}</textarea>
     </label>
     <label>Mailing address <span class="text-muted">(optional, if different)</span>
         <textarea class="form-control" name="owners[{{ $ownerIndex }}][mailing_address]" maxlength="2000">{{ $owner['mailing_address'] ?? '' }}</textarea>
     </label>
-    <label>Are you married?
+    <label>Are you married? (required)
         <select class="form-select" name="owners[{{ $ownerIndex }}][married]" required>
             <option value="">Please choose</option>
             <option value="yes" @selected(($owner['married'] ?? '') === 'yes')>Yes</option>

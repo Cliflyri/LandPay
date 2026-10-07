@@ -22,12 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = event.target.closest('details');
             if (section) section.open = true;
         }, true);
-        const beneficiary = form.querySelector('[name="beneficiary"]');
-        beneficiary.addEventListener('change', () => {
-            if (beneficiary.value === 'yes') {
-                form.querySelector('[name="extras_choice"][value="request"]').checked = true;
-            }
-        });
+        const comments = form.querySelector('[name="extras_comments"]');
+        const updateComments = () => {
+            comments.required = form.querySelector('[name="extras_choice"]:checked')?.value === 'request';
+        };
+        form.querySelectorAll('[name="extras_choice"]').forEach(input => input.addEventListener('change', updateComments));
+        updateComments();
     });
     document.querySelectorAll('[data-vesting-modal]').forEach(modal => {
         // Keep modal outside collapsible/stacking containers and load the PDF only when requested.
