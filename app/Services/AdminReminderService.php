@@ -8,9 +8,9 @@ class AdminReminderService{
  public function __construct(private readonly AdminNoticeEmailService $emails){}
  public function processDue(?Carbon $at=null):int{
   if(!Schema::hasTable('admin_reminders'))return 0;
-  $now=($at?:now())->copy()->timezone(config('app.timezone'));$period=$now->format('Y-m');$created=0;
-  AdminReminder::query()->where('active',true)->where('recurrence_type','monthly')->each(function(AdminReminder $reminder)use($now,$period,&$created):void{
-   $due=$now->copy()->startOfMonth()->day(min($reminder->day_of_month,$now->daysInMonth))->setTimeFromTimeString($reminder->display_time);
+  $now=($at?:now())->copy()->timezone(config('app.timezone'));$created=0;
+  AdminReminder::query()->where('active',true)->each(function(AdminReminder $reminder)use($now,&$created):void{
+   $period=$reminder->period($now);$due=$reminder->dueAt($now);
    if($now->lt($due))return;
    $occurrence=AdminReminderOccurrence::query()->firstOrCreate(
     ['admin_reminder_id'=>$reminder->id,'period'=>$period],['due_at'=>$due]
@@ -29,9 +29,9 @@ class AdminReminderService{
  public function dueFor(User $user,?Carbon $at=null):Collection{
   if(!Schema::hasTable('admin_reminder_occurrences'))return collect();
   $now=($at?:now())->copy()->timezone(config('app.timezone'));
-  return AdminReminderOccurrence::query()->where('period',$now->format('Y-m'))
+  return AdminReminderOccurrence::query()->where('due_at','<=',$now)
    ->whereHas('reminder',fn($q)=>$q->where('active',true))
    ->whereDoesntHave('dismissals',fn($q)=>$q->where('user_id',$user->id))
-   ->with('reminder')->orderBy('due_at')->get();
+   ->with('reminder')->orderBy('due_at')->get()->filter(fn($occurrence)=>$occurrence->period===$occurrence->reminder->period($now))->values();
  }
 }

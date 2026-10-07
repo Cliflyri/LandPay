@@ -23,10 +23,13 @@ class AdminReminderController extends Controller{
  private function data(Request $request):array{
   $data=$request->validate([
    'title'=>['required','string','max:150'],'message'=>['nullable','string','max:1000'],
-   'day_of_month'=>['required','integer','between:1,31'],'display_time'=>['required','date_format:H:i'],
-   'destination'=>['required',Rule::in(array_keys(AdminReminder::DESTINATIONS))],
+   'recurrence_type'=>['sometimes',Rule::in(['weekly','monthly','annually'])],
+   'day_of_week'=>['nullable','required_if:recurrence_type,weekly','integer','between:1,7'],
+   'month_of_year'=>['nullable','required_if:recurrence_type,annually','integer','between:1,12'],
+   'day_of_month'=>['required_unless:recurrence_type,weekly','integer','between:1,31'],'display_time'=>['required','date_format:H:i'],
+   'destination'=>['sometimes',Rule::in(array_keys(AdminReminder::DESTINATIONS))],
    'send_email'=>['nullable','boolean'],'active'=>['nullable','boolean'],
   ]);
-  return $data+['send_email'=>$request->boolean('send_email'),'active'=>$request->boolean('active')];
+  return $data+['day_of_month'=>1,'recurrence_type'=>'monthly','destination'=>'notification_only','send_email'=>$request->boolean('send_email'),'active'=>$request->boolean('active')];
  }
 }

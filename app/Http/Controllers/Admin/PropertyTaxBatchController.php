@@ -13,7 +13,7 @@ class PropertyTaxBatchController extends Controller
  public function __construct(private readonly PropertyTaxBatchService $service){}
  public function index(Request $request):View
  {
-  $query=PropertyTaxBatch::query()->withCount(['rows','rows as existing_invoice_count'=>fn($q)=>$q->whereNotNull('existing_invoice_id')])->latest();
+  $query=PropertyTaxBatch::query()->withCount(['rows as processed_matches_count'=>fn($q)=>$q->whereIn('issuance_status',['created','no_tax_due']),'rows as existing_invoice_count'=>fn($q)=>$q->whereNotNull('existing_invoice_id')])->latest();
   if(in_array($request->status,['draft','issued','partially_issued','not_issued'],true))$query->where('status',$request->status);
   if($request->email==='failed')$query->whereHas('rows',fn($q)=>$q->where('email_status','failed'));
   return view('admin.property-taxes.index',['batches'=>$query->paginate(25)->withQueryString()]);

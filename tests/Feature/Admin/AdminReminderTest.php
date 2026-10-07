@@ -42,4 +42,46 @@ class AdminReminderTest extends TestCase{
   $this->get(route('admin.dashboard'))->assertDontSee('Monthly task');
   $this->actingAs($two)->get(route('admin.dashboard'))->assertSee('Monthly task');
  }
+
+ public function test_weekly_notification_only_repeats_after_dismissal():void{
+  Mail::fake();Carbon::setTestNow('2026-10-07 07:59:00');
+  $admin=User::factory()->create();
+  AppSetting::putMany(['admin_notice_email_address'=>'admin@example.com','admin_notice_email_scheduled_reminders'=>'1']);
+  $this->actingAs($admin)->post(route('admin.reminders.store'),[
+   'title'=>'Weekly review','message'=>'Review tasks','recurrence_type'=>'weekly','day_of_week'=>3,
+   'display_time'=>'08:00','send_email'=>1,'active'=>1,
+  ])->assertSessionHasNoErrors();
+  $reminder=AdminReminder::query()->where('title','Weekly review')->firstOrFail();
+  $this->assertSame('notification_only',$reminder->destination);
+  $service=app(AdminReminderService::class);
+  $this->assertSame(0,$service->processDue());
+  Carbon::setTestNow('2026-10-07 08:00:00');
+  $this->assertSame(1,$service->processDue());$this->assertSame(0,$service->processDue());
+  $mail=Mail::sent(AdminNoticeMail::class)->sole();
+  $this->assertNull($mail->adminUrl);
+  $this->get(route('admin.dashboard'))->assertOk()->assertSee('Weekly review')->assertDontSee('Open Notification only');
+  $this->post(route('admin.reminders.dismiss',$service->dueFor($admin)->sole()))->assertSessionHas('success');
+  $this->assertCount(0,$service->dueFor($admin));
+  Carbon::setTestNow('2026-10-14 08:00:00');
+  $this->assertSame(1,$service->processDue());$this->assertCount(1,$service->dueFor($admin));
+ }
+ public function test_annual_schedule_clamps_leap_day_and_remains_visible_in_later_months():void{
+  Mail::fake();$admin=User::factory()->create();
+  $this->actingAs($admin)->post(route('admin.reminders.store'),[
+   'title'=>'Annual review','recurrence_type'=>'annually','month_of_year'=>2,'day_of_month'=>29,
+   'display_time'=>'08:00','destination'=>'notification_only','active'=>1,
+  ])->assertSessionHasNoErrors();
+  $service=app(AdminReminderService::class);
+  Carbon::setTestNow('2027-02-28 07:59:00');$this->assertSame(0,$service->processDue());
+  Carbon::setTestNow('2027-02-28 08:00:00');$this->assertSame(1,$service->processDue());
+  Carbon::setTestNow('2027-03-01 08:00:00');$this->assertSame(0,$service->processDue());$this->assertCount(1,$service->dueFor($admin));
+  Carbon::setTestNow('2028-02-28 08:00:00');$this->assertSame(0,$service->processDue());$this->assertCount(0,$service->dueFor($admin));
+  Carbon::setTestNow('2028-02-29 08:00:00');$this->assertSame(1,$service->processDue());$this->assertCount(1,$service->dueFor($admin));
+ }
+ public function test_recurrence_fields_are_required_and_form_renders():void{
+  $this->actingAs(User::factory()->create())->get(route('admin.reminders.create'))->assertOk()->assertSee('Notification only')->assertSee('Annually')->assertSee('Weekly');
+  $base=['title'=>'Task','display_time'=>'08:00','destination'=>'notification_only'];
+  $this->post(route('admin.reminders.store'),$base+['recurrence_type'=>'weekly'])->assertSessionHasErrors('day_of_week');
+  $this->post(route('admin.reminders.store'),$base+['recurrence_type'=>'annually','day_of_month'=>1])->assertSessionHasErrors('month_of_year');
+ }
 }

@@ -5,8 +5,8 @@
  <div class="amendment-entry"><div><strong>{{$occurrence->reminder->title}}</strong>
   @if($occurrence->reminder->message)<p class="mb-0">{{$occurrence->reminder->message}}</p>@endif
  </div><div class="d-flex gap-2 flex-shrink-0">
-  <a class="btn btn-sm btn-brand" href="{{$occurrence->reminder->destinationUrl()}}">Open {{$occurrence->reminder->destinationLabel()}}</a>
-  <form method="post" action="{{route('admin.reminders.dismiss',$occurrence)}}">@csrf<button class="btn btn-sm btn-outline-brand">Dismiss for {{now()->format('F')}}</button></form>
+  @if($occurrence->reminder->destinationUrl())<a class="btn btn-sm btn-brand" href="{{$occurrence->reminder->destinationUrl()}}">Open {{$occurrence->reminder->destinationLabel()}}</a>@endif
+  <form method="post" action="{{route('admin.reminders.dismiss',$occurrence)}}">@csrf<button class="btn btn-sm btn-outline-brand">Dismiss</button></form>
  </div></div>
  @endforeach
 </div>

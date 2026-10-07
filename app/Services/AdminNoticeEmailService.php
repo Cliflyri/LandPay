@@ -82,6 +82,7 @@ class AdminNoticeEmailService
 
     private function url(AdminNotice $notice): ?string
     {
+        if ($notice->type === 'scheduled_reminder') return $notice->getAttribute('action_url');
         if ($notice->getAttribute('action_url')) return $notice->getAttribute('action_url');
         if ($notice->invoice) return route('admin.invoices.show', $notice->invoice);
         if ($notice->paymentIntent?->payment) return route('admin.payments.show', $notice->paymentIntent->payment);
