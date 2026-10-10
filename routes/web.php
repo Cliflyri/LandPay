@@ -150,6 +150,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('actions/report-snapshots', [ReportSnapshotController::class, 'store'])->name('report-snapshots.store');
     Route::get('actions/report-snapshots/{snapshot}/download', [ReportSnapshotController::class, 'downloadZip'])->name('report-snapshots.download-zip');
     Route::get('actions/report-snapshots/{snapshot}/{file}', [ReportSnapshotController::class, 'download'])->name('report-snapshots.download');
+    Route::post('actions/reminder-test/dismiss', [\App\Http\Controllers\Admin\AdminReminderController::class, 'dismissTest'])->name('reminders.test-dismiss');
     Route::resource('actions/reminders', \App\Http\Controllers\Admin\AdminReminderController::class)->names('reminders')->except(['show']);
     Route::post('actions/reminder-occurrences/{occurrence}/dismiss', \App\Http\Controllers\Admin\AdminReminderDismissalController::class)->name('reminders.dismiss');
     Route::post('property-tax-batches/{propertyTaxBatch}/issue', [PropertyTaxBatchController::class, 'issue'])->name('property-tax-batches.issue');

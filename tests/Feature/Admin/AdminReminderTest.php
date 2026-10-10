@@ -84,4 +84,46 @@ class AdminReminderTest extends TestCase{
   $this->post(route('admin.reminders.store'),$base+['recurrence_type'=>'weekly'])->assertSessionHasErrors('day_of_week');
   $this->post(route('admin.reminders.store'),$base+['recurrence_type'=>'annually','day_of_month'=>1])->assertSessionHasErrors('month_of_year');
  }
+ public function test_reset_clears_current_occurrence_and_dismissal_but_normal_edit_does_not():void{
+  Mail::fake();Carbon::setTestNow('2026-10-10 09:00:00');$admin=User::factory()->create();
+  $data=['title'=>'Reset task','day_of_month'=>10,'display_time'=>'08:00','destination'=>'notification_only','active'=>1,'send_email'=>1];
+  AppSetting::putMany(['admin_notice_email_address'=>'admin@example.com','admin_notice_email_scheduled_reminders'=>'1']);
+  $reminder=AdminReminder::query()->create($data);$service=app(AdminReminderService::class);
+  $service->processDue();$occurrence=$reminder->occurrences()->sole();
+  $occurrence->dismissals()->create(['user_id'=>$admin->id,'dismissed_at'=>now()]);
+  $this->actingAs($admin)->put(route('admin.reminders.update',$reminder),$data)->assertSessionHasNoErrors();
+  $this->assertSame(0,$service->processDue());$this->assertDatabaseCount('admin_reminder_dismissals',1);
+  $data['display_time']='10:00';
+  $this->put(route('admin.reminders.update',$reminder),$data+['reset_status'=>1])->assertSessionHasNoErrors();
+  $this->assertDatabaseCount('admin_reminder_occurrences',0);$this->assertDatabaseCount('admin_reminder_dismissals',0);
+  $this->assertSame(0,$service->processDue());Carbon::setTestNow('2026-10-10 10:00:00');
+  $this->assertSame(1,$service->processDue());$this->assertSame(0,$service->processDue());Mail::assertSentCount(2);
+ }
+ public function test_unsaved_test_sends_email_and_dismissible_session_preview_without_an_occurrence():void{
+  Mail::fake();$admin=User::factory()->create();
+  AppSetting::putMany(['admin_notice_email_address'=>'admin@example.com','admin_notice_email_scheduled_reminders'=>'0']);
+  $this->actingAs($admin)->from(route('admin.reminders.create'))->post(route('admin.reminders.store'),[
+   'intent'=>'test','title'=>'Unsaved preview','message'=>"First\nSecond",'destination'=>'notification_only',
+  ])->assertRedirect(route('admin.reminders.create'))->assertSessionHas('success')->assertSessionHas('admin_reminder_test.'.$admin->id);
+  $this->assertDatabaseCount('admin_reminders',0);$this->assertDatabaseCount('admin_reminder_occurrences',0);
+  Mail::assertSent(AdminNoticeMail::class,fn($mail)=>$mail->noticeSubject==='[TEST] Unsaved preview' && $mail->noticeMessage==="First\nSecond" && $mail->hasTo('admin@example.com'));
+  $this->get(route('admin.dashboard'))->assertOk()->assertSee('Unsaved preview')->assertSee('Dismiss test');
+  $this->get(route('admin.dashboard'))->assertSee('Unsaved preview');
+  $this->actingAs(User::factory()->create())->get(route('admin.dashboard'))->assertDontSee('Unsaved preview');
+  $this->actingAs($admin)->post(route('admin.reminders.test-dismiss'))->assertSessionMissing('admin_reminder_test.'.$admin->id);
+  $this->get(route('admin.dashboard'))->assertDontSee('Unsaved preview');
+ }
+ public function test_edit_test_does_not_save_or_reset_and_keeps_preview_if_email_cannot_send():void{
+  Mail::fake();$admin=User::factory()->create();
+  AppSetting::putMany(['admin_notice_email_address'=>'invalid','admin_notice_email_scheduled_reminders'=>'0']);
+  $reminder=AdminReminder::query()->create(['title'=>'Original','day_of_month'=>1,'display_time'=>'08:00','active'=>1]);
+  $occurrence=$reminder->occurrences()->create(['period'=>$reminder->period(now()),'due_at'=>now()]);
+  $occurrence->dismissals()->create(['user_id'=>$admin->id,'dismissed_at'=>now()]);
+  $this->actingAs($admin)->from(route('admin.reminders.edit',$reminder))->put(route('admin.reminders.update',$reminder),[
+   'intent'=>'test','title'=>'Edited preview','message'=>'Preview only','destination'=>'contracts_report','reset_status'=>1,
+  ])->assertSessionHas('error')->assertSessionHas('admin_reminder_test.'.$admin->id);
+  $this->assertSame('Original',$reminder->fresh()->title);
+  $this->assertDatabaseCount('admin_reminder_occurrences',1);$this->assertDatabaseCount('admin_reminder_dismissals',1);Mail::assertNothingSent();
+  $this->get(route('admin.reminders.edit',$reminder))->assertOk()->assertSee('Send test reminder')->assertSee('Reset reminder so it can run again');
+ }
 }

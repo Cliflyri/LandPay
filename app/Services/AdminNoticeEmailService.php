@@ -24,10 +24,10 @@ class AdminNoticeEmailService
         'scheduled_reminder' => 'scheduled_reminders',
     ];
 
-    public function send(AdminNotice $notice): bool
+    public function send(AdminNotice $notice, bool $test = false): bool
     {
         $category = self::CATEGORIES[$notice->type] ?? null;
-        if ($category === null || ! $this->enabled($category)) return false;
+        if ($category === null || (! $test && ! $this->enabled($category))) return false;
 
         $email = AppSetting::valueFor('admin_notice_email_address')
             ?: AppSetting::valueFor('reply_to_email')
