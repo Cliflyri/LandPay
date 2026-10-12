@@ -29,5 +29,6 @@
 <a href={{route('admin.property-tax-batches.index',['email'=>'failed'])}}><strong>{{$taxCounts['failed']}}</strong> batches with failed emails</a>
 </div></div>
 <div class='admin-next-card mt-4'><h3>Report snapshots</h3><p>Create and download CSV snapshots of every report, or schedule them automatically.</p><a class='btn btn-outline-brand' href={{route('admin.report-snapshots.index')}}>Manage report snapshots</a></div>
+<div class="admin-next-card mt-4"><h3>Export for LandInvest</h3><p>Copy a complete CSV snapshot of plan statuses and primary client names for LandInvest.</p><a class="btn btn-outline-brand" href="{{ route('admin.landinvest.export') }}">Export for LandInvest</a></div>
 </div></section>
 @endsection
