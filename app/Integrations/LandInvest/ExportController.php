@@ -10,7 +10,7 @@ class ExportController
     public function __invoke(Export $export): Response
     {
         // Include historical/deleted plans so inactive records do not silently disappear.
-        $plans = PaymentPlan::withTrashed()->with([
+        $plans = PaymentPlan::withTrashed()->includedInReports()->with([
             'closing',
             'memberships' => fn ($query) => $query->where('role', 'primary')->whereNull('effective_to')->orderBy('id')->with('client'),
         ])->orderBy('apn')->orderBy('id')->get();
