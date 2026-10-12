@@ -31,11 +31,11 @@ class Export
     {
         $stream = fopen('php://temp', 'w+');
         try {
-            fputcsv($stream, ['apn', 'county', 'contract_status', 'plan_reference', 'primary_client_name'], ',', '"', '', "\r\n");
+            fputcsv($stream, ['apn', 'county', 'contract_status', 'plan_reference', 'primary_client_name', 'property_name'], ',', '"', '', "\r\n");
             foreach ($plans as $plan) {
                 $client = $plan->memberships->firstWhere('role', 'primary')?->client;
                 $name = $client ? (trim((string) $client->organization_name) ?: trim($client->first_name.' '.$client->last_name)) : '';
-                fputcsv($stream, [(string) $plan->apn, (string) $plan->property_county, $this->status($plan), (string) $plan->getRouteKey(), $name], ',', '"', '', "\r\n");
+                fputcsv($stream, [(string) $plan->apn, (string) $plan->property_county, $this->status($plan), (string) $plan->getRouteKey(), $name, trim((string) $plan->title) ?: trim((string) $plan->asset_description)], ',', '"', '', "\r\n");
             }
             rewind($stream);
             return stream_get_contents($stream);

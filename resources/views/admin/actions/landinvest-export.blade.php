@@ -5,7 +5,7 @@
 <section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading"><div><span class="eyebrow eyebrow-dark">Administration</span><h1>Export for LandInvest</h1><p>Copy the entire CSV and paste it into LandInvest's import action.</p></div></div>
 <div class="admin-next-card mt-4">
-<p>{{ $planCount }} plans &middot; Generated {{ now()->format('M j, Y g:i A T') }}. Includes primary client names.</p>
+<p>{{ $planCount }} plans &middot; Generated {{ now()->format('M j, Y g:i A T') }}. Includes primary client names and property names (plan title, or description when untitled).</p>
 <p class="text-muted">One row per plan, including historical and inactive plans. Duplicate APNs are preserved for review during import. This export does not change any records.</p>
 @if($missingApns)<div class="alert alert-warning">{{ $missingApns }} plans have no APN. Their rows are included, but need review before matching in LandInvest.</div>@endif
 <label class="form-label" for="landinvest-csv">Complete LandPay CSV</label>
