@@ -141,6 +141,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('formatting-preview', FormattingPreviewController::class)->name('formatting-preview');
     Route::get('actions', AdminActionController::class)->name('actions.index');
+    Route::post('actions/database-backup', \App\Http\Controllers\Admin\DatabaseBackupController::class)->middleware('throttle:3,1')->name('database-backup.download');
     Route::get('actions/export-landinvest', \App\Integrations\LandInvest\ExportController::class)->name('landinvest.export');
     Route::get('take-payment', [\App\Http\Controllers\Admin\TakePaymentController::class, 'create'])->middleware('square.payment-csp')->name('take-payment.create');
     Route::post('take-payment', [\App\Http\Controllers\Admin\TakePaymentController::class, 'store'])->block(60, 10)->name('take-payment.store');

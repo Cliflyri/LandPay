@@ -30,5 +30,8 @@
 <a href={{route('admin.property-tax-batches.index',['email'=>'failed'])}}><strong>{{$taxCounts['failed']}}</strong> batches with failed emails</a>
 </div></div>
 <div class='admin-next-card mt-4'><h3>Report snapshots</h3><p>Create and download CSV snapshots of every report, or schedule them automatically.</p><a class='btn btn-outline-brand' href={{route('admin.report-snapshots.index')}}>Manage report snapshots</a></div>
+<div class="admin-next-card mt-4"><h3>Database backup</h3><p>Download the complete database structure and data as a SQL file. Database only; uploaded files are not included.</p><p class="text-muted">Creates a read-only export of the database connected to this LandPay installation. Keep the downloaded file private. Avoid running during deployments or database migrations.</p>
+@error('database_backup')<div class="alert alert-danger" role="alert">{{ $message }}</div>@enderror
+<form method="post" action="{{ route('admin.database-backup.download') }}">@csrf<button type="submit" class="btn btn-outline-brand">Download database backup (.sql)</button></form></div>
 </div></section>
 @endsection
