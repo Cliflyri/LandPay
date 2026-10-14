@@ -7,7 +7,7 @@
             if (!window.confirm(form.dataset.reminderConfirm)) return;
             const data = new FormData(form);
             const buttons = cell.querySelectorAll('[data-dashboard-reminder] button');
-            const output = cell.querySelector('[data-reminder-result]');
+            const output = form.closest('tr').querySelector('[data-reminder-result]');
             const toggle = cell.querySelector('[data-bs-toggle="dropdown"]');
             const show = (message, level) => {
                 output.hidden = false;

@@ -179,7 +179,6 @@
                                     @endif
                                 </ul>
                             </div>
-                            <div data-reminder-result role="status" aria-live="polite" class="small mt-2 text-wrap" hidden></div>
                         </td>
 
                         <td class="text-nowrap">
@@ -202,6 +201,7 @@
                                     +{{ $row['co_client_count'] }}
                                 </span>
                             @endif
+                            <div data-reminder-result role="status" aria-live="polite" class="small mt-2 text-wrap" hidden></div>
                         </td>
 
                         <td class="text-nowrap">
