@@ -163,15 +163,23 @@
                                             <form
                                                 method="post"
                                                 action="{{ route('admin.invoices.reminders.store',$row['balance_invoice']) }}"
-                                                onsubmit="return confirm('Send a payment reminder to {{ $row['email'] }}?');"
+                                                data-dashboard-reminder data-reminder-confirm="Send an email reminder to {{ $row['email'] }}? No SMS will be sent."
                                             >
                                                 @csrf
-                                                <button class="dropdown-item" type="submit">Send reminder</button>
+                                                <button class="dropdown-item" type="submit">Send Email Reminder</button>
                                             </form>
                                         </li>
+                                        @if($row['sms_eligible'])
+                                        <li><form method="post" action="{{ route('admin.invoices.reminders.store',$row['balance_invoice']) }}" data-dashboard-reminder data-reminder-confirm="Send email and SMS reminders to this client's invoice recipient?">
+                                            @csrf
+                                            <input type="hidden" name="include_sms" value="1">
+                                            <button class="dropdown-item" type="submit">Send Email + SMS Reminder</button>
+                                        </form></li>
+                                        @endif
                                     @endif
                                 </ul>
                             </div>
+                            <div data-reminder-result role="status" aria-live="polite" class="small mt-2 text-wrap" hidden></div>
                         </td>
 
                         <td class="text-nowrap">
@@ -400,3 +408,7 @@
 @foreach($plans as $row)@if($row['balance_invoice'] && in_array($row['plan']->status, ['active','paused'], true))@include('admin.shared.pay-invoice-full-modal',['invoice'=>$row['balance_invoice'],'clientName'=>$row['client_name'],'returnTo'=>'dashboard'])@endif @endforeach
 @include('admin.documents._preview')
 @endsection
+
+@push('scripts')
+<script src="{{ asset('assets/js/dashboard-reminders.js') }}?v={{ filemtime(public_path('assets/js/dashboard-reminders.js')) }}"></script>
+@endpush

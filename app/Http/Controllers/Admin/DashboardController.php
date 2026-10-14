@@ -43,7 +43,7 @@ class DashboardController extends Controller
             ->leftJoin('clients as primary_client', 'primary_client.id', '=', 'primary_membership.client_id')
             ->select('payment_plans.*')
             ->with([
-                'memberships' => fn ($query) => $query->whereNull('effective_to')->with('client.portalAccount'),
+                'memberships' => fn ($query) => $query->whereNull('effective_to')->with(['client.portalAccount', 'client.smsPreference']),
                 'currentBillingTerms', 'billingTerms', 'pauses', 'closing',
                 'invoices' => fn ($query) => $query->with(['items', 'reminders'])->orderBy('due_date'),
             ])
@@ -150,6 +150,7 @@ class DashboardController extends Controller
             'client_name' => $this->clientName($primary?->client),
             'co_client_count' => $plan->memberships->where('role', 'co_client')->count(),
             'email' => $recipient?->client?->email,
+            'sms_eligible' => app(\App\Services\InvoiceSmsService::class)->eligible($recipient?->client, false),
             'contract_balance' => $contractBalance,
             'current_payoff' => $this->payoffs->amount($plan),
             'current_balance_due' => $currentBalanceDue,

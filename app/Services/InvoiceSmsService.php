@@ -22,7 +22,7 @@ class InvoiceSmsService
         return $this->reminders->recipientMembership($invoice)?->client;
     }
 
-    public function eligible(?Client $client): bool
+    public function eligible(?Client $client, bool $syncPhone = true): bool
     {
         if (! $client || ! $this->configuration->values()['enabled']) {
             return false;
@@ -35,7 +35,7 @@ class InvoiceSmsService
             return false;
         }
 
-        if ($p->sms_phone_e164 !== $current) {
+        if ($syncPhone && $p->sms_phone_e164 !== $current) {
             $p->update(['sms_phone_e164' => $current]);
         }
 
