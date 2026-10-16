@@ -175,6 +175,7 @@ class PlanClosing extends Model
             'Please print the required form.',
             'Obtain notarization where indicated (do not sign until in the presence of a notary).',
             'Physically mail the original to us at the address indicated in section 2 on the form.',
+            'Once you have mailed the original, please click the appropriate button below to notify us.',
         ];
     }
 }
