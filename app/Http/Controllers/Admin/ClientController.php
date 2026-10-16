@@ -130,7 +130,10 @@ class ClientController extends Controller
             ->where('client_id', $client->id)
             ->latest()->paginate(25, ['*'], 'documents_page')->withQueryString()->fragment('client-documents');
 
-        return view('admin.clients.show', compact('client', 'documents'));
+        $communications = request('tab') === 'communications'
+            ? app(\App\Services\ClientCommunicationLog::class)->forClient($client)
+            : null;
+        return view('admin.clients.show', compact('client', 'documents', 'communications'));
     }
 
     public function edit(Client $client): View

@@ -1,6 +1,11 @@
 <div class="admin-next-card mt-4">
     <h2 class="mb-1">Communication log</h2>
     <p class="text-muted mb-0">Recorded emails and text messages for this plan, newest first. Times shown in {{ config('app.timezone') }}. Sent does not confirm delivery.</p>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        @foreach($plan->memberships->filter->client->unique('client_id') as $membership)
+            <a class="btn btn-sm btn-outline-brand" href="{{ route('admin.clients.show', ['client' => $membership->client, 'tab' => 'communications']) }}">View all client communications: {{ $membership->client->organization_name ?: trim($membership->client->first_name.' '.$membership->client->last_name) }}</a>
+        @endforeach
+    </div>
     <div class="table-responsive mt-4">
         <table class="table table-sm table-striped align-middle mb-0">
             <thead><tr><th>Date/time</th><th>Invoice</th><th>Channel</th><th>Type</th><th>Recipient</th><th>Status</th><th>Details</th></tr></thead>

@@ -8,6 +8,13 @@
 <div class="admin-heading d-flex flex-wrap justify-content-between align-items-end gap-3"><div><span class="eyebrow eyebrow-dark">Client record</span><h1>{{$name}}</h1>{{ $client->first_name }} {{ $client->middle_name }} {{$client->last_name }} @if($client->preferred_name)<p class="mb-0">Preferred name: {{$client->preferred_name}}</p>@endif</div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-brand" href="{{route('admin.messages.create',['client'=>$client->id])}}">Secure message</a><a class="btn btn-outline-brand" href="{{route('admin.clients.edit',$client)}}">Edit client</a><a class="btn btn-outline-brand" href="{{route('admin.contract-setups.create',['client'=>$client->id])}}">New contract setup</a><a class="btn btn-sun" href="{{route('admin.plans.create',['client'=>$client->id])}}">Create plan</a></div></div>
 
 
+<ul class="nav nav-tabs mt-4">
+    <li class="nav-item"><a class="nav-link {{ request('tab') !== 'communications' ? 'active' : '' }}" href="{{ route('admin.clients.show', $client) }}">Client overview</a></li>
+    <li class="nav-item"><a class="nav-link {{ request('tab') === 'communications' ? 'active' : '' }}" href="{{ route('admin.clients.show', ['client' => $client, 'tab' => 'communications']) }}">Communication log</a></li>
+</ul>
+@if(request('tab') === 'communications')
+    @include('admin.clients._communication-log')
+@else
 <div class="row g-4 mt-2"><div class="col-lg-6"><div class="admin-next-card h-100"><h2>Contact information</h2><dl class="row mb-0 mt-3">
  <dt class="col-sm-4">Client name</dt>
 <dd class="col-sm-8">{{ $client->first_name }} {{ $client->middle_name }} {{$client->last_name }}</dd>
@@ -51,8 +58,11 @@
 @include('admin.documents._preview')
 @endif
 
+@endif
 </div></section>
 
+@if(request('tab') !== 'communications')
 @include('admin.clients._portal-account')
+@endif
 @endsection
 
