@@ -210,10 +210,26 @@ class PaymentController extends Controller
 
     public function show(Payment $payment): View
     {
-        $payment->load(['financialTransaction.paymentPlan.memberships.client', 'financialTransaction.effects', 'allocations.invoice', 'allocations.invoiceItem', 'payer', 'emailDeliveries', 'clientPaymentIntent']);
+        $payment->load(['financialTransaction.paymentPlan.memberships.client', 'financialTransaction.effects', 'allocations.invoice.items', 'allocations.invoiceItem', 'payer', 'emailDeliveries', 'clientPaymentIntent']);
         $reversal = $payment->financialTransaction->reversedBy()->first();
 
-        return view('admin.payments.show', ['payment' => $payment, 'reversal' => $reversal]);
+        $invoiceDetails = [];
+        foreach ($payment->allocations->pluck('invoice')->filter()->unique('id') as $invoice) {
+            $paid = (int) DB::table('payment_allocations')
+                ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
+                ->join('financial_transactions', 'financial_transactions.id', '=', 'payments.financial_transaction_id')
+                ->where('payment_allocations.invoice_id', $invoice->id)
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                    ->from('financial_transactions as reversals')
+                    ->whereColumn('reversals.reversal_of_transaction_id', 'financial_transactions.id'))
+                ->sum('payment_allocations.amount');
+            $invoiceDetails[$invoice->id] = [
+                'paid' => $paid,
+                'balance' => $this->balances->invoiceBalance($invoice),
+            ];
+        }
+
+        return view('admin.payments.show', compact('payment', 'reversal', 'invoiceDetails'));
     }
 
     public function reverse(Request $request, Payment $payment): RedirectResponse

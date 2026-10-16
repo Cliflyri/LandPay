@@ -86,21 +86,10 @@
 
             <hr>
             <h2>Allocation</h2>
-            <div class="table-responsive mt-3">
-                <table class="table align-middle mb-0">
-                    <thead>
-                        <tr><th>Applied to</th><th>Invoice</th><th class="text-end">Amount</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach($payment->allocations as $allocation)
-                            <tr>
-                                <td>{{ $allocation->invoiceItem?->description ?? str($allocation->allocation_type->value)->replace('_',' ')->title() }}</td>
-                                <td>{{ $allocation->invoice?->invoice_number ?? '-' }}</td>
-                                <td class="money-cell">{{ \App\Support\Money::format($allocation->amount) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <div class="mt-3">
+                @foreach($payment->allocations as $allocation)
+                    @include('admin.payments.partials.allocation-details')
+                @endforeach
             </div>
         </div>
 
