@@ -5,7 +5,7 @@
             <span>{{ $allocation->invoiceItem?->description ?? str($allocation->allocation_type->value)->replace('_',' ')->title() }}</span>
             <span class="ms-auto">
                 @if($allocatedInvoice)
-                    <a class="me-3" href="{{ route('admin.invoices.show', $allocatedInvoice) }}">{{ $allocatedInvoice->invoice_number }}</a>
+                    <span class="text-muted">Invoice:</span> <a class="me-3" href="{{ route('admin.invoices.show', $allocatedInvoice) }}">{{ $allocatedInvoice->invoice_number }}</a>
                 @endif
                 <strong>{{ \App\Support\Money::format($allocation->amount) }}</strong>
             </span>
