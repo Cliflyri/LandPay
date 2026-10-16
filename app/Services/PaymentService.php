@@ -32,7 +32,7 @@ class PaymentService
     ) {}
 
     /** @return array<string, mixed> */
-    public function preview(PaymentPlan $plan, int $amount, string $paymentType, ?string $overpaymentDisposition = null, int $serviceFeeAmount = 0, ?string $serviceFeeMonth = null, ?int $invoiceId = null): array
+    public function preview(PaymentPlan $plan, int $amount, string $paymentType, ?string $overpaymentDisposition = null, int $serviceFeeAmount = 0, ?string $serviceFeeMonth = null, ?int $invoiceId = null, ?InvoiceItem $priorityFeeItem = null): array
     {
         if (! in_array($plan->status, ['active', 'paused'], true)) {
             throw ValidationException::withMessages(['payment_plan' => 'Payments can only be posted to an active or paused payment plan.']);
@@ -73,6 +73,30 @@ class PaymentService
 
         $remaining = $amount;
         $allocations = [];
+        // Reserve this checkout's fee before the normal allocation order.
+        $priorityFeeAmount = 0;
+        if ($priorityFeeItem !== null) {
+            $feeInvoice = $priorityFeeItem->invoice;
+            $priorityFeeAmount = (int) $priorityFeeItem->amount;
+            if ($feeInvoice->payment_plan_id !== $plan->id
+                || ($invoiceId !== null && $feeInvoice->id !== $invoiceId)
+                || $priorityFeeItem->item_type !== InvoiceItemType::AdministrativeFee
+                || $priorityFeeAmount <= 0 || $priorityFeeAmount > $remaining
+                || $this->itemRemaining($priorityFeeItem) < $priorityFeeAmount
+                || $this->balances->invoiceBalance($feeInvoice) < $priorityFeeAmount) {
+                throw ValidationException::withMessages(['processing_fee' => 'The associated processing fee cannot be allocated.']);
+            }
+            $allocations[] = [
+                'type' => PaymentAllocationType::InvoiceItem,
+                'amount' => $priorityFeeAmount,
+                'component' => FinancialEffectComponent::AdministrativeFee,
+                'label' => $priorityFeeItem->description,
+                'invoice_id' => $feeInvoice->id,
+                'invoice_number' => $feeInvoice->invoice_number,
+                'invoice_item_id' => $priorityFeeItem->id,
+            ];
+            $remaining -= $priorityFeeAmount;
+        }
         if ($serviceFeeAmount > 0) {
             $allocations[] = [
                 'type' => PaymentAllocationType::ServiceFee,
@@ -112,12 +136,13 @@ class PaymentService
             if ($remaining === 0) {
                 break;
             }
-            $invoiceRemaining = $this->balances->invoiceBalance($invoice);
+            $invoiceRemaining = $this->balances->invoiceBalance($invoice) - ($priorityFeeItem?->invoice_id === $invoice->id ? $priorityFeeAmount : 0);
             if ($invoiceRemaining <= 0) {
                 continue;
             }
             $items = $invoice->items->sortBy(fn (InvoiceItem $item) => [$this->itemPriority($item), $item->display_order, $item->id]);
             foreach ($items as $item) {
+                if ($item->id === $priorityFeeItem?->id) continue;
                 if ($remaining === 0 || $invoiceRemaining === 0) {
                     break;
                 }
@@ -206,8 +231,9 @@ class PaymentService
         ?string $serviceFeeMonth = null,
         int $processingFeeAmount = 0,
         ?int $invoiceId = null,
+        ?InvoiceItem $priorityFeeItem = null,
     ): Payment {
-        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey, $serviceFeeAmount, $serviceFeeMonth, $processingFeeAmount, $invoiceId): Payment {
+        return DB::transaction(function () use ($plan, $actor, $amount, $paymentType, $method, $receivedDate, $payerClientId, $externalReference, $overpaymentDisposition, $idempotencyKey, $serviceFeeAmount, $serviceFeeMonth, $processingFeeAmount, $invoiceId, $priorityFeeItem): Payment {
             if ($idempotencyKey !== null) {
                 $existing = FinancialTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
                 if ($existing !== null) {
@@ -227,7 +253,7 @@ class PaymentService
             if ($processingFeeAmount < 0 || $processingFeeAmount >= $amount) {
                 throw ValidationException::withMessages(['processing_fee' => 'Processing Fee must be less than the total payment.']);
             }
-            $preview = $this->preview($lockedPlan, $amount - $processingFeeAmount, $paymentType, $overpaymentDisposition?->value, $serviceFeeAmount, $serviceFeeMonth, $invoiceId);
+            $preview = $this->preview($lockedPlan, $amount - $processingFeeAmount, $paymentType, $overpaymentDisposition?->value, $serviceFeeAmount, $serviceFeeMonth, $invoiceId, $priorityFeeItem);
             if ($processingFeeAmount > 0) {
                 $preview['allocations'][] = [
                     'type' => PaymentAllocationType::ProcessingFee,

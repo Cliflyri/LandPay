@@ -71,8 +71,9 @@ class SquareCardPaymentService
                 if ($locked->status === 'received') {
                     return $locked;
                 }
+                $feeItem = null;
                 if ($locked->processing_fee_amount > 0 && $feeInvoice !== null) {
-                    $this->postFee($locked, $feeInvoice);
+                    $feeItem = $this->postFee($locked, $feeInvoice);
                 }
                 $actor ??= User::query()->where('status', 'active')->oldest()->firstOrFail();
                 $posted = $this->payments->post(
@@ -88,6 +89,7 @@ class SquareCardPaymentService
                     'provider:square:'.$payment['id'],
                     processingFeeAmount: $feeInvoice === null ? (int) $locked->processing_fee_amount : 0,
                     invoiceId: $locked->invoice_id,
+                    priorityFeeItem: $feeItem,
                 );
                 $locked->update(['status' => 'received', 'payment_id' => $posted->id, 'received_at' => now()]);
                 $clientName = trim($locked->client->first_name.' '.$locked->client->last_name);
@@ -111,10 +113,10 @@ class SquareCardPaymentService
             ->first(fn (Invoice $invoice) => $this->balances->invoiceBalance($invoice) > 0);
     }
 
-    private function postFee(ClientPaymentIntent $intent, Invoice $invoice): void
+    private function postFee(ClientPaymentIntent $intent, Invoice $invoice): InvoiceItem
     {
         $amount = (int) $intent->processing_fee_amount;
-        $this->posting->post(
+        $transaction = $this->posting->post(
             $intent->paymentPlan,
             FinancialTransactionType::InvoiceCharge,
             $amount,
@@ -139,5 +141,7 @@ class SquareCardPaymentService
             description: 'Processing Fee',
             metadata: ['client_payment_intent_id' => $intent->id],
         );
+
+        return InvoiceItem::query()->where('source_transaction_id', $transaction->id)->firstOrFail();
     }
 }

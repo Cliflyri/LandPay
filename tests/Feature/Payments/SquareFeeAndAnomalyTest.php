@@ -111,6 +111,53 @@ class SquareFeeAndAnomalyTest extends TestCase
         $this->assertDatabaseHas('admin_notices', ['provider_event_id' => 'square:dispute-event-1', 'title' => 'Square payment dispute requires review']);
     }
 
+    public static function feePriorityCases(): array
+    {
+        return [
+            'plan partial' => [false, 100],
+            'invoice partial' => [true, 100],
+            'plan above monthly fee' => [false, 2000],
+            'invoice full' => [true, 13550],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('feePriorityCases')]
+    public function test_checkout_pays_its_own_fee_before_existing_allocations(bool $selectedInvoice, int $base): void
+    {
+        [$admin, $client, $plan] = $this->records();
+        $invoice = app(\App\Services\FirstPaymentInvoiceService::class)->issue($plan, $admin, 12000, today(), today()->addDays(5));
+        $principal = $invoice->items->first();
+        app(\App\Services\InvoiceEditService::class)->update($invoice, $admin, today()->toDateString(), today()->addDays(5)->toDateString(), [
+            ['id' => $principal->id, 'type' => 'scheduled_purchase_payment', 'description' => $principal->description, 'amount' => 12000],
+            ['type' => 'monthly_service_fee', 'description' => 'Monthly service fee', 'amount' => 1500],
+            ['type' => 'administrative_fee', 'description' => 'Processing Fee', 'amount' => 50],
+        ]);
+        // The remaining allocations must match the pre-fee allocation exactly,
+        // including the normal priority of an older processing fee.
+        $expected = app(PaymentService::class)->preview($plan, $base, 'regular', invoiceId: $selectedInvoice ? $invoice->id : null)['allocations'];
+        AppSetting::putMany(['square_environment' => 'sandbox', 'square_public_id' => 'LOCATION']);
+        AppSetting::putEncrypted('square_api_secret', 'square-secret');
+        Http::fake(['connect.squareupsandbox.com/v2/payments' => Http::response(['payment' => ['id' => 'priority-payment', 'status' => 'COMPLETED']], 200)]);
+        $intent = ClientPaymentIntent::create([
+            'payment_plan_id' => $plan->id, 'invoice_id' => $selectedInvoice ? $invoice->id : null,
+            'client_id' => $client->id, 'method' => 'card', 'amount' => $base + 33,
+            'base_amount' => $base, 'processing_fee_amount' => 33, 'payment_type' => 'regular',
+            'status' => 'announced', 'provider' => 'square',
+        ]);
+        $result = app(\App\Services\SquareCardPaymentService::class)->pay($intent, 'token', $admin);
+        $this->assertSame('received', $result->status);
+        $allocations = $result->payment->allocations()->orderBy('display_order')->get();
+        $fee = $invoice->items()->where('amount', 33)->firstOrFail();
+        $this->assertSame($fee->id, $allocations->first()->invoice_item_id);
+        $this->assertSame(33, $allocations->first()->amount);
+        $this->assertSame(array_column($expected, 'invoice_item_id'), $allocations->slice(1)->pluck('invoice_item_id')->all());
+        $this->assertSame(array_column($expected, 'amount'), $allocations->slice(1)->pluck('amount')->all());
+        $this->assertSame($base + 33, $result->payment->gross_amount);
+        $this->assertSame($base + 33, $result->payment->current_invoice_amount);
+        $this->assertSame(13550 - $base, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+        $this->assertSame($base === 13550 ? 'paid' : 'partially_paid', $invoice->fresh()->status->value);
+    }
+
     private function squareWebhook(array $payload)
     {
         $body = json_encode($payload, JSON_THROW_ON_ERROR);
