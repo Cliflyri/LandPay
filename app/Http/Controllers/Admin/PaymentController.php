@@ -285,8 +285,8 @@ class PaymentController extends Controller
         return $request->validate([
             'received_date' => ['required', 'date'],
             'amount' => ['required', 'decimal:0,2', 'gt:0'],
-            'service_fee_amount' => ['nullable', 'decimal:0,2', 'min:0', 'lte:amount', 'prohibited_unless:payment_type,regular'],
-            'payment_type' => ['required', Rule::in(['regular', 'principal_only'])],
+            'service_fee_amount' => ['nullable', 'decimal:0,2', 'min:0', 'lte:amount', Rule::when($request->input('payment_type') === 'principal_only', ['max:0'])],
+            'payment_type' => ['required', Rule::in(['regular', 'principal_only', 'principal_with_service_fee'])],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
             'email_receipt' => ['nullable', 'boolean'],
             'payer_client_id' => ['nullable', 'integer', Rule::exists('payment_plan_clients', 'client_id')->where(fn ($query) => $query->where('payment_plan_id', $plan->id)->whereNull('effective_to'))],

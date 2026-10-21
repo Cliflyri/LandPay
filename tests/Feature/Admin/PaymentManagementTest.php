@@ -289,6 +289,83 @@ class PaymentManagementTest extends TestCase
         $this->assertSame('check', $payment->fresh()->payment_method->value);
     }
 
+    public function test_paused_plan_can_collect_fee_and_principal_without_paying_tax_invoice(): void
+    {
+        [$user, $plan, $monthlyInvoice] = $this->activePlanWithInvoice();
+        app(\App\Services\InvoiceVoidService::class)->void($monthlyInvoice, $user, 'Manual payments while paused');
+        $plan->update(['status' => 'paused']);
+        $invoice = app(\App\Services\ManualInvoiceService::class)->issue($plan, $user, '2026-08-08', [
+            ['type' => 'other', 'description' => 'Property tax', 'amount' => 1300],
+        ]);
+        $balances = app(FinancialBalanceService::class);
+        $before = $balances->contractBalance($plan);
+        $data = [
+            'received_date' => '2026-08-08', 'amount' => '120.00', 'service_fee_amount' => '15.00',
+            'payment_type' => 'principal_with_service_fee', 'payment_method' => 'cash',
+            'idempotency_token' => '77777777-7777-4777-8777-777777777777',
+        ];
+        $this->actingAs($user)->post(route('admin.plans.payments.preview', $plan), $data)
+            ->assertOk()->assertSee('Principal + monthly service fee')
+            ->assertViewHas('preview', fn ($preview) =>
+                $preview['principal_amount'] === 10500 && $preview['service_fee_amount'] === 1500
+                && $preview['invoice_amount'] === 0 && $preview['credit_amount'] === 0);
+        $this->assertDatabaseCount('payments', 0);
+        $this->post(route('admin.plans.payments.store', $plan), $data)->assertSessionHasNoErrors();
+        $payment = Payment::query()->sole();
+        $this->assertSame(12000, $payment->gross_amount);
+        $this->assertSame([1500, 10500], $payment->allocations()->orderBy('display_order')->pluck('amount')->all());
+        $this->assertSame(0, $payment->allocations()->whereNotNull('invoice_id')->count());
+        $this->assertSame(1300, $balances->invoiceBalance($invoice));
+        $this->assertSame('issued', $invoice->fresh()->status->value);
+        $this->assertSame($before - 10500, $balances->contractBalance($plan));
+        $this->assertSame('paused', $plan->fresh()->status);
+        $this->post(route('admin.plans.payments.store', $plan), $data)->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('payments', 1);
+        $this->post(route('admin.payments.reverse', $payment), ['reason' => 'Regression test'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame($before, $balances->contractBalance($plan));
+        $this->assertSame(1300, $balances->invoiceBalance($invoice));
+    }
+
+    public function test_principal_only_accepts_zero_or_blank_fee_but_rejects_positive_fee(): void
+    {
+        [$user, $plan, $invoice] = $this->activePlanWithInvoice();
+        $data = [
+            'received_date' => '2026-08-08', 'amount' => '120.00',
+            'payment_type' => 'principal_only', 'payment_method' => 'cash',
+            'idempotency_token' => '88888888-8888-4888-8888-888888888888',
+        ];
+        foreach (['0.00', ''] as $fee) {
+            $this->actingAs($user)->post(route('admin.plans.payments.preview', $plan), $data + ['service_fee_amount' => $fee])
+                ->assertOk()->assertViewHas('preview', fn ($preview) => $preview['principal_amount'] === 12000);
+        }
+        $this->post(route('admin.plans.payments.store', $plan), $data + ['service_fee_amount' => '15.00'])
+            ->assertSessionHasErrors('service_fee_amount');
+        $this->assertDatabaseCount('payments', 0);
+        $this->post(route('admin.plans.payments.store', $plan), $data + ['service_fee_amount' => '0.00'])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertSame(52500, app(FinancialBalanceService::class)->invoiceBalance($invoice));
+    }
+
+    public function test_principal_with_fee_limits_the_net_principal_to_the_contract_balance(): void
+    {
+        [$user, $plan] = $this->activePlanWithInvoice();
+        $data = [
+            'received_date' => '2026-08-08', 'amount' => '20515.00', 'service_fee_amount' => '15.00',
+            'payment_type' => 'principal_with_service_fee', 'payment_method' => 'cash',
+            'idempotency_token' => '99999999-9999-4999-8999-999999999999',
+        ];
+        $this->actingAs($user)->post(route('admin.plans.payments.preview', $plan), $data)->assertOk();
+        $data['amount'] = '20515.01';
+        $this->post(route('admin.plans.payments.store', $plan), $data)->assertSessionHasErrors('amount');
+        $this->assertDatabaseCount('payments', 0);
+        $data['amount'] = '120.00';
+        $data['service_fee_amount'] = '0.00';
+        $this->post(route('admin.plans.payments.preview', $plan), $data)->assertOk()
+            ->assertViewHas('preview', fn ($preview) => $preview['principal_amount'] === 12000);
+    }
+
     private function activePlanWithInvoice(): array
     {
         $user = User::factory()->create();

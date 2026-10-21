@@ -40,7 +40,7 @@ class PaymentService
         if ($amount <= 0) {
             throw ValidationException::withMessages(['amount' => 'The payment amount must be greater than zero.']);
         }
-        if (! in_array($paymentType, ['regular', 'principal_only'], true)) {
+        if (! in_array($paymentType, ['regular', 'principal_only', 'principal_with_service_fee'], true)) {
             throw ValidationException::withMessages(['payment_type' => 'Choose a valid payment type.']);
         }
 
@@ -48,9 +48,33 @@ class PaymentService
             throw ValidationException::withMessages(['service_fee_amount' => 'Choose a valid service-fee amount.']);
         }
         $contractBalance = $this->balances->contractBalance($plan);
-        if ($paymentType === 'principal_only') {
-            if ($amount > $contractBalance) {
-                throw ValidationException::withMessages(['amount' => 'A principal-only payment cannot exceed the remaining contract balance.']);
+        if (in_array($paymentType, ['principal_only', 'principal_with_service_fee'], true)) {
+            $principalAmount = $amount - $serviceFeeAmount;
+            if ($principalAmount > $contractBalance) {
+                throw ValidationException::withMessages(['amount' => 'The principal portion cannot exceed the remaining contract balance.']);
+            }
+
+            $allocations = [];
+            if ($serviceFeeAmount > 0) {
+                $allocations[] = [
+                    'type' => PaymentAllocationType::ServiceFee,
+                    'amount' => $serviceFeeAmount,
+                    'component' => FinancialEffectComponent::MonthlyServiceFee,
+                    'label' => 'Monthly service fee'.($serviceFeeMonth ? ' - '.date('F Y', strtotime($serviceFeeMonth)) : ''),
+                    'invoice_id' => null,
+                    'invoice_item_id' => null,
+                    'billing_month' => $serviceFeeMonth,
+                ];
+            }
+            if ($principalAmount > 0) {
+                $allocations[] = [
+                    'type' => PaymentAllocationType::PurchaseBalance,
+                    'amount' => $principalAmount,
+                    'component' => FinancialEffectComponent::PurchasePricePrincipal,
+                    'label' => 'Principal-only payment',
+                    'invoice_id' => null,
+                    'invoice_item_id' => null,
+                ];
             }
 
             return [
@@ -58,16 +82,10 @@ class PaymentService
                 'payment_type' => $paymentType,
                 'invoice_amount' => 0,
                 'overpayment_amount' => 0,
-                'principal_amount' => $amount,
+                'principal_amount' => $principalAmount,
                 'credit_amount' => 0,
-                'allocations' => [[
-                    'type' => PaymentAllocationType::PurchaseBalance,
-                    'amount' => $amount,
-                    'component' => FinancialEffectComponent::PurchasePricePrincipal,
-                    'label' => 'Principal-only payment',
-                    'invoice_id' => null,
-                    'invoice_item_id' => null,
-                ]],
+                'service_fee_amount' => $serviceFeeAmount,
+                'allocations' => $allocations,
             ];
         }
 
@@ -241,7 +259,7 @@ class PaymentService
                 }
             }
             $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
-            if ($this->hasUninvoicedDueFirstPayment($lockedPlan)) {
+            if ($paymentType !== 'principal_with_service_fee' && $this->hasUninvoicedDueFirstPayment($lockedPlan)) {
                 $this->firstPaymentInvoices->issue(
                     $lockedPlan,
                     $actor,
@@ -311,7 +329,11 @@ class PaymentService
                 FinancialActorType::Administrator,
                 $effects,
                 actor: $actor,
-                description: $paymentType === 'principal_only' ? 'Principal-only payment' : 'Payment received',
+                description: match ($paymentType) {
+                    'principal_only' => 'Principal-only payment',
+                    'principal_with_service_fee' => 'Principal + monthly service fee',
+                    default => 'Payment received',
+                },
                 metadata: ['payment_type' => $paymentType, 'processing_fee_amount' => $processingFeeAmount],
                 idempotencyKey: $idempotencyKey,
             );
