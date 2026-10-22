@@ -189,8 +189,10 @@ class ClosingController extends Controller
             $this->workflow->log($closing, $action, $context ?: $closing->only(['status', 'admin_notes', 'vesting_notes', 'signing_instructions', 'client_note', 'show_hold_notice']), $request->user()->id);
         });
         $message = 'Closing updated.';
-        if (in_array($data['action'], ['start', 'resume', 'release'], true) && $request->boolean('notify_client')) {
-            $results = app(ClosingNotificationService::class)->send($closing->fresh(), $request->user());
+        $canNotify = in_array($data['action'], ['start', 'resume', 'release', 'ready', 'submit', 'complete'], true)
+            || ($data['action'] === 'review_forms' && in_array($data['section_status'] ?? null, ['complete', 'not_required'], true));
+        if ($canNotify && $request->boolean('notify_client')) {
+            $results = app(ClosingNotificationService::class)->send($closing->fresh(), $request->user(), $data['action']);
             $sent = collect($results)->sum(fn ($result) => (int) ($result['email'] === 'sent') + (int) ($result['sms'] === 'sent'));
             $failed = collect($results)->contains(fn ($result) => $result['email'] === 'failed' || $result['sms'] === 'failed');
             $message .= " {$sent} notification(s) sent.".($failed ? ' Some deliveries failed; review closing history.' : '');

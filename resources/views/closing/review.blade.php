@@ -7,6 +7,9 @@
             @if($section !== 'details')<option value="not_required">Not required</option>@endif
         </select>
     </label>
+    @if($section === 'forms')
+    <label class="small mb-0"><input type="checkbox" name="notify_client" value="1"> Notify client by email and eligible SMS.</label>
+    @endif
     <button class="btn btn-outline-brand">Save review</button>
 </form>
 @endif

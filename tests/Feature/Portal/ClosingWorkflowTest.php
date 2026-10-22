@@ -90,6 +90,66 @@ class ClosingWorkflowTest extends TestCase
         $this->assertSame($version, $closing->fresh()->version);
     }
 
+    public function test_milestone_notifications_are_optional_and_describe_each_saved_step(): void
+    {
+        Mail::fake();
+        [$admin, $client, $plan] = $this->records('MILESTONENOTIFY');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'active', 'details_status' => 'complete',
+            'extras_status' => 'not_required', 'released_at' => now()]);
+        $client->smsPreference()->create(['enabled' => true, 'sms_phone_e164' => '+16025550123']);
+        $this->mock(InvoiceSmsService::class)->shouldReceive('eligible')->times(4)->andReturnUsing(function ($recipient) {
+            $recipient->load('smsPreference');
+            return true;
+        });
+        $smsBodies = [];
+        $this->mock(SmsDeliveryService::class)->shouldReceive('send')->times(4)->andReturnUsing(
+            function ($phone, $body) use (&$smsBodies) { $smsBodies[] = $body; }
+        );
+        $steps = [
+            ['review_forms', ['section_status' => 'complete'], 'Your required paperwork has been accepted. No further paperwork action is needed now.'],
+            ['ready', ['milestone_date' => today()->toDateString()], 'Your property paperwork is ready for recording.'],
+            ['submit', ['milestone_date' => today()->toDateString()], 'Your property paperwork has been submitted to the county for recording.'],
+            ['complete', ['milestone_date' => today()->toDateString()], 'Recording has been confirmed and your closing is complete.'],
+        ];
+        foreach ($steps as $index => [$action, $data, $text]) {
+            $this->action($admin, $plan, $action, $data + ['notify_client' => 1])->assertSessionHasNoErrors();
+            Mail::assertSent(ClosingNotificationMail::class, fn ($mail) => $mail->nextStep === $text);
+            Mail::assertSent(ClosingNotificationMail::class, $index + 1);
+            $this->assertStringContainsString($text, $smsBodies[$index]);
+        }
+        $this->action($admin, $plan, 'undo_progress', ['milestone' => 'recorded', 'notify_client' => 1])->assertSessionHasNoErrors();
+        $this->action($admin, $plan, 'complete', ['milestone_date' => today()->toDateString()])->assertSessionHasNoErrors();
+        Mail::assertSent(ClosingNotificationMail::class, 4);
+        $this->action($admin, $plan, 'complete', ['milestone_date' => today()->toDateString(), 'notify_client' => 1])
+            ->assertSessionHasErrors('closing');
+        Mail::assertSent(ClosingNotificationMail::class, 4);
+    }
+
+    public function test_milestone_notification_checkbox_defaults_and_unchecked_steps(): void
+    {
+        Mail::fake();
+        [$admin, , $plan] = $this->records('MILESTONEDEFAULTS');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'active', 'details_status' => 'complete',
+            'extras_status' => 'not_required', 'released_at' => now()]);
+        $page = $this->actingAs($admin, 'web')->get(route('admin.plans.show', $plan))->assertOk();
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($page->getContent());
+        $xpath = new \DOMXPath($dom);
+        foreach (['review_forms' => false, 'ready' => false, 'submit' => true, 'complete' => true] as $action => $checked) {
+            $nodes = $xpath->query('//form[input[@name="action" and @value="'.$action.'"]]//input[@name="notify_client"]');
+            $this->assertSame(1, $nodes->length);
+            $this->assertSame($checked, $nodes->item(0)->hasAttribute('checked'));
+        }
+        $this->mock(SmsDeliveryService::class)->shouldNotReceive('send');
+        $this->action($admin, $plan, 'review_forms', ['section_status' => 'not_required'])->assertSessionHasNoErrors();
+        foreach (['ready', 'submit', 'complete'] as $action) {
+            $this->action($admin, $plan, $action, ['milestone_date' => today()->toDateString()])->assertSessionHasNoErrors();
+        }
+        Mail::assertNothingSent();
+    }
+
     public function test_next_action_banners_and_optional_release_notification_follow_progress(): void
     {
         Mail::fake();
@@ -728,7 +788,8 @@ class ClosingWorkflowTest extends TestCase
     {
         Mail::fake();
         [$admin,,$plan] = $this->records('STALE');
-        $this->mock(InvoiceSmsService::class)->shouldReceive('eligible')->once()->andReturn(false);
+        // Notification delivery and the admin dashboard each check SMS eligibility.
+        $this->mock(InvoiceSmsService::class)->shouldReceive('eligible')->twice()->andReturn(false);
         $this->mock(SmsDeliveryService::class)->shouldNotReceive('send');
         $this->action($admin, $plan, 'start', ['notify_client' => 1])->assertSessionHasNoErrors();
         $this->actingAs($admin, 'web')->post(route('admin.closing.update', $plan), ['action' => 'disable', 'version' => 0])->assertSessionHasErrors('closing');

@@ -50,6 +50,7 @@ $adminProgress = $showUndo ?? false;
                             <label>Reason for proceeding<textarea name="balance_reason" class="form-control form-control-sm" required maxlength="3000"></textarea></label>
                         </div>
                         @endif
+                        <label class="small"><input type="checkbox" name="notify_client" value="1" @checked(in_array($milestone, ['submit', 'complete'], true))> Notify client by email and eligible SMS.</label>
                         <button class="btn btn-sm btn-brand w-100">{{ ['ready'=>'Mark ready','submit'=>'Mark submitted','complete'=>'Mark recorded / complete'][$milestone] }}</button>
                     </fieldset>
                     @if(!$canMark)<small class="text-muted">Complete the preceding steps first.</small>@endif

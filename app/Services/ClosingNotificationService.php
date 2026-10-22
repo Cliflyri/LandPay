@@ -11,12 +11,18 @@ use Throwable;
 
 class ClosingNotificationService
 {
-    public function send(PlanClosing $closing, ?User $actor = null): array
+    public function send(PlanClosing $closing, ?User $actor = null, ?string $action = null): array
     {
         $results = [];
-        $nextStep = $closing->released_at && $closing->forms_status === 'needed'
-            ? 'Your signing packet is ready. Please review and complete step 2.'
-            : 'Closing information is available. Please review your next steps.';
+        $nextStep = match ($action) {
+            'review_forms' => 'Your required paperwork has been accepted. No further paperwork action is needed now.',
+            'ready' => 'Your property paperwork is ready for recording.',
+            'submit' => 'Your property paperwork has been submitted to the county for recording.',
+            'complete' => 'Recording has been confirmed and your closing is complete.',
+            default => $closing->released_at && $closing->forms_status === 'needed'
+                ? 'Your signing packet is ready. Please review and complete step 2.'
+                : 'Closing information is available. Please review your next steps.',
+        };
         $clients = $closing->paymentPlan->memberships()->whereNull('effective_to')->whereDate('effective_from', '<=', today())
             ->with('client')->get()->pluck('client')->unique('id');
         foreach ($clients as $client) {
