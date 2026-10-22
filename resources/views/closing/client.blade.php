@@ -16,7 +16,7 @@ $eligible = in_array($plan->status, ['active','paused'], true) && app(\App\Servi
     </div>
     @endif
 @elseif($closing?->compactProgress())
-    {{-- After paperwork acceptance, progress is displayed beneath this plan in Your Plans. --}}
+    {{-- After paperwork acceptance, progress is displayed in the dashboard's Your Property card. --}}
 @elseif($closing?->visible())
 @php
 $details = $closing->details ?? app(\App\Services\ClosingWorkflowService::class)->prefill($plan);
