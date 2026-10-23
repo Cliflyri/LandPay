@@ -18,7 +18,9 @@ $oldCoClientIds = array_map('strval', old('co_client_ids', []));
 <div class="plan-form-section"><div class="plan-form-number">1</div><div class="plan-form-body"><h2>Property</h2><p class="text-muted">Identify the property covered by this agreement.</p><div class="row g-3">
 <div class="col-md-4"><label class="form-label">APN / Plan #</label><input class="form-control" name="plan_number" value="{{ old('plan_number') }}" required><div class="form-text">The visible identifier for this property payment plan.</div></div>
 <div class="col-md-8"><label class="form-label">Property title</label><input class="form-control" name="title" value="{{ old('title') }}" placeholder="Example: 2.5-acre parcel near County Road 12" required></div>
-<div class="col-12"><label class="form-label">Property description / commonly known as <span class="text-muted">(optional)</span></label><textarea class="form-control" name="asset_description" rows="2">{{ old('asset_description') }}</textarea></div>
+<div class="col-md-8"><label class="form-label">Property description / commonly known as <span class="text-muted">(optional)</span></label><textarea class="form-control" name="asset_description" rows="2">{{ old('asset_description') }}</textarea></div>
+<div class="col-md-4"><label class="form-label" for="property-county">Property county <span class="text-muted fw-normal">(optional)</span></label><input class="form-control" id="property-county" name="property_county" list="property-counties" maxlength="100" value="{{ old('property_county') }}" placeholder="Choose or type a county">
+<datalist id="property-counties">@foreach($counties as $county)<option value="{{$county}}"></option>@endforeach</datalist></div>
 </div></div></div>
 
 <div class="plan-form-section"><div class="plan-form-number">2</div><div class="plan-form-body"><h2>Clients</h2><p class="text-muted">Search existing clients by name, email, or phone. Add a new client without leaving this form.</p><div class="row g-4">

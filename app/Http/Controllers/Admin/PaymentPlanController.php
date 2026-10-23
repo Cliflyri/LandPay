@@ -85,6 +85,7 @@ class PaymentPlanController extends Controller
     public function create(): View
     {
         return view('admin.plans.create', [
+            'counties' => $this->countySuggestions(),
             'clients' => Client::query()->whereNull('archived_at')->orderBy('last_name')->orderBy('first_name')->get(),
             'billingDefaults' => BillingDefault::query()->latest('id')->first(),
         ]);
@@ -96,6 +97,7 @@ class PaymentPlanController extends Controller
             'plan_number' => ['required', 'string', 'max:40', Rule::unique('payment_plans', 'plan_number')->where(fn ($query) => $query->whereIn('status', ['draft', 'active', 'paused']))],
             'title' => ['required', 'string', 'max:180'],
             'asset_description' => ['nullable', 'string'],
+            'property_county' => ['nullable', 'string', 'max:100'],
             'primary_client_id' => ['required', 'exists:clients,id'],
             'co_client_ids' => ['nullable', 'array'],
             'co_client_ids.*' => ['integer', 'distinct', 'different:primary_client_id', 'exists:clients,id'],
@@ -148,6 +150,9 @@ class PaymentPlanController extends Controller
             throw ValidationException::withMessages(['stage_two_days_late' => 'Stage two must occur after the stage-one late fee.']);
         }
 
+        $county = trim((string) ($data['property_county'] ?? ''));
+        $data['property_county'] = $county === '' ? null : ($this->countySuggestions()->first(fn ($existing) => mb_strtolower($existing) === mb_strtolower($county)) ?? $county);
+
         $actor = $request->user();
         $firstScheduled = Carbon::parse($data['first_scheduled_invoice_date']);
         $invoiceDay = $firstScheduled->day;
@@ -164,6 +169,7 @@ class PaymentPlanController extends Controller
                 'apn' => trim($data['plan_number']),
                 'title' => $data['title'],
                 'asset_description' => $data['asset_description'] ?? null,
+                'property_county' => $data['property_county'],
                 'original_purchase_balance' => 1,
                 'first_payment_amount' => $firstPayment,
                 'first_payment_invoice_on_activation' => (bool) ($data['create_first_payment_invoice'] ?? false),
