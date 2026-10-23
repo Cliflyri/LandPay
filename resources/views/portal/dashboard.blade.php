@@ -39,6 +39,9 @@ $propertyProgressFirst = $amountDue <= 0 && !$planSummaries->contains(fn ($summa
                 <div class="col-sm-6">
                     <span>Amount due</span>
                     <strong class="{{ $amountDue > 0 ? 'balance-due' : '' }}">{{ \App\Support\Money::format($amountDue) }}</strong>
+                    @if($openInvoiceRows->count() === 1)
+                        @include('portal._invoice-description', ['descriptionInvoice' => $openInvoiceRows->first()['invoice']])
+                    @endif
                 </div>
                 <div class="col-sm-6 border-sm-start">
                     <span>Account credit</span>
@@ -61,9 +64,10 @@ $propertyProgressFirst = $amountDue <= 0 && !$planSummaries->contains(fn ($summa
 
                     @foreach ($openInvoiceRows as $row)
                         <div class="d-flex justify-content-between gap-3 small">
-                            <a href="{{ route('portal.invoices.show', $row['invoice']) }}">
-                                {{ $row['invoice']->invoice_number }}
-                            </a>
+                            <div>
+                                <a href="{{ route('portal.invoices.show', $row['invoice']) }}">{{ $row['invoice']->invoice_number }}</a>
+                                @include('portal._invoice-description', ['descriptionInvoice' => $row['invoice']])
+                            </div>
 
                             <span class="fw-normal">
                                 Dated {{ $row['invoice']->issue_date->format('M j, Y') }}
