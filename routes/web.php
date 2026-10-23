@@ -181,6 +181,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::delete('contract-documents/{document}', [ContractSetupController::class, 'destroy'])->name('contract-documents.destroy');
     Route::resource('plans', PaymentPlanController::class)->parameters(['plans' => 'plan'])->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('plans/{plan}/pause', [PaymentPlanPauseController::class, 'pause'])->name('plans.pause');
+    Route::post('plans/{plan}/pause-label', [PaymentPlanPauseController::class, 'label'])->name('plans.pause-label');
     Route::post('plans/{plan}/resume', [PaymentPlanPauseController::class, 'resume'])->name('plans.resume');
     Route::post('plans/{plan}/account-credit/apply', [PaymentPlanController::class, 'applyAccountCredit'])->name('plans.account-credit.apply');
     Route::get('plans/{plan}/payments/create', [PaymentController::class, 'create'])->name('plans.payments.create');

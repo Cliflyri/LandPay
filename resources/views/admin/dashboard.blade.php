@@ -221,8 +221,8 @@
                                     class="text-decoration-none"
                                     title="Click to resume this payment plan"
                                 >
-                                    <span class="dashboard-status status-current">
-                                        ❚❚ Paused
+                                    <span class="dashboard-status status-current" @if($row['plan']->paused_on_hold) style="background:#e5d8c4;color:#514536" @endif>
+                                        {{ $row['plan']->paused_on_hold ? 'On hold' : '❚❚ Paused' }}
                                     </span>
                                 </a>
                             @else

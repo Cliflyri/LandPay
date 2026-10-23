@@ -454,6 +454,31 @@ class InvoiceManagementTest extends TestCase
         }
     }
 
+    public function test_pause_label_can_change_without_resuming_or_changing_closing(): void
+    {
+        [$user, $plan] = $this->activePlan();
+        $closing = app(\App\Services\ClosingWorkflowService::class)->closing($plan);
+        $closingBefore = $closing->fresh()->getAttributes();
+        $this->actingAs($user)->post(route('admin.plans.pause-label', $plan), ['pause_label' => 'on_hold'])->assertSessionHasErrors('pause_label');
+        $this->post(route('admin.plans.pause', $plan), [
+            'pause_date' => today()->toDateString(), 'reason' => 'Temporary hold', 'pause_label' => 'on_hold',
+        ])->assertSessionHasNoErrors();
+        $this->assertTrue((bool) $plan->fresh()->paused_on_hold);
+        $pauseBefore = $plan->fresh()->currentPause->getAttributes();
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Save label')->assertSee('On hold');
+        foreach (['paused', 'on_hold'] as $label) {
+            $this->post(route('admin.plans.pause-label', $plan), ['pause_label' => $label])->assertSessionHasNoErrors();
+            $this->assertSame('paused', $plan->fresh()->status);
+            $this->assertSame($label === 'on_hold', (bool) $plan->fresh()->paused_on_hold);
+            $this->assertSame($pauseBefore, $plan->fresh()->currentPause->getAttributes());
+            $this->assertSame($closingBefore, $closing->fresh()->getAttributes());
+        }
+        $this->post(route('admin.plans.pause-label', $plan), ['pause_label' => 'invalid'])->assertSessionHasErrors('pause_label');
+        $this->post(route('admin.plans.resume', $plan), ['resume_date' => today()->toDateString()])->assertSessionHasNoErrors();
+        $this->assertSame('active', $plan->fresh()->status);
+        $this->assertFalse((bool) $plan->fresh()->paused_on_hold);
+    }
+
     public function test_pause_suspends_invoices_and_reminders_and_skips_paused_months(): void
     {
         Mail::fake();
@@ -465,7 +490,7 @@ class InvoiceManagementTest extends TestCase
             $this->assertDatabaseHas('invoices', ['payment_plan_id' => $plan->id, 'invoice_number' => 'INV-'.$plan->id.'-202609', 'generation_source' => 'system']);
 
             Carbon::setTestNow('2026-09-02 09:00:00');
-            $this->actingAs($user)->post(route('admin.plans.pause', $plan), ['pause_date' => '2026-09-02', 'reason' => 'Client requested a temporary pause'])->assertSessionHas('success');
+            $this->actingAs($user)->post(route('admin.plans.pause', $plan), ['pause_date' => '2026-09-02', 'reason' => 'Client requested a temporary pause', 'pause_label' => 'on_hold'])->assertSessionHas('success');
             $this->assertSame('paused', $plan->fresh()->status);
             AppSetting::putMany(['reminders_automated_enabled' => '1', 'reminders_before_days' => '3', 'reminders_on_due' => '1', 'reminders_after_interval' => '7', 'reminders_after_max' => '3']);
             Carbon::setTestNow('2026-09-03 08:00:00');

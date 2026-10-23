@@ -52,7 +52,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 @elseif($plan->status === 'closed' && filled($plan->closure_notes))
 <div class="alert alert-secondary mt-3"><strong>Plan closed</strong><div style="white-space:pre-wrap">{{ $plan->closure_notes }}</div></div>
 @endif
-        <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }} @if(filled($plan->property_county))<span class="text-muted"> · County: {{$plan->property_county}}</span>@endif</p>
+        <p class="mb-0">APN / Plan # {{ $plan->plan_number }} <span aria-hidden="true">&middot;</span> {{ $plan->status === 'paused' && $plan->paused_on_hold ? 'On hold' : ucfirst($plan->status) }} <span aria-hidden="true">&middot;</span> {{ $plan->title }} @if(filled($plan->property_county))<span class="text-muted"> · County: {{$plan->property_county}}</span>@endif</p>
 
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -193,7 +193,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h2 class="mb-0">Plan details</h2>
         @if(in_array($plan->status, ['active','paused'], true))
-        <button class="btn btn-sm {{ $plan->status === 'paused' ? 'btn-warning' : 'btn-outline-danger' }}" type="button" data-bs-toggle="collapse" data-bs-target="#billingScheduleControl" aria-expanded="{{ $plan->status === 'paused' ? 'true' : 'false' }}" aria-controls="billingScheduleControl">{{ $plan->status === 'paused' ? 'Paused — resume plan' : 'Pause plan' }}</button>
+        <button class="btn btn-sm {{ $plan->status === 'paused' ? 'btn-warning' : 'btn-outline-danger' }}" type="button" data-bs-toggle="collapse" data-bs-target="#billingScheduleControl" aria-expanded="{{ $plan->status === 'paused' ? 'true' : 'false' }}" aria-controls="billingScheduleControl">{{ $plan->status === 'paused' ? ($plan->paused_on_hold ? 'On hold — resume plan' : 'Paused — resume plan') : 'Pause plan' }}</button>
         @endif
     </div>
     @if(in_array($plan->status, ['active','paused'], true))
@@ -201,6 +201,12 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
         <div class="border rounded bg-light p-3 mt-3">
         @if($plan->status === 'paused')
             <p class="small mb-2"><strong>Billing schedule paused.</strong> Scheduled invoices and automated reminders are suspended. Payments remain available.</p>
+            <form method="post" action="{{ route('admin.plans.pause-label',$plan) }}" class="d-flex align-items-center gap-2 mb-3">@csrf
+                <label class="small mb-0" for="pause-label">Label</label>
+                <select class="form-select form-select-sm w-auto" id="pause-label" name="pause_label"><option value="paused" @selected(!$plan->paused_on_hold)>Paused</option><option value="on_hold" @selected($plan->paused_on_hold)>On hold</option></select>
+                <button class="btn btn-outline-secondary btn-sm">Save label</button>
+                @if($plan->paused_on_hold)<span class="badge" style="background:#e5d8c4;color:#514536">On hold</span>@endif
+            </form>
             <form method="post" action="{{ route('admin.plans.resume',$plan) }}" class="row g-2 align-items-end">@csrf
                 <div class="col-md-3"><label class="form-label small">Resume effective</label><input class="form-control form-control-sm" type="date" name="resume_date" value="{{ today()->format('Y-m-d') }}" required></div>
                 <div class="col-md-6"><label class="form-label small">Resume note</label><input class="form-control form-control-sm" name="resume_note" maxlength="500"></div>
@@ -211,7 +217,8 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
             <form method="post" action="{{ route('admin.plans.pause',$plan) }}" class="row g-2 align-items-end">@csrf
                 <div class="col-md-3"><label class="form-label small">Pause effective</label><input class="form-control form-control-sm" type="date" name="pause_date" value="{{ today()->format('Y-m-d') }}" required></div>
                 <div class="col-md-3"><label class="form-label small">Planned resume (optional)</label><input class="form-control form-control-sm" type="date" name="planned_resume_date"></div>
-                <div class="col-md-4"><label class="form-label small">Reason</label><input class="form-control form-control-sm" name="reason" maxlength="500" required></div>
+                <div class="col-md-2"><label class="form-label small">Label</label><select class="form-select form-select-sm" name="pause_label"><option value="paused">Paused</option><option value="on_hold">On hold</option></select></div>
+                <div class="col-md-2"><label class="form-label small">Reason</label><input class="form-control form-control-sm" name="reason" maxlength="500" required></div>
                 <div class="col-md-2"><button class="btn btn-outline-danger btn-sm w-100">Pause plan</button></div>
             </form>
         @endif
@@ -219,7 +226,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
     </div>
     @endif
     <dl class="row mb-0 mt-3">
-        <dt class="col-sm-4 col-lg-3">Next scheduled invoice</dt><dd class="col-sm-8 col-lg-9">{{ $nextInvoiceDate?->format('F j, Y') ?? ($plan->status === 'paused' ? 'Paused' : 'Not scheduled') }}</dd>
+        <dt class="col-sm-4 col-lg-3">Next scheduled invoice</dt><dd class="col-sm-8 col-lg-9">{{ $nextInvoiceDate?->format('F j, Y') ?? ($plan->status === 'paused' ? ($plan->paused_on_hold ? 'On hold' : 'Paused') : 'Not scheduled') }}</dd>
         <dt class="col-sm-4 col-lg-3">Purchase price</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->purchase_price)}}</dd>
         <dt class="col-sm-4 col-lg-3">Down/First payment</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format((int) $plan->first_payment_amount)}}</dd>
         <dt class="col-sm-4 col-lg-3">Documentation fee</dt><dd class="col-sm-8 col-lg-9">{{\App\Support\Money::format($plan->documentation_fee_standard)}}</dd>

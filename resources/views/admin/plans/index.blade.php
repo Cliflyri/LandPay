@@ -96,7 +96,7 @@
                                 };
 
                                 $statusLabel = match ($plan->status) {
-                                    'paused' => '❚❚ Paused',
+                                    'paused' => $plan->paused_on_hold ? 'On hold' : '❚❚ Paused',
                                     default => str($plan->status)
                                         ->replace('_', ' ')
                                         ->title(),
@@ -215,7 +215,7 @@
                                 </td>
 
                                 <td>
-                                    <span class="dashboard-status {{ $statusClass }}" @if($plan->status === 'terminated') title="{{ $plan->termination_reason ?: 'No termination reason recorded.' }}" @endif>
+                                    <span class="dashboard-status {{ $statusClass }}" @if($plan->status === 'paused' && $plan->paused_on_hold) style="background:#e5d8c4;color:#514536" @endif @if($plan->status === 'terminated') title="{{ $plan->termination_reason ?: 'No termination reason recorded.' }}" @endif>
                                         {{ $statusLabel }}
                                     </span>
                                     @if ($plan->ready_to_close)
