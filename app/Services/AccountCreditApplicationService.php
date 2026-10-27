@@ -29,12 +29,14 @@ class AccountCreditApplicationService
             $balance = max(0, $this->balances->invoiceBalance($invoice));
             if ($balance === 0) continue;
             $applied = min($remaining, $balance);
+            $invoiceItems = $invoice->items()->orderBy('display_order')->orderBy('id')->get(['id', 'item_type', 'amount', 'display_order', 'description']);
             $rows[] = [
                 'id' => $invoice->id, 'number' => $invoice->invoice_number,
                 'due_date' => $invoice->due_date?->toDateString(),
+                'descriptions' => $invoiceItems->pluck('description')->filter(fn ($description) => filled($description))->values()->all(),
                 'balance' => $balance, 'applied' => $applied, 'remaining' => $balance - $applied,
             ];
-            $items[$invoice->id] = $invoice->items()->orderBy('id')->get(['id', 'item_type', 'amount', 'display_order'])->toArray();
+            $items[$invoice->id] = $invoiceItems->toArray();
             $remaining -= $applied;
         }
         $preview = ['plan_id' => $plan->id, 'available' => $available, 'rows' => $rows,
