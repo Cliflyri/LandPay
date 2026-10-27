@@ -358,6 +358,7 @@ class PaymentPlanController extends Controller
             'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
             'principalPaid' => $this->balances->purchasePrincipalPaid($plan),
+            'creditApplicationPreview' => $this->accountCredits->preview($plan),
             'creditTransferPlans' => app(\App\Services\AccountCreditTransferService::class)->destinations($plan)->get(),
             'clientCredit' => max(0, $this->balances->clientCredit($plan)),
             'openInvoiceBalance' => $openInvoiceBalance,
@@ -387,7 +388,8 @@ class PaymentPlanController extends Controller
     }
     public function applyAccountCredit(Request $request, PaymentPlan $plan): RedirectResponse
     {
-        $applied = $this->accountCredits->applyToOpenInvoices($plan, $request->user());
+        $data = $request->validate(['preview_token' => ['required', 'string', 'size:64']]);
+        $applied = $this->accountCredits->applyToOpenInvoices($plan, $request->user(), $data['preview_token']);
 
         return back()->with('success', $applied > 0 ? Money::format($applied).' account credit applied to open invoices.' : 'No account credit could be applied.');
     }

@@ -174,7 +174,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
             $lastPayment = $payments->first(fn ($payment) => $payment->financialTransaction?->reversedBy === null);
         @endphp
 
-        <span class="d-block mt-3">Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong>@if($clientCredit > 0 && $creditTransferPlans->isNotEmpty()) <button type="button" class="btn btn-link btn-sm p-0 ms-2" data-bs-toggle="modal" data-bs-target="#transfer-credit">Transfer</button>@endif @if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
+        <span class="d-block mt-3">Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong>@if($clientCredit > 0 && $creditTransferPlans->isNotEmpty()) <button type="button" class="btn btn-link btn-sm p-0 ms-2" data-bs-toggle="modal" data-bs-target="#transfer-credit">Transfer</button>@endif @if($clientCredit > 0 && $openInvoiceBalance > 0)<div class="mt-2"><button class="btn btn-sm btn-outline-brand" type="button" data-bs-toggle="modal" data-bs-target="#apply-account-credit">Apply to open invoices</button></div>@endif</article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Total applied to contract</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong><span class="d-block text-muted fs-6">Principal paid: <strong>{{\App\Support\Money::format($principalPaid)}}</strong></span></article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Monthly payment</span>
     
@@ -445,4 +445,5 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 </div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-brand">Confirm transfer</button></div>
 </form></div></div></div>
 @endif
+@include('admin.plans.partials.apply-account-credit-modal')
 @endsection

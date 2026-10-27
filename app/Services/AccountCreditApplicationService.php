@@ -18,14 +18,48 @@ class AccountCreditApplicationService
 {
     public function __construct(private readonly FinancialPostingService $posting, private readonly FinancialBalanceService $balances) {}
 
-    public function applyToOpenInvoices(PaymentPlan $plan, User $actor): int
+    public function preview(PaymentPlan $plan, ?\Illuminate\Support\Collection $invoices = null): array
     {
-        return DB::transaction(function () use ($plan, $actor): int {
+        $available = max(0, $this->balances->clientCredit($plan));
+        $remaining = $available;
+        $rows = [];
+        $items = [];
+        $invoices ??= $this->openInvoices($plan)->get();
+        foreach ($invoices as $invoice) {
+            $balance = max(0, $this->balances->invoiceBalance($invoice));
+            if ($balance === 0) continue;
+            $applied = min($remaining, $balance);
+            $rows[] = [
+                'id' => $invoice->id, 'number' => $invoice->invoice_number,
+                'due_date' => $invoice->due_date?->toDateString(),
+                'balance' => $balance, 'applied' => $applied, 'remaining' => $balance - $applied,
+            ];
+            $items[$invoice->id] = $invoice->items()->orderBy('id')->get(['id', 'item_type', 'amount', 'display_order'])->toArray();
+            $remaining -= $applied;
+        }
+        $preview = ['plan_id' => $plan->id, 'available' => $available, 'rows' => $rows,
+            'applied' => $available - $remaining, 'remaining' => $remaining];
+        $preview['token'] = hash_hmac('sha256', json_encode([$preview, $items], JSON_THROW_ON_ERROR), config('app.key'));
+        return $preview;
+    }
+
+    private function openInvoices(PaymentPlan $plan): \Illuminate\Database\Eloquent\Builder
+    {
+        return Invoice::query()->where('payment_plan_id', $plan->id)
+            ->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])
+            ->orderBy('due_date')->orderBy('id');
+    }
+    public function applyToOpenInvoices(PaymentPlan $plan, User $actor, string $previewToken): int
+    {
+        return DB::transaction(function () use ($plan, $actor, $previewToken): int {
             $lockedPlan = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             $applied = 0;
-            $invoices = Invoice::query()->where('payment_plan_id', $lockedPlan->id)
-                ->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])
-                ->orderBy('due_date')->orderBy('id')->lockForUpdate()->get();
+            $invoices = $this->openInvoices($lockedPlan)->lockForUpdate()->get();
+            if (!hash_equals($this->preview($lockedPlan, $invoices)['token'], $previewToken)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'credit_preview' => 'Credit or invoices changed. Open Apply to open invoices again to review the refreshed allocation.',
+                ]);
+            }
             foreach ($invoices as $invoice) {
                 if ($this->balances->clientCredit($lockedPlan) <= 0) break;
                 $applied += $this->applyToInvoice($lockedPlan, $invoice, $actor);

@@ -225,6 +225,46 @@ class InvoiceManagementTest extends TestCase
         ]);
     }
 
+    public function test_account_credit_modal_previews_allocation_and_rejects_stale_confirmation(): void
+    {
+        [$user, $plan] = $this->activePlan();
+        $this->actingAs($user);
+        foreach (['2026-08-15', '2026-09-15'] as $date) {
+            $this->post(route('admin.plans.invoices.manual.store', $plan), [
+                'issue_date' => $date, 'items' => [['type' => 'principal', 'description' => 'Payment', 'amount' => '100.00']],
+            ])->assertSessionHasNoErrors();
+        }
+        $posting = app(FinancialPostingService::class);
+        $posting->post($plan, FinancialTransactionType::Payment, 15_000, today(), FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, 15_000, FinancialEffectComponent::UnappliedCredit)], actor: $user);
+        $service = app(\App\Services\AccountCreditApplicationService::class);
+        $preview = $service->preview($plan);
+        $this->assertSame([10_000, 5_000], array_column($preview['rows'], 'applied'));
+        $this->assertSame([0, 5_000], array_column($preview['rows'], 'remaining'));
+        $this->get(route('admin.plans.show', $plan))->assertOk()
+            ->assertSee('id="apply-account-credit"', false)->assertSee('Balance afterward')
+            ->assertSee('Apply $150.00 credit')->assertDontSee("return confirm('Apply available account credit", false);
+        $this->assertSame(15_000, app(FinancialBalanceService::class)->clientCredit($plan));
+        $url = route('admin.plans.account-credit.apply', $plan);
+        $this->post($url, [])->assertSessionHasErrors('preview_token');
+
+        $posting->post($plan, FinancialTransactionType::Payment, 10_000, today(), FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, 10_000, FinancialEffectComponent::UnappliedCredit)], actor: $user);
+        $this->post($url, ['preview_token' => $preview['token']])->assertSessionHasErrors('credit_preview');
+        $this->assertSame(25_000, app(FinancialBalanceService::class)->clientCredit($plan));
+        $this->assertDatabaseMissing('financial_transactions', ['payment_plan_id' => $plan->id, 'type' => 'credit_application']);
+        $fresh = $service->preview($plan);
+        $this->assertSame(5_000, $fresh['remaining']);
+        $invoice = Invoice::where('payment_plan_id', $plan->id)->orderBy('id')->firstOrFail();
+        $invoice->update(['due_date' => $invoice->due_date->copy()->addDay()]);
+        $this->post($url, ['preview_token' => $fresh['token']])->assertSessionHasErrors('credit_preview');
+        $fresh = $service->preview($plan);
+        $this->post($url, ['preview_token' => $fresh['token']])->assertSessionHasNoErrors();
+        $this->assertSame(5_000, app(FinancialBalanceService::class)->clientCredit($plan));
+        $this->assertSame(2, Invoice::where('payment_plan_id', $plan->id)->where('status', 'paid')->count());
+        $this->post($url, ['preview_token' => $fresh['token']])->assertSessionHasErrors('credit_preview');
+        $this->assertSame(5_000, app(FinancialBalanceService::class)->clientCredit($plan));
+    }
     public function test_manual_invoice_automatically_uses_available_account_credit(): void
     {
         [$user, $plan] = $this->activePlan();
