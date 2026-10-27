@@ -132,7 +132,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
         <div class="col-6 col-lg"><span class="text-muted d-block small">Principal paid</span><strong>{{ \App\Support\Money::format($principalPaid) }}</strong></div>
         <div class="col-6 col-lg"><span class="text-muted d-block small">Contract balance</span><strong>{{ \App\Support\Money::format($contractBalance) }}</strong></div>
         <div class="col-6 col-lg"><span class="text-muted d-block small">Current payoff</span><strong>{{ \App\Support\Money::format($currentPayoff) }}</strong></div>
-        <div class="col-6 col-lg"><span class="text-muted d-block small">Unused credit</span><strong>{{ \App\Support\Money::format($clientCredit) }}</strong></div>
+        <div class="col-6 col-lg"><span class="text-muted d-block small">Unused credit</span><strong>{{ \App\Support\Money::format($clientCredit) }}</strong>@if($clientCredit > 0 && $creditTransferPlans->isNotEmpty()) <button type="button" class="btn btn-link btn-sm p-0 ms-2" data-bs-toggle="modal" data-bs-target="#transfer-credit">Transfer</button>@endif</div>
     </div>
     <div class="table-responsive mt-4">
         <table class="table table-sm table-striped align-middle mb-0">
@@ -174,7 +174,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
             $lastPayment = $payments->first(fn ($payment) => $payment->financialTransaction?->reversedBy === null);
         @endphp
 
-        <span class="d-block mt-3">Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong>@if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
+        <span class="d-block mt-3">Account credit</span><strong>{{\App\Support\Money::format($clientCredit)}}</strong>@if($clientCredit > 0 && $creditTransferPlans->isNotEmpty()) <button type="button" class="btn btn-link btn-sm p-0 ms-2" data-bs-toggle="modal" data-bs-target="#transfer-credit">Transfer</button>@endif @if($clientCredit > 0 && $openInvoiceBalance > 0)<form class="mt-2" method="post" action="{{route('admin.plans.account-credit.apply',$plan)}}" onsubmit="return confirm('Apply available account credit to this plan’s oldest open invoices?');">@csrf<button class="btn btn-sm btn-outline-brand" type="submit">Apply to open invoices</button></form>@endif</article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Total applied to contract</span><strong>{{\App\Support\Money::format($paidInValue)}}</strong><span class="d-block text-muted fs-6">Principal paid: <strong>{{\App\Support\Money::format($principalPaid)}}</strong></span></article></div>
     <div class="col-md-3"><article class="admin-summary-card"><span>Monthly payment</span>
     
@@ -430,4 +430,19 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 @endif
 </div></section>
 @if($nextPayableInvoice)@include('admin.shared.pay-invoice-full-modal',['invoice'=>$nextPayableInvoice,'returnTo'=>'plan'])@endif
+@if($clientCredit > 0 && $creditTransferPlans->isNotEmpty())
+<div class="modal fade" id="transfer-credit" tabindex="-1" aria-labelledby="transfer-credit-title" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+<form method="post" action="{{ route('admin.plans.account-credit.transfer', $plan) }}">@csrf
+<input type="hidden" name="transfer_token" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+<div class="modal-header"><h2 class="modal-title fs-5" id="transfer-credit-title">Transfer unapplied credit</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+<div class="modal-body">
+<p>From <strong>{{ $plan->plan_number }} — {{ $plan->title }}</strong><br>Available: <strong>{{ \App\Support\Money::format($clientCredit) }}</strong></p>
+<label class="form-label" for="credit-destination">Destination plan / property</label>
+<select class="form-select mb-3" id="credit-destination" name="destination_plan_id" required><option value="">Select a plan</option>@foreach($creditTransferPlans as $destination)<option value="{{ $destination->id }}">{{ $destination->plan_number }} — {{ $destination->title }}</option>@endforeach</select>
+<label class="form-label" for="credit-amount">Amount to transfer</label>
+<input class="form-control" id="credit-amount" name="amount" type="number" min="0.01" step="0.01" max="{{ number_format($clientCredit / 100, 2, '.', '') }}" required>
+<p class="small text-muted mt-3 mb-0">Credit remains unapplied on the destination plan. You can apply it to invoices there.</p>
+</div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-brand">Confirm transfer</button></div>
+</form></div></div></div>
+@endif
 @endsection

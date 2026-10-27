@@ -358,6 +358,7 @@ class PaymentPlanController extends Controller
             'currentPayoff' => $this->payoffs->amount($plan),
             'paidInValue' => $this->balances->administratorPaidInValue($plan),
             'principalPaid' => $this->balances->purchasePrincipalPaid($plan),
+            'creditTransferPlans' => app(\App\Services\AccountCreditTransferService::class)->destinations($plan)->get(),
             'clientCredit' => max(0, $this->balances->clientCredit($plan)),
             'openInvoiceBalance' => $openInvoiceBalance,
             'previousPaid' => $this->openingPrincipalCredit->amount($plan),
@@ -371,6 +372,19 @@ class PaymentPlanController extends Controller
         ]);
     }
 
+    public function transferAccountCredit(Request $request, PaymentPlan $plan): RedirectResponse
+    {
+        $data = $request->validate([
+            'destination_plan_id' => ['required', 'integer'],
+            'amount' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,2})?$/'],
+            'transfer_token' => ['required', 'uuid'],
+        ]);
+        app(\App\Services\AccountCreditTransferService::class)->transfer(
+            $plan, (int) $data['destination_plan_id'], Money::toCents($data['amount']), $request->user(), $data['transfer_token'],
+        );
+        return redirect()->route('admin.plans.show', PaymentPlan::findOrFail($data['destination_plan_id']))
+            ->with('success', Money::format(Money::toCents($data['amount'])).' transferred as unapplied credit.');
+    }
     public function applyAccountCredit(Request $request, PaymentPlan $plan): RedirectResponse
     {
         $applied = $this->accountCredits->applyToOpenInvoices($plan, $request->user());

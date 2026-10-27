@@ -436,6 +436,47 @@ class ClientAndPaymentPlanManagementTest extends TestCase
         $this->get(route('admin.plans.show', $plan))->assertOk()->assertDontSee('<strong>Plan closed</strong>', false);
     }
 
+    public function test_unapplied_credit_transfer_is_atomic_scoped_and_idempotent(): void
+    {
+        $user = User::factory()->create();
+        $client = $this->client($user);
+        $this->actingAs($user);
+        foreach (['SOURCE', 'DESTINATION'] as $number) {
+            $this->post(route('admin.plans.store'), array_merge($this->validPlanData($client), ['plan_number' => $number]))
+                ->assertSessionHasNoErrors();
+        }
+        $source = PaymentPlan::where('plan_number', 'SOURCE')->firstOrFail();
+        $destination = PaymentPlan::where('plan_number', 'DESTINATION')->firstOrFail();
+        $this->get(route('admin.plans.show', $source))->assertOk()->assertDontSee('id="transfer-credit"', false);
+        app(FinancialPostingService::class)->post($source, FinancialTransactionType::Payment, 20_000, today(),
+            FinancialActorType::Administrator,
+            [new PostingEffect(FinancialEffectType::ClientCredit, 20_000, FinancialEffectComponent::UnappliedCredit)], actor: $user);
+        $this->get(route('admin.plans.show', $source))->assertOk()->assertSee('id="transfer-credit"', false);
+        $payload = ['destination_plan_id' => $destination->id, 'amount' => '75.00', 'transfer_token' => (string) \Illuminate\Support\Str::uuid()];
+        $url = route('admin.plans.account-credit.transfer', $source);
+        $before = app(FinancialBalanceService::class)->contractBalance($source);
+        $this->post($url, $payload)->assertRedirect(route('admin.plans.show', $destination))->assertSessionHasNoErrors();
+        $this->post($url, $payload)->assertSessionHasNoErrors();
+        $balances = app(FinancialBalanceService::class);
+        $this->assertSame(12_500, $balances->clientCredit($source));
+        $this->assertSame(7_500, $balances->clientCredit($destination));
+        $this->assertSame($before, $balances->contractBalance($source));
+        $this->assertSame(2, FinancialTransaction::where('type', 'credit_transfer')->count());
+        $payload['transfer_token'] = (string) \Illuminate\Support\Str::uuid();
+        $payload['amount'] = '125.01';
+        $this->post($url, $payload)->assertSessionHasErrors('amount');
+        $payload['amount'] = '0';
+        $this->post($url, $payload)->assertSessionHasErrors('amount');
+        $payload['amount'] = '1.00';
+        $payload['destination_plan_id'] = $source->id;
+        $this->post($url, $payload)->assertSessionHasErrors('destination_plan_id');
+        $destination->memberships()->update(['effective_to' => today()->subDay()]);
+        $payload['destination_plan_id'] = $destination->id;
+        $this->post($url, $payload)->assertSessionHasErrors('destination_plan_id');
+        $this->assertSame(12_500, $balances->clientCredit($source));
+        $this->assertSame(7_500, $balances->clientCredit($destination));
+        $this->get(route('admin.plans.show', $source))->assertOk()->assertDontSee('id="transfer-credit"', false);
+    }
     private function client(User $user, string $firstName = 'Maya'): Client
     {
         return Client::query()->create([

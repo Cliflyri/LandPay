@@ -9,6 +9,7 @@ enum FinancialTransactionType: string
     case InvoiceCharge = 'invoice_charge';
     case RecurringFee = 'recurring_fee';
     case Payment = 'payment';
+    case CreditTransfer = 'credit_transfer';
     case CreditApplication = 'credit_application';
     case Adjustment = 'adjustment';
     case Reversal = 'reversal';

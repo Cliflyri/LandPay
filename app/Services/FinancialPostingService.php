@@ -163,6 +163,7 @@ class FinancialPostingService
             FinancialTransactionType::Payment => ($effect->type === FinancialEffectType::InvoiceDue && $effect->amountDelta < 0)
                 || ($effect->type === FinancialEffectType::PurchaseBalance && $effect->amountDelta < 0)
                 || ($effect->type === FinancialEffectType::ClientCredit && $effect->amountDelta > 0),
+            FinancialTransactionType::CreditTransfer => $effect->type === FinancialEffectType::ClientCredit && $effect->component === FinancialEffectComponent::UnappliedCredit,
             FinancialTransactionType::CreditApplication => $effect->amountDelta < 0,
             FinancialTransactionType::Refund => $effect->type === FinancialEffectType::ClientCredit && $effect->amountDelta < 0,
             FinancialTransactionType::WriteOff => in_array($effect->type, [FinancialEffectType::InvoiceDue, FinancialEffectType::PurchaseBalance], true) && $effect->amountDelta < 0,
