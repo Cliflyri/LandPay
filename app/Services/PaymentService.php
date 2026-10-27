@@ -416,14 +416,7 @@ class PaymentService
 
     private function itemRemaining(InvoiceItem $item): int
     {
-        $allocated = (int) DB::table('payment_allocations')
-            ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
-            ->join('financial_transactions', 'financial_transactions.id', '=', 'payments.financial_transaction_id')
-            ->where('payment_allocations.invoice_item_id', $item->id)
-            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('financial_transactions as reversals')->whereColumn('reversals.reversal_of_transaction_id', 'financial_transactions.id'))
-            ->sum('payment_allocations.amount');
-
-        return max(0, $item->amount - $allocated);
+        return $this->balances->invoiceItemBalance($item);
     }
 
     private function itemPriority(InvoiceItem $item): int

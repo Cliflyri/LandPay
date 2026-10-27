@@ -366,6 +366,58 @@ class PaymentManagementTest extends TestCase
             ->assertViewHas('preview', fn ($preview) => $preview['principal_amount'] === 12000);
     }
 
+    public function test_payment_then_credit_uses_remaining_line_balances(): void
+    {
+        [$user, $plan, $invoice] = $this->activePlanWithInvoice();
+        $payments = app(\App\Services\PaymentService::class);
+        $payment = $payments->post($plan, $user, 2_500, 'regular', \App\Enums\PaymentMethod::Cash, '2026-08-08');
+        $this->applyTestCredit($plan, $invoice, $user, 5_000);
+        $balances = app(FinancialBalanceService::class);
+        $fee = $invoice->items()->where('item_type', 'monthly_service_fee')->firstOrFail();
+        $this->assertSame(0, $balances->invoiceItemBalance($fee));
+        $this->assertSame(45_000, $balances->invoiceBalance($invoice));
+        $this->assertSame(2_045_000, $balances->contractBalance($plan));
+
+        $payments->reverse($payment, $user, 'Correct payment');
+        $this->assertSame(2_500, $balances->invoiceItemBalance($fee));
+        $payments->post($plan, $user, 2_500, 'regular', \App\Enums\PaymentMethod::Cash, '2026-08-09');
+        $this->assertSame(0, $balances->invoiceItemBalance($fee));
+        $this->assertSame(45_000, $balances->invoiceBalance($invoice));
+        $this->assertSame(2_045_000, $balances->contractBalance($plan));
+    }
+
+    public function test_credit_then_payment_uses_remaining_line_balances(): void
+    {
+        [$user, $plan, $invoice] = $this->activePlanWithInvoice();
+        $this->applyTestCredit($plan, $invoice, $user, 2_500);
+        app(\App\Services\PaymentService::class)->post($plan, $user, 5_000, 'regular', \App\Enums\PaymentMethod::Cash, '2026-08-08');
+        $balances = app(FinancialBalanceService::class);
+        $this->assertSame(0, $balances->invoiceItemBalance($invoice->items()->where('item_type', 'monthly_service_fee')->firstOrFail()));
+        $this->assertSame(45_000, $balances->invoiceBalance($invoice));
+        $this->assertSame(2_045_000, $balances->contractBalance($plan));
+    }
+
+    public function test_repeated_partial_credits_do_not_cover_the_same_fee_twice(): void
+    {
+        [$user, $plan, $invoice] = $this->activePlanWithInvoice();
+        $this->applyTestCredit($plan, $invoice, $user, 1_000);
+        $this->applyTestCredit($plan, $invoice, $user, 4_000);
+        $balances = app(FinancialBalanceService::class);
+        $this->assertSame(0, $balances->invoiceItemBalance($invoice->items()->where('item_type', 'monthly_service_fee')->firstOrFail()));
+        $this->assertSame(47_500, $balances->invoiceBalance($invoice));
+        $this->assertSame(2_047_500, $balances->contractBalance($plan));
+    }
+
+    private function applyTestCredit($plan, $invoice, $user, int $amount): void
+    {
+        app(\App\Services\FinancialPostingService::class)->post(
+            $plan, \App\Enums\FinancialTransactionType::Payment, $amount, '2026-08-08',
+            \App\Enums\FinancialActorType::Administrator,
+            [new \App\Financial\PostingEffect(\App\Enums\FinancialEffectType::ClientCredit, $amount, \App\Enums\FinancialEffectComponent::UnappliedCredit)],
+            actor: $user,
+        );
+        app(\App\Services\AccountCreditApplicationService::class)->applyToInvoice($plan, $invoice, $user);
+    }
     private function activePlanWithInvoice(): array
     {
         $user = User::factory()->create();

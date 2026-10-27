@@ -31,6 +31,14 @@ class FinancialBalanceService
             ->sum('amount_delta');
     }
 
+    public function invoiceItemBalance(\App\Models\InvoiceItem $item): int
+    {
+        return max(0, (int) TransactionEffect::query()
+            ->where('effect_type', FinancialEffectType::InvoiceDue->value)
+            ->where('invoice_id', $item->invoice_id)
+            ->where('invoice_item_id', $item->id)
+            ->sum('amount_delta'));
+    }
     public function invoiceCreditApplied(Invoice|int $invoice): int
     {
         $invoiceId = $invoice instanceof Invoice ? $invoice->id : $invoice;

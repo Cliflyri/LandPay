@@ -79,7 +79,8 @@ class AccountCreditApplicationService
         $items = $invoice->items()->orderByRaw("item_type = ? asc", [InvoiceItemType::ScheduledPurchasePayment->value])->orderBy('display_order')->get();
         foreach ($items as $item) {
             if ($remaining <= 0 || $item->amount <= 0) continue;
-            $applied = min($remaining, (int) $item->amount);
+            $applied = min($remaining, $this->balances->invoiceItemBalance($item));
+            if ($applied <= 0) continue;
             $component = FinancialEffectComponent::tryFrom($item->item_type->value) ?? FinancialEffectComponent::Other;
             $effects[] = new PostingEffect(FinancialEffectType::InvoiceDue, -$applied, $component, invoiceId: $invoice->id, invoiceItemId: $item->id, description: 'Account credit applied');
             if ($item->item_type === InvoiceItemType::ScheduledPurchasePayment) $effects[] = new PostingEffect(FinancialEffectType::PurchaseBalance, -$applied, FinancialEffectComponent::PurchasePricePrincipal, description: 'Account credit applied to principal');
