@@ -1,4 +1,83 @@
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-signing-upload]').forEach(zone => {
+        const input = zone.querySelector('input[type="file"]');
+        const selection = zone.querySelector('[data-upload-selection]');
+        const error = zone.querySelector('[data-upload-error]');
+        const remove = zone.querySelector('[data-upload-remove]');
+        const showError = message => {
+            error.textContent = message;
+            error.hidden = !message;
+        };
+        const refresh = () => {
+            const file = input.files[0];
+            selection.textContent = file ? file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB) — ready to upload' : '';
+            remove.hidden = !file;
+        };
+        const validate = file => {
+            if (!/\.(pdf|docx|jpe?g|png)$/i.test(file.name)) return 'Choose a PDF, DOCX, JPG or PNG file.';
+            if (file.size > 10 * 1024 * 1024) return 'The signing packet must be 10 MB or smaller.';
+            return '';
+        };
+        const selectFiles = files => {
+            showError('');
+            if (files.length !== 1) {
+                showError('Select one complete signing packet. Multiple files cannot be uploaded together.');
+                return;
+            }
+            const message = validate(files[0]);
+            if (message) { showError(message); return; }
+            try {
+                const transfer = new DataTransfer();
+                transfer.items.add(files[0]);
+                input.files = transfer.files;
+                refresh();
+            } catch {
+                showError('This browser could not select the file. Please use Choose signing packet.');
+            }
+        };
+        input.addEventListener('change', () => {
+            const message = input.files[0] ? validate(input.files[0]) : '';
+            if (message) input.value = '';
+            showError(message);
+            refresh();
+        });
+        remove.addEventListener('click', () => {
+            input.value = '';
+            showError('');
+            refresh();
+            zone.focus();
+        });
+        zone.addEventListener('click', event => {
+            if (!event.target.closest('input, button, label')) zone.focus();
+        });
+        zone.addEventListener('dragover', event => {
+            event.preventDefault();
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+            zone.classList.add('is-dragging');
+        });
+        zone.addEventListener('dragleave', event => {
+            if (!zone.contains(event.relatedTarget)) zone.classList.remove('is-dragging');
+        });
+        zone.addEventListener('drop', event => {
+            event.preventDefault();
+            zone.classList.remove('is-dragging');
+            selectFiles(Array.from(event.dataTransfer?.files ?? []));
+        });
+        zone.addEventListener('paste', event => {
+            const files = Array.from(event.clipboardData?.files ?? []);
+            event.preventDefault();
+            if (!files.length) {
+                showError('No file was available from the clipboard. Try dragging the file here or use Choose signing packet.');
+                return;
+            }
+            selectFiles(files);
+        });
+        input.form.addEventListener('reset', () => {
+            input.value = '';
+            showError('');
+            refresh();
+        });
+    });
     document.querySelectorAll('[data-closing-owners]').forEach(container => {
         const list = container.querySelector('[data-owner-list]');
         const template = container.querySelector('template');

@@ -36,3 +36,5 @@
 .closing-progress-controls .btn{white-space:normal}
 .closing-progress-controls .closing-progress-undo{padding:0 .2rem;font-size:.75rem;color:#65717c}
 @media(max-width:640px){.closing-progress-admin{grid-template-columns:1fr}.closing-progress-admin .closing-progress-marker{min-height:0;border-top:0;border-left:4px solid #dbe3e7}.closing-progress-controls{padding:.6rem .8rem 1rem}}
+
+.closing-upload-zone{border:2px dashed #9aadb0;border-radius:.5rem;padding:1rem;background:#f8faf9}.closing-upload-zone:focus,.closing-upload-zone:focus-within,.closing-upload-zone.is-dragging{border-color:#173f40;background:#eef5f2}.closing-upload-zone:focus-visible{outline:2px solid #173f40;outline-offset:2px}.closing-upload-zone [data-upload-selection]{overflow-wrap:anywhere}
