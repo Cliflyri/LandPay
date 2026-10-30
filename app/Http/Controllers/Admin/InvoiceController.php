@@ -181,9 +181,34 @@ $primaryClientName = $primaryClient?->organization_name
         $creditApplied = $this->balances->invoiceCreditApplied($invoice);
         $adjustments = $balance - $invoiceAmount + $paidToDate + $creditApplied;
 
+        $paymentHistory = \App\Models\Payment::query()
+            ->whereHas('allocations', fn ($query) => $query->where('invoice_id', $invoice->id))
+            ->with(['allocations' => fn ($query) => $query->where('invoice_id', $invoice->id), 'financialTransaction.reversedBy'])
+            ->get()->map(fn ($payment) => [
+                'date' => $payment->received_date,
+                'amount' => (int) $payment->allocations->sum('amount'),
+                'method' => str($payment->payment_method->value)->replace('_', ' ')->title()->toString(),
+                'reference' => $payment->external_reference,
+                'payment' => $payment,
+                'reversal' => $payment->financialTransaction->reversedBy,
+            ]);
+        $creditHistory = $invoice->transactions()
+            ->where('type', \App\Enums\FinancialTransactionType::CreditApplication->value)
+            ->with(['effects', 'reversedBy'])->get()->map(fn ($transaction) => [
+                'date' => $transaction->posted_at,
+                'amount' => -(int) $transaction->effects->filter(fn ($effect) =>
+                    $effect->effect_type === \App\Enums\FinancialEffectType::InvoiceDue
+                    && $effect->invoice_id === $invoice->id)->sum('amount_delta'),
+                'method' => 'Account credit',
+                'reference' => null,
+                'payment' => null,
+                'reversal' => $transaction->reversedBy,
+            ]);
+        $paymentHistory = $paymentHistory->concat($creditHistory)->sortBy('date')->values();
         return view('admin.invoices.show', [
             'invoice' => $invoice,
             'balance' => $balance,
+            'paymentHistory' => $paymentHistory,
             'summary' => compact('subtotal', 'waivers', 'invoiceAmount', 'creditApplied', 'paidToDate', 'adjustments'),
             'canDelete' => $this->voids->canVoid($invoice),
             'canCreateFirstPayment' => $invoice->status === InvoiceStatus::Voided
