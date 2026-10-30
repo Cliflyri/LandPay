@@ -161,7 +161,7 @@ class DashboardController extends Controller
                 && $currentBalanceDue <= 0,
             'current_balance_items' => $currentBalanceItems,
             'balance_invoice' => $oldestDueInvoice,
-            'operational_status' => $this->operationalStatus($plan, $oldestDueDate, $currentBalanceDue),
+            'operational_status' => app(\App\Services\PlanStatusService::class)->label($plan, $oldestDueDate, $currentBalanceDue),
             'monthly_principal' => $monthlyPrincipal,
             'monthly_total' => $monthlyPrincipal + $monthlyServiceFee,
             'reminder_last_sent' => $lastReminder ? $lastReminder->sent_at?->format('M j, Y g:i A').' ('.($lastReminder->automated ? 'Automated' : 'Manual').')' : null,
@@ -183,43 +183,4 @@ class DashboardController extends Controller
         return trim(collect([$client->first_name, $client->last_name])->filter()->join(' ')) ?: 'Unnamed client';
     }
 
-    private function operationalStatus(PaymentPlan $plan, ?Carbon $oldestDueDate, int $currentBalanceDue): string
-    {
-        if ($plan->status === 'draft') {
-            return 'Draft';
-        }
-        if ($plan->status === 'paused') {
-            return 'Paused';
-        }
-        if ($plan->status === 'terminated') {
-            return 'Terminated';
-        }
-        if ($plan->status === 'closed') {
-            return 'Closed';
-        }
-        if ($oldestDueDate === null || $currentBalanceDue <= 0) {
-            return 'Current';
-        }
-
-        $today = Carbon::today();
-        $dueDate = $oldestDueDate;
-        $terms = $plan->currentBillingTerms;
-        $graceDays = $terms?->grace_days ?? $plan->grace_period_days;
-        $defaultDays = $terms?->default_eligibility_days;
-
-        if ($defaultDays !== null && $today->greaterThanOrEqualTo($dueDate->copy()->addDays($defaultDays))) {
-            return 'Default Eligible';
-        }
-        if ($today->greaterThan($dueDate->copy()->addDays($graceDays))) {
-            return 'Past Due';
-        }
-        if ($today->greaterThanOrEqualTo($dueDate)) {
-            return 'Due';
-        }
-        if ($today->greaterThanOrEqualTo($dueDate->copy()->subDays(7))) {
-            return 'Due Soon';
-        }
-
-        return 'Current';
-    }
 }

@@ -215,26 +215,7 @@
                         </td>
 
                         <td>
-                            @if ($row['plan']->status === 'paused')
-                                <a
-                                    href="{{ route('admin.plans.show', $row['plan']) }}#pause-plan-controls"
-                                    class="text-decoration-none"
-                                    title="Click to resume this payment plan"
-                                >
-                                    <span class="dashboard-status status-current" @if($row['plan']->paused_on_hold) style="background:#e5d8c4;color:#514536" @endif>
-                                        {{ $row['plan']->paused_on_hold ? 'On hold' : '❚❚ Paused' }}
-                                    </span>
-                                </a>
-                            @else
-@if($row['plan']->status === 'terminated')
-    @include('admin.plans.partials.termination-badge', ['plan' => $row['plan']])
-@else
-    <span class="dashboard-status {{ $statusClass }}">
-        {{ $row['operational_status'] }}
-    </span>
-@endif
-                            @endif
-
+@include('admin.plans.partials.status-badge', ['badgePlan' => $row['plan'], 'badgeStatus' => $row['operational_status']])
                             @if ($row['ready_to_close'])
 <div class="mt-1">
     <a

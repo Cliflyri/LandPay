@@ -637,3 +637,4 @@ body.admin-layout .admin-section > .site-container {
 
 /* Shared administrator formatting editor and safely rendered content */
 .formatting-toolbar{flex-wrap:wrap}.formatting-editor textarea{font-family:inherit}.formatted-text{overflow-wrap:anywhere}.formatted-text>:last-child{margin-bottom:0}.formatted-text .text-large{font-size:1.2em}.formatted-text ul,.formatted-text ol{padding-left:1.5rem}.secure-message-body.formatted-text{white-space:normal}
+.client-plan-status .dashboard-status, .client-plan-status .badge { font-size: .65rem; padding: .22rem .45rem; border-radius: .2rem; vertical-align: middle; }
