@@ -506,8 +506,8 @@ class InvoiceManagementTest extends TestCase
             'pause_date' => today()->toDateString(), 'reason' => 'Temporary hold', 'planned_resume_date' => $date,
         ])->assertSessionHasNoErrors();
         $this->get(route('admin.plans.show', $plan))->assertOk()
-            ->assertSee('value="'.$date.'"', false)->assertSee('Save planned date')
-            ->assertSee('For reference only. This plan stays paused until manually resumed.');
+            ->assertSee('value="'.$date.'"', false)->assertSee('Save resume date')
+            ->assertSee('Choosing today resumes on the next run.');
         $changed = today()->addWeeks(2)->toDateString();
         $this->post($route, ['planned_resume_date' => $changed])->assertSessionHasNoErrors();
         $this->assertSame($changed, $plan->fresh()->currentPause->planned_resume_date->toDateString());
@@ -523,7 +523,57 @@ class InvoiceManagementTest extends TestCase
         $this->post($route, ['planned_resume_date' => ''])->assertSessionHasNoErrors();
         $this->assertNull($plan->fresh()->currentPause->planned_resume_date);
         $this->assertSame('paused', $plan->fresh()->status);
-        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('No planned resume date.');
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Paused until manually resumed.');
+    }
+
+    public function test_automatic_resume_preserves_schedule_and_notifies_once_even_when_run_late(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow('2026-09-02 07:00:00');
+        try {
+            [$user, $plan] = $this->activePlan();
+            $this->actingAs($user)->post(route('admin.plans.pause', $plan), [
+                'pause_date' => '2026-09-02', 'reason' => 'Skip October', 'planned_resume_date' => '2026-10-10', 'pause_label' => 'on_hold',
+            ])->assertSessionHasNoErrors();
+            Carbon::setTestNow('2026-10-09 07:00:00');
+            $this->artisan('invoices:generate')->assertSuccessful();
+            $this->assertSame('paused', $plan->fresh()->status);
+            Carbon::setTestNow('2026-11-02 07:00:00');
+            $this->artisan('invoices:generate')->assertSuccessful();
+            $this->artisan('invoices:generate')->assertSuccessful();
+            $this->assertSame('active', $plan->fresh()->status);
+            $this->assertFalse((bool) $plan->fresh()->paused_on_hold);
+            $this->assertSame('2026-10-10', $plan->pauses()->latest('id')->first()->resume_date->toDateString());
+            $this->assertDatabaseMissing('invoices', ['invoice_number' => 'INV-'.$plan->id.'-202610']);
+            $this->assertDatabaseHas('invoices', ['invoice_number' => 'INV-'.$plan->id.'-202611', 'issue_date' => '2026-11-01']);
+            $this->assertSame(1, \App\Models\AdminNotice::where('type', 'payment_plan_automatically_resumed')->where('payment_plan_id', $plan->id)->count());
+            $this->assertSame(1, \App\Models\AuditLog::where('event', 'payment_plan.automatically_resumed')->where('auditable_id', $plan->id)->count());
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_automatic_resume_can_be_cancelled_and_manual_resume_does_not_notify(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow('2026-09-02 07:00:00');
+        try {
+            [$user, $plan] = $this->activePlan();
+            $this->actingAs($user)->post(route('admin.plans.pause', $plan), [
+                'pause_date' => '2026-09-01', 'reason' => 'Hold',
+            ])->assertSessionHasNoErrors();
+            $route = route('admin.plans.planned-resume', $plan);
+            $this->post($route, ['planned_resume_date' => '2026-09-02'])->assertSessionHasNoErrors();
+            $this->post($route, ['planned_resume_date' => ''])->assertSessionHasNoErrors();
+            $this->artisan('invoices:generate')->assertSuccessful();
+            $this->assertSame('paused', $plan->fresh()->status);
+            $this->post($route, ['planned_resume_date' => '2026-09-02'])->assertSessionHasNoErrors();
+            $this->post(route('admin.plans.resume', $plan), ['resume_date' => '2026-09-02'])->assertSessionHasNoErrors();
+            $this->artisan('invoices:generate')->assertSuccessful();
+            $this->assertSame(0, \App\Models\AdminNotice::where('type', 'payment_plan_automatically_resumed')->count());
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_pause_label_can_change_without_resuming_or_changing_closing(): void

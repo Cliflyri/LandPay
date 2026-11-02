@@ -15,7 +15,7 @@ class PaymentPlanPauseController extends Controller
 {
     public function pause(Request $request, PaymentPlan $plan): RedirectResponse
     {
-        $data = $request->validate(['pause_date' => ['required', 'date', 'before_or_equal:today'], 'planned_resume_date' => ['nullable', 'date', 'after:pause_date'], 'reason' => ['required', 'string', 'max:500'], 'pause_label' => ['nullable', 'in:paused,on_hold']]);
+        $data = $request->validate(['pause_date' => ['required', 'date', 'before_or_equal:today'], 'planned_resume_date' => ['nullable', 'date', 'after_or_equal:today', 'after:pause_date'], 'reason' => ['required', 'string', 'max:500'], 'pause_label' => ['nullable', 'in:paused,on_hold']]);
         DB::transaction(function () use ($request, $plan, $data): void {
             $locked = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             if ($locked->status !== 'active') throw ValidationException::withMessages(['payment_plan' => 'Only an active plan can be paused.']);
@@ -42,14 +42,14 @@ class PaymentPlanPauseController extends Controller
 
     public function plannedResume(Request $request, PaymentPlan $plan): RedirectResponse
     {
-        $data = $request->validate(['planned_resume_date' => ['nullable', 'date']]);
+        $data = $request->validate(['planned_resume_date' => ['nullable', 'date', 'after_or_equal:today']]);
         DB::transaction(function () use ($request, $plan, $data): void {
             $locked = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
             $pause = PaymentPlanPause::query()->where('payment_plan_id', $locked->id)->whereNull('resume_date')->lockForUpdate()->latest('id')->first();
             if ($locked->status !== 'paused' || $pause === null) throw ValidationException::withMessages(['planned_resume_date' => 'This plan is not currently paused.']);
             $date = $data['planned_resume_date'] ?? null;
             if ($date !== null && now()->parse($date)->startOfDay()->lte($pause->pause_date)) {
-                throw ValidationException::withMessages(['planned_resume_date' => 'The planned resume date must be after the pause date.']);
+                throw ValidationException::withMessages(['planned_resume_date' => 'The automatic resume date must be after the pause date.']);
             }
             $before = $pause->planned_resume_date?->toDateString();
             if ($before === $date) return;
@@ -62,7 +62,7 @@ class PaymentPlanPauseController extends Controller
                 'ip_address' => $request->ip(), 'user_agent' => str($request->userAgent())->limit(500),
             ]);
         }, 3);
-        return back()->with('success', 'Planned resume date saved. The plan remains paused until manually resumed.');
+        return back()->with('success', 'Automatic resume date saved. A blank date keeps the plan paused until manually resumed.');
     }
 
     public function resume(Request $request, PaymentPlan $plan): RedirectResponse

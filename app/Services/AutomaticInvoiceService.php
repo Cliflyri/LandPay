@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Enums\InvoiceStatus;
 use App\Models\AdminNotice;
+use App\Models\AuditLog;
+use App\Models\PaymentPlanPause;
+use Illuminate\Support\Facades\DB;
 use App\Models\Invoice;
 use App\Models\PaymentPlan;
 use App\Models\PaymentPlanBillingTerm;
@@ -19,6 +22,7 @@ class AutomaticInvoiceService
     {
         $through ??= Carbon::today();
         $result = ['created' => 0, 'emailed' => 0, 'failed' => 0];
+        $this->resumeScheduledPlans($through->min(Carbon::today()));
         Invoice::query()
             ->with(['paymentPlan.createdBy', 'paymentPlan.updatedBy'])
             ->whereDate('issue_date', '<=', $through)
@@ -92,6 +96,36 @@ class AutomaticInvoiceService
         });
 
         return $result;
+    }
+
+    private function resumeScheduledPlans(Carbon $through): void
+    {
+        PaymentPlan::query()->where('status', 'paused')
+            ->whereHas('currentPause', fn ($query) => $query->whereDate('planned_resume_date', '<=', $through))
+            ->each(function (PaymentPlan $plan) use ($through): void {
+                DB::transaction(function () use ($plan, $through): void {
+                    $locked = PaymentPlan::query()->lockForUpdate()->find($plan->id);
+                    if ($locked === null || $locked->status !== 'paused') return;
+                    $pause = PaymentPlanPause::query()->where('payment_plan_id', $locked->id)
+                        ->whereNull('resume_date')->lockForUpdate()->latest('id')->first();
+                    if ($pause === null || $pause->planned_resume_date === null || $pause->planned_resume_date->gt($through)) return;
+                    $date = $pause->planned_resume_date->toDateString();
+                    $pause->update(['resume_date' => $date, 'resume_note' => 'Automatically resumed on the scheduled date.',
+                        'resumed_by_user_id' => null, 'resumed_at' => now()]);
+                    $locked->update(['status' => 'active', 'paused_on_hold' => false]);
+                    AuditLog::query()->create([
+                        'actor_type' => 'system', 'actor_user_id' => null, 'event' => 'payment_plan.automatically_resumed',
+                        'auditable_type' => PaymentPlan::class, 'auditable_id' => $locked->id,
+                        'before_values' => ['status' => 'paused'],
+                        'after_values' => ['status' => 'active', 'pause_id' => $pause->id, 'resume_date' => $date],
+                    ]);
+                    AdminNotice::query()->create([
+                        'type' => 'payment_plan_automatically_resumed', 'payment_plan_id' => $locked->id,
+                        'title' => 'Plan automatically resumed',
+                        'message' => 'Plan '.$locked->plan_number.' automatically resumed effective '.$pause->planned_resume_date->format('F j, Y').'. Regular invoice scheduling and enabled automated reminders have resumed.',
+                    ]);
+                }, 3);
+            });
     }
 
     public function nextDate(PaymentPlan $plan, ?Carbon $from = null): ?Carbon

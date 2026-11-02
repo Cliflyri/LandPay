@@ -213,14 +213,14 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
             <form method="post" action="{{ route('admin.plans.planned-resume',$plan) }}" class="row g-2 align-items-end mb-3">
                 @csrf
                 <div class="col-md-4">
-                    <label class="form-label small" for="planned-resume-date">Planned resume date (optional)</label>
-                    <input class="form-control form-control-sm" id="planned-resume-date" type="date" name="planned_resume_date" value="{{ old('planned_resume_date', $plannedResumeDate?->toDateString()) }}" aria-describedby="planned-resume-help">
+                    <label class="form-label small" for="planned-resume-date">Automatically resume on (optional)</label>
+                    <input class="form-control form-control-sm" id="planned-resume-date" type="date" name="planned_resume_date" min="{{ today()->toDateString() }}" value="{{ old('planned_resume_date', $plannedResumeDate?->toDateString()) }}" aria-describedby="planned-resume-help">
                     @error('planned_resume_date')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-md-auto"><button class="btn btn-outline-secondary btn-sm">Save planned date</button></div>
+                <div class="col-md-auto"><button class="btn btn-outline-secondary btn-sm">Save resume date</button></div>
                 <div class="col-12 small">
-                    @if(!$plannedResumeDate)<p class="mb-1">No planned resume date.</p>@endif
-                    <p class="text-muted mb-0" id="planned-resume-help">For reference only. This plan stays paused until manually resumed. Clear the date and save to remove it.</p>
+                    @if(!$plannedResumeDate)<p class="mb-1">Paused until manually resumed.</p>@endif
+                    <p class="text-muted mb-0" id="planned-resume-help">Resumes during the daily billing run (6:00 AM, application time), using the normal monthly invoice schedule. Choosing today resumes on the next run. Clear the date and save to cancel automatic resume.</p>
                 </div>
             </form>
             <form method="post" action="{{ route('admin.plans.resume',$plan) }}" class="row g-2 align-items-end">@csrf
@@ -229,10 +229,10 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
                 <div class="col-md-3"><button class="btn btn-brand btn-sm w-100">Resume plan</button></div>
             </form>
         @else
-            <p class="small text-muted mb-2">Stops scheduled invoices and automated reminders. Payments remain available; paused periods are not back-billed.</p>
+            <p class="small text-muted mb-2">Stops scheduled invoices and automated reminders. Payments remain available; paused periods are not back-billed. Leave the resume date blank to pause until manually resumed. Otherwise, resumes during the daily billing run (6:00 AM, application time), using the normal monthly invoice schedule.</p>
             <form method="post" action="{{ route('admin.plans.pause',$plan) }}" class="row g-2 align-items-end">@csrf
                 <div class="col-md-3"><label class="form-label small">Pause effective</label><input class="form-control form-control-sm" type="date" name="pause_date" value="{{ today()->format('Y-m-d') }}" required></div>
-                <div class="col-md-3"><label class="form-label small">Planned resume (optional)</label><input class="form-control form-control-sm" type="date" name="planned_resume_date"></div>
+                <div class="col-md-3"><label class="form-label small">Automatically resume on (optional)</label><input class="form-control form-control-sm" type="date" name="planned_resume_date" min="{{ today()->toDateString() }}"></div>
                 <div class="col-md-2"><label class="form-label small">Label</label><select class="form-select form-select-sm" name="pause_label"><option value="paused">Paused</option><option value="on_hold">On hold</option></select></div>
                 <div class="col-md-2"><label class="form-label small">Reason</label><input class="form-control form-control-sm" name="reason" maxlength="500" required></div>
                 <div class="col-md-2"><button class="btn btn-outline-danger btn-sm w-100">Pause plan</button></div>
