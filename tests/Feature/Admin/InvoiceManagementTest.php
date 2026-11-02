@@ -265,6 +265,7 @@ class InvoiceManagementTest extends TestCase
         $this->post($url, ['preview_token' => $fresh['token']])->assertSessionHasErrors('credit_preview');
         $this->assertSame(5_000, app(FinancialBalanceService::class)->clientCredit($plan));
     }
+
     public function test_manual_invoice_automatically_uses_available_account_credit(): void
     {
         [$user, $plan] = $this->activePlan();
@@ -492,6 +493,37 @@ class InvoiceManagementTest extends TestCase
         } finally {
             Carbon::setTestNow();
         }
+    }
+
+    public function test_planned_resume_date_can_be_viewed_updated_and_cleared_without_resuming(): void
+    {
+        [$user, $plan] = $this->activePlan();
+        $route = route('admin.plans.planned-resume', $plan);
+        $date = today()->addWeek()->toDateString();
+        $this->post($route, ['planned_resume_date' => $date])->assertRedirect(route('admin.login'));
+        $this->actingAs($user)->post($route, ['planned_resume_date' => $date])->assertSessionHasErrors('planned_resume_date');
+        $this->post(route('admin.plans.pause', $plan), [
+            'pause_date' => today()->toDateString(), 'reason' => 'Temporary hold', 'planned_resume_date' => $date,
+        ])->assertSessionHasNoErrors();
+        $this->get(route('admin.plans.show', $plan))->assertOk()
+            ->assertSee('value="'.$date.'"', false)->assertSee('Save planned date')
+            ->assertSee('For reference only. This plan stays paused until manually resumed.');
+        $changed = today()->addWeeks(2)->toDateString();
+        $this->post($route, ['planned_resume_date' => $changed])->assertSessionHasNoErrors();
+        $this->assertSame($changed, $plan->fresh()->currentPause->planned_resume_date->toDateString());
+        $this->assertSame('paused', $plan->fresh()->status);
+        $this->assertNull($plan->fresh()->currentPause->resume_date);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'payment_plan.planned_resume_updated', 'auditable_id' => $plan->id,
+        ]);
+        foreach (['not-a-date', today()->toDateString(), today()->subDay()->toDateString()] as $invalid) {
+            $this->post($route, ['planned_resume_date' => $invalid])->assertSessionHasErrors('planned_resume_date');
+        }
+        $this->assertSame($changed, $plan->fresh()->currentPause->planned_resume_date->toDateString());
+        $this->post($route, ['planned_resume_date' => ''])->assertSessionHasNoErrors();
+        $this->assertNull($plan->fresh()->currentPause->planned_resume_date);
+        $this->assertSame('paused', $plan->fresh()->status);
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('No planned resume date.');
     }
 
     public function test_pause_label_can_change_without_resuming_or_changing_closing(): void

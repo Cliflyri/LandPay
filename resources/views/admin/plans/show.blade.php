@@ -207,6 +207,22 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
                 <button class="btn btn-outline-secondary btn-sm">Save label</button>
                 @if($plan->paused_on_hold)<span class="badge" style="background:#e5d8c4;color:#514536">On hold</span>@endif
             </form>
+            @php
+                $plannedResumeDate = $plan->currentPause?->planned_resume_date;
+            @endphp
+            <form method="post" action="{{ route('admin.plans.planned-resume',$plan) }}" class="row g-2 align-items-end mb-3">
+                @csrf
+                <div class="col-md-4">
+                    <label class="form-label small" for="planned-resume-date">Planned resume date (optional)</label>
+                    <input class="form-control form-control-sm" id="planned-resume-date" type="date" name="planned_resume_date" value="{{ old('planned_resume_date', $plannedResumeDate?->toDateString()) }}" aria-describedby="planned-resume-help">
+                    @error('planned_resume_date')<div class="text-danger small">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-auto"><button class="btn btn-outline-secondary btn-sm">Save planned date</button></div>
+                <div class="col-12 small">
+                    @if(!$plannedResumeDate)<p class="mb-1">No planned resume date.</p>@endif
+                    <p class="text-muted mb-0" id="planned-resume-help">For reference only. This plan stays paused until manually resumed. Clear the date and save to remove it.</p>
+                </div>
+            </form>
             <form method="post" action="{{ route('admin.plans.resume',$plan) }}" class="row g-2 align-items-end">@csrf
                 <div class="col-md-3"><label class="form-label small">Resume effective</label><input class="form-control form-control-sm" type="date" name="resume_date" value="{{ today()->format('Y-m-d') }}" required></div>
                 <div class="col-md-6"><label class="form-label small">Resume note</label><input class="form-control form-control-sm" name="resume_note" maxlength="500"></div>

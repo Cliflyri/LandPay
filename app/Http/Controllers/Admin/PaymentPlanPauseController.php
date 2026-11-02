@@ -40,6 +40,31 @@ class PaymentPlanPauseController extends Controller
         return back()->with('success', 'Pause label updated.');
     }
 
+    public function plannedResume(Request $request, PaymentPlan $plan): RedirectResponse
+    {
+        $data = $request->validate(['planned_resume_date' => ['nullable', 'date']]);
+        DB::transaction(function () use ($request, $plan, $data): void {
+            $locked = PaymentPlan::query()->lockForUpdate()->findOrFail($plan->id);
+            $pause = PaymentPlanPause::query()->where('payment_plan_id', $locked->id)->whereNull('resume_date')->lockForUpdate()->latest('id')->first();
+            if ($locked->status !== 'paused' || $pause === null) throw ValidationException::withMessages(['planned_resume_date' => 'This plan is not currently paused.']);
+            $date = $data['planned_resume_date'] ?? null;
+            if ($date !== null && now()->parse($date)->startOfDay()->lte($pause->pause_date)) {
+                throw ValidationException::withMessages(['planned_resume_date' => 'The planned resume date must be after the pause date.']);
+            }
+            $before = $pause->planned_resume_date?->toDateString();
+            if ($before === $date) return;
+            $pause->update(['planned_resume_date' => $date]);
+            AuditLog::query()->create([
+                'actor_type' => 'administrator', 'actor_user_id' => $request->user()->id,
+                'event' => 'payment_plan.planned_resume_updated', 'auditable_type' => PaymentPlan::class, 'auditable_id' => $locked->id,
+                'before_values' => ['pause_id' => $pause->id, 'planned_resume_date' => $before],
+                'after_values' => ['pause_id' => $pause->id, 'planned_resume_date' => $date],
+                'ip_address' => $request->ip(), 'user_agent' => str($request->userAgent())->limit(500),
+            ]);
+        }, 3);
+        return back()->with('success', 'Planned resume date saved. The plan remains paused until manually resumed.');
+    }
+
     public function resume(Request $request, PaymentPlan $plan): RedirectResponse
     {
         $data = $request->validate(['resume_date' => ['required', 'date', 'before_or_equal:today'], 'resume_note' => ['nullable', 'string', 'max:500']]);
