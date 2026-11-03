@@ -53,7 +53,7 @@ class PaymentPlanController extends Controller
             ->forAdminListing($planStatus, $planSearch)
             ->with([
                 'memberships.client.portalAccount', 'closing',
-                'currentBillingTerms',
+                'currentBillingTerms', 'currentPause',
                 'invoices.items',
                 'invoices.emailDeliveries',
             ])

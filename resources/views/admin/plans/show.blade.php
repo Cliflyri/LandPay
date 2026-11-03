@@ -200,16 +200,16 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
     <div class="collapse {{ $plan->status === 'paused' ? 'show' : '' }}" id="billingScheduleControl">
         <div class="border rounded bg-light p-3 mt-3">
         @if($plan->status === 'paused')
-            <p class="small mb-2"><strong>Billing schedule paused.</strong> Scheduled invoices and automated reminders are suspended. Payments remain available.</p>
+            @php
+                $plannedResumeDate = $plan->currentPause?->planned_resume_date;
+            @endphp
+            <p class="small mb-2"><strong>@if($plannedResumeDate)Billing schedule paused. Auto resume scheduled for {{ $plannedResumeDate->format('F j, Y') }}.@else Billing schedule paused until manually resumed.@endif</strong> Scheduled invoices and automated reminders are suspended. Payments remain available.</p>
             <form method="post" action="{{ route('admin.plans.pause-label',$plan) }}" class="d-flex align-items-center gap-2 mb-3">@csrf
                 <label class="small mb-0" for="pause-label">Label</label>
                 <select class="form-select form-select-sm w-auto" id="pause-label" name="pause_label"><option value="paused" @selected(!$plan->paused_on_hold)>Paused</option><option value="on_hold" @selected($plan->paused_on_hold)>On hold</option></select>
                 <button class="btn btn-outline-secondary btn-sm">Save label</button>
                 @if($plan->paused_on_hold)<span class="badge" style="background:#e5d8c4;color:#514536">On hold</span>@endif
             </form>
-            @php
-                $plannedResumeDate = $plan->currentPause?->planned_resume_date;
-            @endphp
             <form method="post" action="{{ route('admin.plans.planned-resume',$plan) }}" class="row g-2 align-items-end mb-3">
                 @csrf
                 <div class="col-md-4">

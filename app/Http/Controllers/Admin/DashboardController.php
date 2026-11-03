@@ -44,7 +44,7 @@ class DashboardController extends Controller
             ->select('payment_plans.*')
             ->with([
                 'memberships' => fn ($query) => $query->whereNull('effective_to')->with(['client.portalAccount', 'client.smsPreference']),
-                'currentBillingTerms', 'billingTerms', 'pauses', 'closing',
+                'currentBillingTerms', 'currentPause', 'billingTerms', 'pauses', 'closing',
                 'invoices' => fn ($query) => $query->with(['items', 'reminders'])->orderBy('due_date'),
             ])
             ->orderByRaw("CASE

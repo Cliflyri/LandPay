@@ -8,6 +8,9 @@
                                         {{ $badgePlan->paused_on_hold ? 'On hold' : '❚❚ Paused' }}
                                     </span>
                                 </a>
+                                @if($badgePlan->currentPause?->planned_resume_date)
+                                    <small class="d-block text-muted">Auto Resume: {{ $badgePlan->currentPause->planned_resume_date->format('n/j/y') }}</small>
+                                @endif
                             @else
 @if($badgePlan->status === 'terminated')
     @include('admin.plans.partials.termination-badge', ['plan' => $badgePlan])
