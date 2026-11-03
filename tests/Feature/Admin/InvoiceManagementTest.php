@@ -718,6 +718,26 @@ class InvoiceManagementTest extends TestCase
         $this->assertSame(52_500, app(FinancialBalanceService::class)->invoiceBalance($invoice));
     }
 
+    public function test_full_payment_modal_defaults_to_latest_non_reversed_client_payment(): void
+    {
+        [$user, $plan] = $this->activePlan();
+        $clientId = $plan->memberships()->where('role', 'primary')->value('client_id');
+        $lookup = app(\App\Services\LastPaymentMethodService::class);
+        $this->assertNull($lookup->forPlans([$plan->id])[$plan->id]);
+        $this->actingAs($user)->post(route('admin.plans.invoices.store', $plan), ['billing_month' => '2026-08', 'monthly_fee_waiver' => '0.00'])->assertRedirect();
+        $invoice = Invoice::query()->sole();
+        $render = fn () => view('admin.shared.pay-invoice-full-modal', ['invoice' => $invoice->fresh(), 'returnTo' => 'invoice'])->render();
+        $this->assertStringContainsString('value="cash" selected', $render());
+        $payments = app(\App\Services\PaymentService::class);
+        $payments->post($plan, $user, 100, 'principal_only', \App\Enums\PaymentMethod::Check, '2026-08-15', $clientId);
+        $payments->post($plan, $user, 100, 'principal_only', \App\Enums\PaymentMethod::Cash, '2026-08-14', $clientId);
+        $this->assertSame('check', $lookup->forPlans([$plan->id])[$plan->id]);
+        $latest = $payments->post($plan, $user, 100, 'principal_only', \App\Enums\PaymentMethod::Zelle, '2026-08-15', $clientId);
+        $this->assertStringContainsString('value="zelle" selected', $render());
+        $payments->reverse($latest, $user, 'Entered in error');
+        $this->assertStringContainsString('value="check" selected', $render());
+    }
+
     private function activePlan(): array
     {
         $user = User::factory()->create();

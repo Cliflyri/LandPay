@@ -1,6 +1,8 @@
 @php
 $fullPaymentBalance=app(\App\Services\FinancialBalanceService::class)->invoiceBalance($invoice);
 $fullPaymentPreview=$fullPaymentBalance>0 && in_array($invoice->paymentPlan->status,['active','paused'],true)?app(\App\Services\PaymentService::class)->preview($invoice->paymentPlan,$fullPaymentBalance,'regular',invoiceId:$invoice->id):null;
+$fullPaymentMethods = $lastPaymentMethods ?? app(\App\Services\LastPaymentMethodService::class)->forPlans([$invoice->payment_plan_id]);
+$fullPaymentMethod = $fullPaymentMethods[$invoice->payment_plan_id] ?? \App\Enums\PaymentMethod::Cash->value;
 $fullPaymentModalId='pay-invoice-full-'.$invoice->id.'-'.$returnTo;
 @endphp
 @if($fullPaymentPreview && in_array($invoice->status,[\App\Enums\InvoiceStatus::Issued,\App\Enums\InvoiceStatus::PartiallyPaid],true))
@@ -13,7 +15,7 @@ $fullPaymentModalId='pay-invoice-full-'.$invoice->id.'-'.$returnTo;
 @foreach($fullPaymentPreview['allocations'] as $allocation)<div><dt>{{$allocation['label']}}</dt><dd>{{\App\Support\Money::format($allocation['amount'])}}</dd></div>@endforeach
 <div class="invoice-summary-primary"><dt>Payment amount</dt><dd>{{\App\Support\Money::format($fullPaymentBalance)}}</dd></div><div><dt>Invoice balance after payment</dt><dd>{{\App\Support\Money::format(0)}}</dd></div></dl>
 <div class="row g-3 mt-1"><div class="col-md-4"><label class="form-label" for="{{$fullPaymentModalId}}-date">Received date</label><input class="form-control" id="{{$fullPaymentModalId}}-date" type="date" name="received_date" value="{{today()->toDateString()}}" required></div>
-<div class="col-md-4"><label class="form-label" for="{{$fullPaymentModalId}}-method">Payment method</label><select class="form-select" id="{{$fullPaymentModalId}}-method" name="payment_method" required>@foreach(\App\Enums\PaymentMethod::cases() as $method)<option value="{{$method->value}}">{{str($method->value)->replace('_',' ')->title()}}</option>@endforeach</select></div>
+<div class="col-md-4"><label class="form-label" for="{{$fullPaymentModalId}}-method">Payment method</label><select class="form-select" id="{{$fullPaymentModalId}}-method" name="payment_method" required>@foreach(\App\Enums\PaymentMethod::cases() as $method)<option value="{{$method->value}}" @selected($fullPaymentMethod === $method->value)>{{str($method->value)->replace('_',' ')->title()}}</option>@endforeach</select></div>
 <div class="col-md-4"><label class="form-label" for="{{$fullPaymentModalId}}-reference">Reference <span class="text-muted">(optional)</span></label><input class="form-control" id="{{$fullPaymentModalId}}-reference" name="external_reference" maxlength="150"></div></div><input type="hidden" name="return_to" value="{{$returnTo}}"><input type="hidden" name="idempotency_token" value="{{(string)\Illuminate\Support\Str::uuid()}}"></div>
 <div class="modal-footer"><button class="btn btn-outline-brand" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit">Confirm payment of {{\App\Support\Money::format($fullPaymentBalance)}}</button></div></form>
 </div></div></div>

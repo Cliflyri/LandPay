@@ -72,6 +72,7 @@ class DashboardController extends Controller
             'planCount' => PaymentPlan::query()->whereIn('status', ['active', 'paused'])->count(),
             'openInvoiceCount' => Invoice::query()->whereHas('paymentPlan', fn ($query) => $query->where('status', '!=', 'terminated'))->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::PartiallyPaid->value])->count(),
             'plans' => $plans,
+            'lastPaymentMethods' => app(\App\Services\LastPaymentMethodService::class)->forPlans($plans->getCollection()->map(fn ($row) => $row['plan']->id)->all()),
             'planStatus' => $planStatus,
             'planSearch' => $planSearch,
             'notices' => $this->notices(),
