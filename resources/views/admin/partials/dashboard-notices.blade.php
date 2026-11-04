@@ -1,7 +1,7 @@
 <div class="admin-next-card mb-4 {{$notices->isEmpty() ? 'd-none' : ''}}" id="admin-notices" data-admin-notices data-admin-notices-revision="{{sha1($notices->pluck('updated_at', 'id')->toJson())}}">
     <div class="d-flex align-items-center gap-4"><h2 class="mb-0">Notices</h2><span class="dashboard-status status-due position-relative" style="top: 8px;">{{$notices->count()}} open</span></div>
     @foreach($notices as $notice)
-        <div class="amendment-entry"><div class="amendment-entry-heading"><div>
+        <div class="amendment-entry"><div class="amendment-entry-heading"><div @if($notice->type === 'payment_plan_automatically_resumed') style="flex: 1 1 28rem; min-width: 0;" @endif>
             @if($notice->type === 'closing_submission' || $notice->secureMessageThread?->plan_closing_id)
                 @include('closing.notice-heading', ['noticeClient'=>$notice->client, 'noticePlan'=>$notice->paymentPlan ?? $notice->secureMessageThread?->paymentPlan])
             @else
@@ -9,6 +9,9 @@
             @endif
             @if($notice->type === 'billing_automation_failure')
                 @include('shared.billing-failure-notice')
+            @elseif($notice->type === 'payment_plan_automatically_resumed' && $notice->paymentPlan && preg_match('/ automatically resumed effective (.+?)\. (.+)$/s', $notice->message, $resumeParts))
+                @php($resumeClient = $notice->client ?? $notice->paymentPlan->memberships()->where('role', 'primary')->whereNull('effective_to')->whereDate('effective_from', '<=', today())->first()?->client)
+                <p class="mb-0">@if($resumeClient)<a href="{{route('admin.clients.show',$resumeClient)}}">{{$resumeClient->organization_name ?: trim($resumeClient->first_name.' '.$resumeClient->last_name)}}</a> plan @else Plan @endif<a href="{{route('admin.plans.show',$notice->paymentPlan)}}">{{$notice->paymentPlan->plan_number}}</a> automatically resumed effective {{$resumeParts[1]}}.<br>{{ $resumeParts[2] }}</p>
             @elseif($notice->type === 'shared_document_uploaded' && $notice->client && $notice->sharedDocument)
                 <p class="mb-0"><a href="{{route('admin.clients.show',$notice->client)}}">{{$notice->client->organization_name ?: trim($notice->client->first_name.' '.$notice->client->last_name)}}</a> uploaded
                     <a href="{{route(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true) ? 'admin.documents.preview' : 'admin.documents.download',$notice->sharedDocument)}}" @if(in_array($notice->sharedDocument->mime,['application/pdf','image/jpeg','image/png'],true)) data-document-preview="{{route('admin.documents.preview',$notice->sharedDocument)}}" data-document-name="{{$notice->sharedDocument->name}}" @endif>{{$notice->sharedDocument->name}}</a>.
