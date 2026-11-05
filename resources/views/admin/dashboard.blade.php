@@ -210,6 +210,7 @@
                                 href="{{ route('admin.plans.show', $row['plan']) }}"
                             >
                                 {{ $row['plan']->plan_number }}
+                                @include('admin.plans.partials.repayment-status', ['repaymentPlan' => $row['plan']])
                             </a> @if($row['plan']->excluded_from_reports)<span class="badge text-bg-warning">Test plan</span>@endif
                             @if(filled($row['plan']->property_county))<small class="d-block text-muted">County: {{$row['plan']->property_county}}</small>@endif
                         </td>

@@ -14,7 +14,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
         <span class="eyebrow eyebrow-dark">Payment plan</span>
         
 <h1 class="d-flex flex-wrap align-items-center gap-2">
-    {{ $plan->plan_number }}   &middot;   
+    {{ $plan->plan_number }} @include('admin.plans.partials.repayment-status', ['repaymentPlan' => $plan])   &middot;
     @if($primaryClient)
         <a class="dashboard-client-link" style="font-size: 60%;" href="{{ route('admin.clients.show',$primaryClient) }}">
             {{ $primaryClientName }}
