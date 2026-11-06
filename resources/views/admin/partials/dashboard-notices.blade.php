@@ -38,7 +38,9 @@
                 <div class="mt-1"><strong>Client notes:</strong><div style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ $notice->paymentIntent->client_note }}</div></div>
             @endif
         </div><div class="d-flex align-items-start gap-2 flex-shrink-0">
-            @if($notice->type === 'closing_submission' && $notice->paymentPlan)
+            @if($notice->type === 'landinvest_repayment_import')
+                <a class="btn btn-sm btn-outline-brand" href="{{ route('admin.landinvest.import') }}">View LandInvest import</a>
+            @elseif($notice->type === 'closing_submission' && $notice->paymentPlan)
                 <a class="btn btn-sm btn-outline-brand" href="{{route('admin.plans.show',$notice->paymentPlan)}}#closing">Review closing</a>
             @elseif($notice->improvementUpdate)
                 <a class="btn btn-sm btn-outline-brand" href="{{route('admin.improvements.show',$notice->improvementUpdate->improvement)}}#update-{{$notice->improvement_update_id}}">Open improvement</a>

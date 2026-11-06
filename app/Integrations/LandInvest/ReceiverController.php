@@ -2,6 +2,7 @@
 
 namespace App\Integrations\LandInvest;
 
+use App\Models\AdminNotice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -50,6 +51,16 @@ class ReceiverController
                     $data = $snapshot->import($body, 'https');
                 } catch (\InvalidArgumentException $e) {
                     return response()->json(['error' => $e->getMessage()], 422);
+                }
+                if ($snapshot->replaced) {
+                    $counts = array_count_values(array_column($data['properties'], 'status'));
+                    AdminNotice::create([
+                        'type' => 'landinvest_repayment_import',
+                        'title' => 'LandInvest repayment statuses updated',
+                        'message' => 'Automatically imported repayment statuses for '.count($data['properties']).' properties: '
+                            .($counts['paid'] ?? 0).' paid, '.($counts['unpaid'] ?? 0).' unpaid, '
+                            .($counts['partial'] ?? 0).' partial, and '.($counts['not_funded'] ?? 0).' not funded.',
+                    ]);
                 }
                 $state['last_received_at'] = gmdate('c');
                 $connection->save($state);

@@ -6,16 +6,23 @@ use App\Integrations\LandInvest\Connection;
 use App\Integrations\LandInvest\RepaymentSnapshot;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
+use App\Models\AdminNotice;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
 class LandInvestReceiverTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private string $path;
+    private int $exportTime;
     private string $secret = 'test-only-secret';
     private array $state;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->exportTime = time();
+        AdminNotice::where('type', 'landinvest_repayment_import')->delete();
         $this->path = sys_get_temp_dir().'/landinvest-test-'.bin2hex(random_bytes(8)).'.json';
         $this->state = ['enabled' => true, 'current' => ['id' => 'test-key', 'secret' => $this->secret]];
         $connection = $this->createStub(Connection::class);
@@ -36,7 +43,7 @@ class LandInvestReceiverTest extends TestCase
 
     private function body(int $offset = 0, array $properties = [['plan_number' => '123-A', 'status' => 'paid']]): string
     {
-        return json_encode(['schema_version' => 1, 'generated_at' => gmdate('Y-m-d\TH:i:s\Z', time() + $offset), 'properties' => $properties]);
+        return json_encode(['schema_version' => 1, 'generated_at' => gmdate('Y-m-d\TH:i:s\Z', $this->exportTime + $offset), 'properties' => $properties]);
     }
 
     private function send(string $body, array $overrides = [], bool $secure = true)
@@ -61,6 +68,14 @@ class LandInvestReceiverTest extends TestCase
         $this->send($body)->assertOk();
         $this->assertSame($original, file_get_contents($this->path));
         $this->assertNotEmpty($this->state['last_received_at']);
+        $notices = AdminNotice::where('type', 'landinvest_repayment_import')->get();
+        $this->assertCount(1, $notices);
+        $this->assertSame('LandInvest repayment statuses updated', $notices[0]->title);
+        $this->assertSame('Automatically imported repayment statuses for 1 properties: 1 paid, 0 unpaid, 0 partial, and 0 not funded.', $notices[0]->message);
+        $html = view('admin.partials.dashboard-notices', ['notices' => $notices])->render();
+        $this->assertStringContainsString('View LandInvest import', $html);
+        $this->assertStringContainsString(route('admin.landinvest.import'), $html);
+
     }
 
     public function test_signature_replay_expiry_disabled_and_transport(): void
@@ -89,6 +104,22 @@ class LandInvestReceiverTest extends TestCase
             $this->assertSame($before, file_get_contents($this->path));
         }
         $this->send(str_repeat('x', 2097153))->assertStatus(413);
+        $this->assertSame(1, AdminNotice::where('type', 'landinvest_repayment_import')->count());
+    }
+
+    public function test_manual_import_does_not_create_notice_and_next_https_replacement_does(): void
+    {
+        app(RepaymentSnapshot::class)->import($this->body(-60));
+        $this->assertSame(0, AdminNotice::where('type', 'landinvest_repayment_import')->count());
+        $properties = [
+            ['plan_number' => 'A', 'status' => 'paid'],
+            ['plan_number' => 'B', 'status' => 'unpaid'],
+            ['plan_number' => 'C', 'status' => 'partial'],
+            ['plan_number' => 'D', 'status' => 'not_funded'],
+        ];
+        $this->send($this->body(0, $properties))->assertOk();
+        $this->assertSame('Automatically imported repayment statuses for 4 properties: 1 paid, 1 unpaid, 1 partial, and 1 not funded.',
+            AdminNotice::where('type', 'landinvest_repayment_import')->sole()->message);
     }
 
     public function test_expired_previous_key_and_unavailable_cache_fail_closed(): void

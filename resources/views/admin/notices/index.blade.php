@@ -38,6 +38,7 @@
         default => 'System',
     };
     $url = match(true) {
+        $notice->type === 'landinvest_repayment_import' => route('admin.landinvest.import'),
         $notice->type === 'closing_submission' && (bool) $notice->paymentPlan => route('admin.plans.show',$notice->paymentPlan).'#closing',
         (bool) $notice->improvementUpdate => route('admin.improvements.show',$notice->improvementUpdate->improvement).'#update-'.$notice->improvement_update_id,
         (bool) $notice->invoice => route('admin.invoices.show',$notice->invoice),

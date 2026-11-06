@@ -9,6 +9,7 @@ class RepaymentSnapshot
 {
     public const STATUSES = ['paid', 'partial', 'unpaid', 'not_funded'];
     private ?array $snapshot = null;
+    public bool $replaced = false;
 
     public function __construct(private ?string $path = null)
     {
@@ -57,6 +58,7 @@ class RepaymentSnapshot
 
     public function import(string $json, string $source = 'manual'): array
     {
+        $this->replaced = false;
         $data = $this->parse($json);
         $files = new Filesystem;
         $files->ensureDirectoryExists(dirname($this->path), 0700);
@@ -91,6 +93,7 @@ class RepaymentSnapshot
             $data['source'] = $source;
             $files->replace($this->path, json_encode($data, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)."\n", 0600);
             $this->snapshot = null;
+            $this->replaced = true;
             return $data;
         } finally {
             flock($lock, LOCK_UN);
