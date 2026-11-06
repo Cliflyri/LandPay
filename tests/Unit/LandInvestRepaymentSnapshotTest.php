@@ -17,6 +17,7 @@ class LandInvestRepaymentSnapshotTest extends TestCase
 
     protected function tearDown(): void
     {
+        if (is_file($this->path.'.lock')) { unlink($this->path.'.lock'); }
         if (is_file($this->path)) {
             unlink($this->path);
         }

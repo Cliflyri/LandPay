@@ -55,16 +55,47 @@ class RepaymentSnapshot
         return ['schema_version' => 1, 'generated_at' => $data['generated_at'], 'properties' => array_values($properties)];
     }
 
-    public function import(string $json): array
+    public function import(string $json, string $source = 'manual'): array
     {
         $data = $this->parse($json);
-        $data['imported_at'] = gmdate('Y-m-d\TH:i:s\Z');
         $files = new Filesystem;
         $files->ensureDirectoryExists(dirname($this->path), 0700);
-        // Atomic replacement: readers see either the old complete snapshot or the new one.
-        $files->replace($this->path, json_encode($data, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)."\n", 0600);
-        $this->snapshot = null;
-        return $data;
+        $lock = fopen($this->path.'.lock', 'c');
+        if (! $lock) {
+            throw new \RuntimeException('Cannot lock snapshot.');
+        }
+        try {
+            if (! flock($lock, LOCK_EX)) {
+                throw new \RuntimeException('Cannot lock snapshot.');
+            }
+            $this->snapshot = null;
+            $current = $this->current();
+            if ($source === 'https') {
+                if (empty($data['properties'])) {
+                    throw new InvalidArgumentException('Automated snapshots cannot be empty.');
+                }
+                if (strtotime($data['generated_at']) > time() + 300) {
+                    throw new InvalidArgumentException('Export timestamp is in the future.');
+                }
+                if ($current && $data['generated_at'] < $current['generated_at']) {
+                    throw new InvalidArgumentException('Snapshot is older than the stored export.');
+                }
+                if ($current && $data['generated_at'] === $current['generated_at']) {
+                    if ($data['properties'] === $current['properties']) {
+                        return $current;
+                    }
+                    throw new InvalidArgumentException('Conflicting snapshot with the same export timestamp.');
+                }
+            }
+            $data['imported_at'] = gmdate('Y-m-d\TH:i:s\Z');
+            $data['source'] = $source;
+            $files->replace($this->path, json_encode($data, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)."\n", 0600);
+            $this->snapshot = null;
+            return $data;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
     }
 
     public function current(): array
@@ -77,7 +108,9 @@ class RepaymentSnapshot
         }
         $raw = file_get_contents($this->path);
         $data = $this->parse($raw);
-        $data['imported_at'] = json_decode($raw, true)['imported_at'] ?? null;
+        $metadata = json_decode($raw, true);
+        $data['imported_at'] = $metadata['imported_at'] ?? null;
+        $data['source'] = $metadata['source'] ?? 'manual';
         $data['lookup'] = [];
         foreach ($data['properties'] as $property) {
             $data['lookup'][self::normalize($property['plan_number'])] = $property['status'];

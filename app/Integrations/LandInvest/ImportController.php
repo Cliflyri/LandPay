@@ -8,9 +8,9 @@ use Illuminate\Validation\ValidationException;
 
 class ImportController
 {
-    public function show(RepaymentSnapshot $snapshot)
+    public function show(RepaymentSnapshot $snapshot, Connection $connection)
     {
-        return response()->view('admin.actions.landinvest-import', ['snapshot' => $snapshot->current()])
+        return response()->view('admin.actions.landinvest-import', ['snapshot' => $snapshot->current(), 'connection' => $connection->metadata()])
             ->header('Cache-Control', 'private, no-store');
     }
 
