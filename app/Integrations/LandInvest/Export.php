@@ -9,6 +9,21 @@ class Export
 {
     public function __construct(private readonly FinancialBalanceService $balances) {}
 
+    public function snapshot(): array
+    {
+        // Include historical/deleted plans so inactive records do not silently disappear.
+        $plans = PaymentPlan::withTrashed()->includedInReports()->with([
+            'closing',
+            'memberships' => fn ($query) => $query->where('role', 'primary')->whereNull('effective_to')->orderBy('id')->with('client'),
+        ])->orderBy('apn')->orderBy('id')->get();
+
+        return [
+            'csv' => $this->csv($plans),
+            'planCount' => $plans->count(),
+            'missingApns' => $plans->filter(fn ($plan) => trim((string) $plan->apn) === '')->count(),
+        ];
+    }
+
     public function status(PaymentPlan $plan): string
     {
         if ($plan->trashed() || ! in_array($plan->status, ['active', 'paused', 'closed'], true)) {

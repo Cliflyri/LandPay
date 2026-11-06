@@ -9,15 +9,20 @@ class Connection
 {
     public const SETTING = 'landinvest_connection';
 
+    public function lockName(): string
+    {
+        return str_replace('_', '-', static::SETTING);
+    }
+
     public function state(): array
     {
-        $raw = AppSetting::encryptedValueFor(self::SETTING);
+        $raw = AppSetting::encryptedValueFor(static::SETTING);
         return $raw ? json_decode($raw, true, 32, JSON_THROW_ON_ERROR) : ['enabled' => false];
     }
 
     public function save(array $state): void
     {
-        AppSetting::putEncrypted(self::SETTING, json_encode($state, JSON_THROW_ON_ERROR));
+        AppSetting::putEncrypted(static::SETTING, json_encode($state, JSON_THROW_ON_ERROR));
     }
 
     public function cache()

@@ -11,14 +11,24 @@ class ConnectionController
 {
     public function update(Request $request, Connection $connection)
     {
+        return $this->manage($request, $connection, 'admin.landinvest.import', 'landinvest.');
+    }
+
+    public function updateExport(Request $request, ExportConnection $connection)
+    {
+        return $this->manage($request, $connection, 'admin.landinvest.export', 'landinvest.export.');
+    }
+
+    private function manage(Request $request, Connection $connection, string $returnRoute, string $eventPrefix)
+    {
         abort_unless($request->isSecure() || app()->environment('local'), 400, 'HTTPS required.');
         $request->validate([
             'password' => ['required', 'current_password:web'],
             'operation' => ['required', 'in:generate,rotate,revoke,enable,disable'],
             'overlap' => ['nullable', 'boolean'],
         ]);
-        $issued = $connection->cache()->lock('landinvest-connection', 30)->block(5, function () use ($request, $connection) {
-            return DB::transaction(function () use ($request, $connection) {
+        $issued = $connection->cache()->lock($connection->lockName(), 30)->block(5, function () use ($request, $connection, $eventPrefix) {
+            return DB::transaction(function () use ($request, $connection, $eventPrefix) {
                 $state = $connection->state();
                 $operation = $request->string('operation')->toString();
                 $secret = null;
@@ -44,8 +54,8 @@ class ConnectionController
                 $connection->save($state);
                 AuditLog::create([
                     'actor_type' => 'admin', 'actor_user_id' => $request->user('web')->id,
-                    'event' => 'landinvest.'.$operation, 'auditable_type' => AppSetting::class,
-                    'auditable_id' => AppSetting::query()->where('key', Connection::SETTING)->value('id'),
+                    'event' => $eventPrefix.$operation, 'auditable_type' => AppSetting::class,
+                    'auditable_id' => AppSetting::query()->where('key', $connection::SETTING)->value('id'),
                     'after_values' => ['enabled' => $state['enabled'] ?? false, 'key_id' => $state['current']['id'] ?? null],
                     'ip_address' => $request->ip(), 'created_at' => now(),
                 ]);
@@ -55,9 +65,9 @@ class ConnectionController
         if ($issued !== null) {
             // Direct response only: never flash a secret into a session or old input.
             return response()->view('admin.actions.landinvest-key', [
-                'secret' => $issued['secret'], 'keyId' => $issued['keyId'],
+                'secret' => $issued['secret'], 'keyId' => $issued['keyId'], 'returnRoute' => $returnRoute,
             ])->header('Cache-Control', 'no-store, private')->header('Referrer-Policy', 'no-referrer');
         }
-        return redirect()->route('admin.landinvest.import')->with('import_summary', 'Automatic update settings saved.');
+        return redirect()->route($returnRoute)->with('import_summary', 'Automatic update settings saved.');
     }
 }

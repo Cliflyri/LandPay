@@ -57,4 +57,22 @@ class LandInvestConnectionTest extends TestCase
         $this->assertCount(4, $audit);
         $this->assertStringNotContainsString($secret, $audit->toJson());
     }
+
+    public function test_export_key_settings_are_separate_and_disabled_until_enabled(): void
+    {
+        config(['cache.default' => 'file']);
+        $upload = new Connection;
+        $upload->save(['enabled' => false]);
+        $export = new \App\Integrations\LandInvest\ExportConnection;
+        $export->save(['enabled' => false]);
+        $this->actingAs(User::factory()->create(['password' => bcrypt('test-password')]), 'web');
+        $url = 'https://localhost/admin/actions/export-landinvest/connection';
+        $this->post($url, ['operation' => 'generate', 'password' => 'test-password'])->assertOk()
+            ->assertSee(route('admin.landinvest.export'));
+        $this->assertFalse($export->state()['enabled']);
+        $this->assertArrayHasKey('current', $export->state());
+        $this->post($url, ['operation' => 'enable', 'password' => 'test-password'])->assertRedirect(route('admin.landinvest.export'));
+        $this->assertTrue($export->state()['enabled']);
+        $this->assertSame(['enabled' => false], $upload->state());
+    }
 }

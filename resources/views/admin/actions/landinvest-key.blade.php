@@ -7,6 +7,6 @@
 <label class="form-label" for="key-id">Key ID</label><input id="key-id" class="form-control mb-3" readonly value="{{ $keyId }}">
 <label class="form-label" for="key-secret">Secret (select and copy)</label><input id="key-secret" class="form-control font-monospace mb-3" readonly autocomplete="off" value="{{ $secret }}">
 <p>Use the secret exactly as displayed. Do not decode it.</p>
-<a class="btn btn-brand" href="{{ route('admin.landinvest.import') }}">Done</a>
+<a class="btn btn-brand" href="{{ route($returnRoute ?? 'admin.landinvest.import') }}">Done</a>
 </div></section>
 @endsection

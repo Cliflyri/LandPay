@@ -43,6 +43,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 Route::post('/webhooks/landinvest/repayments', \App\Integrations\LandInvest\ReceiverController::class)->withoutMiddleware([\Illuminate\Cookie\Middleware\EncryptCookies::class, \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class, \Illuminate\Session\Middleware\StartSession::class, \Illuminate\View\Middleware\ShareErrorsFromSession::class, \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])->middleware('throttle:30,1')->name('landinvest.receive');
+Route::get('/webhooks/landinvest/export', \App\Integrations\LandInvest\ExportReceiverController::class)->withoutMiddleware([\Illuminate\Cookie\Middleware\EncryptCookies::class, \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class, \Illuminate\Session\Middleware\StartSession::class, \Illuminate\View\Middleware\ShareErrorsFromSession::class, \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])->middleware('throttle:30,1')->name('landinvest.fetch');
 Route::post('/webhooks/{provider}', ProviderWebhookController::class)->whereIn('provider', ['square', 'stripe'])->name('webhooks.provider');
 Route::post('/webhooks/twilio/messaging', \App\Http\Controllers\TwilioMessagingWebhookController::class)->middleware('throttle:60,1')->name('webhooks.twilio.messaging');
 
@@ -146,6 +147,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::post('actions/import-landinvest/connection', [\App\Integrations\LandInvest\ConnectionController::class, 'update'])->middleware('throttle:5,1')->name('landinvest.connection');
     Route::get('actions/import-landinvest', [\App\Integrations\LandInvest\ImportController::class, 'show'])->name('landinvest.import');
     Route::post('actions/import-landinvest', [\App\Integrations\LandInvest\ImportController::class, 'store'])->name('landinvest.import.store');
+    Route::post('actions/export-landinvest/connection', [\App\Integrations\LandInvest\ConnectionController::class, 'updateExport'])->middleware('throttle:5,1')->name('landinvest.export.connection');
     Route::get('actions/export-landinvest', \App\Integrations\LandInvest\ExportController::class)->name('landinvest.export');
     Route::get('take-payment', [\App\Http\Controllers\Admin\TakePaymentController::class, 'create'])->middleware('square.payment-csp')->name('take-payment.create');
     Route::post('take-payment', [\App\Http\Controllers\Admin\TakePaymentController::class, 'store'])->block(60, 10)->name('take-payment.store');
