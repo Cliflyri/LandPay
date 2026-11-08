@@ -10,7 +10,10 @@
 <p class="text-muted">Export generated: {{ $snapshot['generated_at'] }} · Imported: {{ $snapshot['imported_at'] ?? 'Unknown' }} (UTC) · Source: {{ ($snapshot['source'] ?? 'manual') === 'https' ? 'LandInvest HTTPS' : 'Manual import' }}</p>
 <p>{{ count($snapshot['properties']) }} properties. @foreach(array_count_values(array_column($snapshot['properties'], 'status')) as $status => $count) {{ str_replace('_', ' ', $status) }}: {{ $count }}. @endforeach</p>
 @endif
-<details class="mb-4"><summary>Automatic updates — {{ $connection['enabled'] ? 'Enabled' : 'Disabled' }}@if($connection['enabled']) - can auto <strong style="color: #198754;">push</strong> from LandInvest@endif</summary>
+<details class="mb-4"><summary>Automatic updates — {{ $connection['enabled'] ? 'Enabled' : 'Disabled' }}
+@if($connection['enabled']) - can auto <strong style="color: #198754;">push</strong> from LandInvest
+@endif
+</summary>
 <div class="mt-3">
 <p>Endpoint: <code>{{ secure_url('/webhooks/landinvest/repayments') }}</code></p>
 <p>Key ID: {{ $connection['key_id'] ?? 'Not configured' }} · Created: {{ $connection['created_at'] ?? 'Never' }}<br>

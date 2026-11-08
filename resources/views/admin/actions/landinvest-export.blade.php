@@ -5,7 +5,10 @@
 <section class="admin-section"><div class="container-fluid dashboard-container">
 <div class="admin-heading"><div><span class="eyebrow eyebrow-dark">Administration</span><h1>Export for LandInvest</h1><p>Copy the entire CSV and paste it into LandInvest's import action.</p></div></div>
 @if(session('import_summary'))<div class="alert alert-success">{{ session('import_summary') }}</div>@endif
-<details class="mb-4"><summary>HTTPS export access — {{ $connection['enabled'] ? 'Enabled' : 'Disabled' }}@if($connection['enabled']) - can auto <strong style="color: #b45309;">pull</strong> from LandInvest@endif</summary>
+<details class="mb-4"><summary>HTTPS export access — {{ $connection['enabled'] ? 'Enabled' : 'Disabled' }}
+@if($connection['enabled']) - can auto <strong style="color: #b45309;">pull</strong> from LandInvest
+@endif
+</summary>
 <div class="mt-3">
 <p>Endpoint: <code>{{ secure_url('/webhooks/landinvest/export') }}</code></p>
 <p>Key ID: {{ $connection['key_id'] ?? 'Not configured' }} · Created: {{ $connection['created_at'] ?? 'Never' }}<br>
