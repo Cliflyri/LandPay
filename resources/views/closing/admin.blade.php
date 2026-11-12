@@ -129,6 +129,7 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
     <details class="closing-step" @if($closing->paperwork_accepted_at) open @endif>
         <summary>3. Recording and Your Deed</summary><div class="closing-step-content">
         @include('closing.progress',['showUndo'=>true])
+        @include('closing.internal-notes')
         <h3>Recorded documents</h3>
         @include('closing.documents',['documentKind'=>'recorded'])
     </div></details>

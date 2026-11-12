@@ -38,3 +38,5 @@
 @media(max-width:640px){.closing-progress-admin{grid-template-columns:1fr}.closing-progress-admin .closing-progress-marker{min-height:0;border-top:0;border-left:4px solid #dbe3e7}.closing-progress-controls{padding:.6rem .8rem 1rem}}
 
 .closing-upload-zone{border:2px dashed #9aadb0;border-radius:.5rem;padding:1rem;background:#f8faf9}.closing-upload-zone:focus,.closing-upload-zone:focus-within,.closing-upload-zone.is-dragging{border-color:#173f40;background:#eef5f2}.closing-upload-zone:focus-visible{outline:2px solid #173f40;outline-offset:2px}.closing-upload-zone [data-upload-selection]{overflow-wrap:anywhere}
+
+.closing-internal-notes{border:1px solid #dbe3e7;border-left:3px solid #398251;border-radius:6px;padding:1rem;margin:.5rem 0 1.25rem;scroll-margin-top:2rem;background:#fafcfb}.closing-internal-note{border-top:1px solid #e3e9e5;margin-top:.85rem;padding-top:.65rem}.closing-internal-note p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.25rem 0 0}

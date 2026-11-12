@@ -31,6 +31,39 @@ class ClosingWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_internal_closing_notes_are_private_and_preserved_after_reopening(): void
+    {
+        Mail::fake();
+        $this->mock(SmsDeliveryService::class)->shouldNotReceive('send');
+        [$admin, , $plan, $account] = $this->records('INTERNALNOTES');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'completed', 'paperwork_accepted_at' => now(), 'recorded_on' => today()]);
+        $body = 'Final document delivery follow-up <script>alert(1)</script>';
+        $this->action($admin, $plan, 'add_closing_note', ['closing_note' => $body, 'notify_client' => 1])
+            ->assertSessionHasNoErrors()->assertRedirect(route('admin.plans.show', $plan).'#closing-internal-notes');
+        $note = $closing->events()->where('action', 'add_closing_note')->sole();
+        $this->assertSame($body, $note->context['body']);
+        $this->assertSame($admin->id, $note->user_id);
+        $this->assertSame('completed', $closing->fresh()->status);
+        $this->get(route('admin.plans.show', $plan))->assertOk()
+            ->assertSeeInOrder(['Internal closing notes', 'Final document delivery follow-up', 'Recorded documents'])
+            ->assertDontSee('<script>alert(1)</script>', false);
+        $this->action($admin, $plan, 'add_closing_note', ['closing_note' => '   '])->assertSessionHasErrors('closing_note');
+        $this->post(route('admin.closing.update', $plan), ['action' => 'add_closing_note', 'version' => 0, 'closing_note' => 'Stale'])
+            ->assertSessionHasErrors('closing');
+        $this->action($admin, $plan, 'reopen')->assertSessionHasNoErrors();
+        $this->assertSame(1, $closing->events()->where('action', 'add_closing_note')->count());
+        auth('web')->logout();
+        $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
+            ->assertDontSee('Internal closing notes')->assertDontSee('Final document delivery follow-up');
+        $this->post(route('portal.closing.update', $plan), ['action' => 'add_closing_note', 'version' => $closing->fresh()->version, 'closing_note' => 'Forbidden'])
+            ->assertSessionHasErrors('action');
+        $this->post(route('admin.closing.update', $plan), ['action' => 'add_closing_note', 'version' => $closing->fresh()->version, 'closing_note' => 'Forbidden'])
+            ->assertRedirect();
+        $this->assertSame(1, $closing->events()->where('action', 'add_closing_note')->count());
+        Mail::assertNothingSent();
+    }
+
     public function test_combined_submission_is_atomic_and_drafts_cannot_be_approved(): void
     {
         [$admin, , $plan, $account] = $this->records('COMBINED');

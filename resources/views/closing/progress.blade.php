@@ -18,6 +18,7 @@ $adminProgress = $showUndo ?? false;
         </div>
         @if($adminProgress)
         <div class="closing-progress-controls">
+            @if($index === 3)<a class="small d-inline-block mb-2" href="#closing-internal-notes">Closing notes</a>@endif
             @if($date)
             <form method="post" action="{{ route('admin.closing.update',$plan) }}"
                 onsubmit="return confirm('Undo this milestone and clear later recording milestones? Undoing paperwork acceptance also reopens client step 2. The history will be retained.');">
