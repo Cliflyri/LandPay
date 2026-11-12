@@ -3,6 +3,11 @@ $documentLabels = ['vesting'=>'Vesting reference PDF','signing'=>'Signing form',
 $documentsEditable = $documentKind !== 'signing' || (!$closing->submitted_on && $closing->status !== 'completed');
 @endphp
 @if($documentsEditable)
+@if($documentKind === 'recorded')
+<details class="mb-3" @if(old('kind') === 'recorded' && $errors->any()) open @endif>
+    <summary class="fw-semibold">Upload documents</summary>
+    <div class="mt-3">
+@endif
 <form method="post" enctype="multipart/form-data" action="{{ route('admin.closing.documents.upload',$plan) }}" class="mb-3">
     @csrf <input type="hidden" name="version" value="{{ $closing->version }}"><input type="hidden" name="kind" value="{{ $documentKind }}">
     @if($documentKind === 'signing')
@@ -24,6 +29,7 @@ $documentsEditable = $documentKind !== 'signing' || (!$closing->submitted_on && 
     @if($documentKind === 'signing')<p class="small">Uploading a new signing form replaces all previous signing forms. Upload the complete signing packet as one file.</p>@endif
     <button class="btn btn-outline-brand">Upload {{ strtolower($documentLabels[$documentKind]) }}</button>
 </form>
+@if($documentKind === 'recorded')</div></details>@endif
 @endif
 <h3>{{ $documentKind === 'signing' ? 'Review uploaded signing forms' : 'Uploaded documents' }}</h3>
 @forelse($closing->documents->where('kind',$documentKind) as $document)

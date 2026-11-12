@@ -39,9 +39,9 @@
 
 .closing-upload-zone{border:2px dashed #9aadb0;border-radius:.5rem;padding:1rem;background:#f8faf9}.closing-upload-zone:focus,.closing-upload-zone:focus-within,.closing-upload-zone.is-dragging{border-color:#173f40;background:#eef5f2}.closing-upload-zone:focus-visible{outline:2px solid #173f40;outline-offset:2px}.closing-upload-zone [data-upload-selection]{overflow-wrap:anywhere}
 
-.closing-internal-notes{border:1px solid #dbe3e7;border-left:3px solid #398251;border-radius:6px;padding:1rem;margin:.5rem 0 1.25rem;scroll-margin-top:2rem;background:#fafcfb}.closing-internal-note{border-top:1px solid #e3e9e5;margin-top:.85rem;padding-top:.65rem}.closing-internal-note p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.25rem 0 0}
+.closing-internal-notes{border:1px solid #dbe3e7;border-left:3px solid #398251;border-radius:6px;padding:1rem;margin:.5rem 0 1.25rem;scroll-margin-top:2rem;background:#fafcfb}.closing-internal-note{margin:.5rem 0}.closing-internal-note p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.25rem 0 0}
 
-.closing-note-editor>summary{cursor:pointer;color:#205d37;list-style:none}.closing-note-editor>summary::-webkit-details-marker{display:none}.closing-note-editor[open]+.closing-internal-note{display:none}
+.closing-note-editor>summary{cursor:pointer;color:#205d37;list-style:none}.closing-note-editor>summary::-webkit-details-marker{display:none}.closing-internal-notes:has(>.closing-note-editor[open])>.closing-internal-note{display:none}
 
 /* A quiet celebration for completed purchases. */
 .closing-celebration{position:relative;isolation:isolate;overflow:hidden;padding:clamp(1rem,2.5vw,1.5rem);border:1px solid #e1e8da;border-radius:12px;color:#173f40;background:radial-gradient(ellipse at top right,#fff0bf80,transparent 60%),linear-gradient(120deg,#edf3e7,#f4f6eb)}

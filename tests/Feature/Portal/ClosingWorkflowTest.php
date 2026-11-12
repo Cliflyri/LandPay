@@ -76,7 +76,7 @@ class ClosingWorkflowTest extends TestCase
         $this->assertSame($admin->id, $note->user_id);
         $this->assertSame('completed', $closing->fresh()->status);
         $this->get(route('admin.plans.show', $plan))->assertOk()
-            ->assertSeeInOrder(['Internal closing notes', 'Final document delivery follow-up', 'Recorded documents'])
+            ->assertSeeInOrder(['Internal closing notes', 'Final document delivery follow-up', 'Edit', 'Upload documents', 'Uploaded documents'])
             ->assertDontSee('<script>alert(1)</script>', false);
         $this->action($admin, $plan, 'save_closing_note', ['closing_note' => '   '])->assertSessionHasErrors('closing_note');
         $this->post(route('admin.closing.update', $plan), ['action' => 'save_closing_note', 'version' => 0, 'closing_note' => 'Stale'])

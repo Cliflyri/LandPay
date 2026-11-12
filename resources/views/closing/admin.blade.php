@@ -130,7 +130,6 @@ $labels = ['needed'=>'Action needed','draft'=>'Draft saved','submitted'=>'Awaiti
         <summary>3. Recording and Your Deed</summary><div class="closing-step-content">
         @include('closing.progress',['showUndo'=>true])
         @include('closing.internal-notes')
-        <h3>Recorded documents</h3>
         @include('closing.documents',['documentKind'=>'recorded'])
     </div></details>
     @include('closing.messages',['admin'=>true])

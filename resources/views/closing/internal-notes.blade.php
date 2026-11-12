@@ -8,7 +8,12 @@ $editingNote = !$noteBody || old('action') === 'save_closing_note';
         <h4 id="closing-notes-heading" class="h6 mb-0">Internal closing notes</h4>
         <span class="badge text-bg-light">Admin only</span>
     </div>
-    <p class="small text-muted mt-1 mb-2">Recording confirmed &mdash; final closing notes and follow-up. Not visible to clients or included in notifications.</p>
+    @if($noteBody)
+    <div class="closing-internal-note">
+        @if($note)<small class="text-muted">Updated by {{ $note->user?->name ?? 'Former admin' }} &middot; {{ $note->created_at->format('M j, Y g:i A') }}</small>@endif
+        <p>{{ $noteBody }}</p>
+    </div>
+    @endif
     <details class="closing-note-editor" @if($editingNote) open @endif>
         <summary class="small text-decoration-underline">{{ $noteBody ? 'Edit' : 'Add closing note' }}</summary>
         <form class="mt-2" method="post" action="{{ route('admin.closing.update', $plan) }}">
@@ -22,10 +27,5 @@ $editingNote = !$noteBody || old('action') === 'save_closing_note';
             <button class="btn btn-sm btn-outline-brand">Save closing note</button>
         </form>
     </details>
-    @if($noteBody)
-    <div class="closing-internal-note">
-        @if($note)<small class="text-muted">Updated by {{ $note->user?->name ?? 'Former admin' }} &middot; {{ $note->created_at->format('M j, Y g:i A') }}</small>@endif
-        <p>{{ $noteBody }}</p>
-    </div>
-    @endif
+
 </section>
