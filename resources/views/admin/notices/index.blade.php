@@ -33,6 +33,7 @@
         'secure_message_reply' => 'Secure message',
         'shared_document_uploaded' => 'Document',
         'improvement_updated' => 'Improvement',
+        'purchase_interest' => 'Another purchase',
         'closing_submission' => 'Closing paperwork',
         'client_contact_change','portal_invitation_accepted' => 'Account / portal',
         default => 'System',

@@ -31,6 +31,36 @@ class ClosingWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_completed_property_purchase_interest_is_private_and_sent_only_once(): void
+    {
+        [$admin, $client, $plan, $account] = $this->records('NEXTBUY');
+        [, , , $outsider] = $this->records('OTHERBUY');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'active', 'paperwork_accepted_at' => now()]);
+        $url = route('portal.closing.purchase-interest', $plan);
+        $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()->assertDontSee('Congratulations on your purchase!');
+        $this->post($url)->assertForbidden();
+        $closing->update(['status' => 'completed', 'recorded_on' => today()]);
+        $this->get(route('portal.dashboard'))->assertOk()->assertSee('Congratulations on your purchase!')->assertSee('current best deals');
+        $this->actingAs($outsider, 'client')->post($url)->assertNotFound();
+        $this->actingAs($account, 'client')->withSession(['portal_impersonation' => ['client_name' => 'Example']])
+            ->post($url)->assertForbidden();
+        session()->forget('portal_impersonation');
+        $this->post($url)->assertRedirect(route('portal.dashboard').'#closing-'.$plan->id);
+        $notice = \App\Models\AdminNotice::where('type', 'purchase_interest')->sole();
+        $this->assertSame($client->id, $notice->client_id);
+        $this->assertSame($plan->id, $notice->payment_plan_id);
+        $this->assertSame('Chris NEXTBUY would like information on another purchase.', $notice->message);
+        $notice->update(['dismissed_at' => now()]);
+        $this->post($url)->assertRedirect();
+        $this->assertSame(1, \App\Models\AdminNotice::where('type', 'purchase_interest')->count());
+        $this->get(route('portal.dashboard'))->assertOk()->assertSee("We've let our team know", false)->assertDontSee('current best deals');
+        $notice->update(['dismissed_at' => null]);
+        $this->actingAs($admin, 'web')->get(route('admin.dashboard'))->assertOk()
+            ->assertSee('would like information on another purchase.')
+            ->assertSee(route('admin.clients.show', $client), false)->assertSee($plan->title);
+    }
+
     public function test_internal_closing_notes_are_private_and_preserved_after_reopening(): void
     {
         Mail::fake();

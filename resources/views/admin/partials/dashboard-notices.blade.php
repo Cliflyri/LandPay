@@ -9,6 +9,9 @@
             @endif
             @if($notice->type === 'billing_automation_failure')
                 @include('shared.billing-failure-notice')
+            @elseif($notice->type === 'purchase_interest' && $notice->client && $notice->paymentPlan)
+                <p class="mb-0"><a href="{{ route('admin.clients.show', $notice->client) }}">{{ $notice->client->organization_name ?: trim($notice->client->first_name.' '.$notice->client->last_name) }}</a> would like information on another purchase.</p>
+                <p class="small mb-0">Completed property: <a href="{{ route('admin.plans.show', $notice->paymentPlan) }}">{{ $notice->paymentPlan->plan_number }} &middot; {{ $notice->paymentPlan->title }}</a></p>
             @elseif($notice->type === 'payment_plan_automatically_resumed' && $notice->paymentPlan && preg_match('/ automatically resumed effective (.+?)\. (.+)$/s', $notice->message, $resumeParts))
                 @php($resumeClient = $notice->client ?? $notice->paymentPlan->memberships()->where('role', 'primary')->whereNull('effective_to')->whereDate('effective_from', '<=', today())->first()?->client)
                 <p class="mb-0">@if($resumeClient)<a href="{{route('admin.clients.show',$resumeClient)}}">{{$resumeClient->organization_name ?: trim($resumeClient->first_name.' '.$resumeClient->last_name)}}</a> plan @else Plan @endif<a href="{{route('admin.plans.show',$notice->paymentPlan)}}">{{$notice->paymentPlan->plan_number}}</a> automatically resumed effective {{$resumeParts[1]}}.<br>{{ $resumeParts[2] }}</p>

@@ -79,6 +79,7 @@ Route::prefix('portal')->name('portal.')->middleware('guest:client')->group(func
 
 Route::prefix('portal')->name('portal.')->middleware(['auth:client', 'portal.enabled', 'portal.read-only'])->group(function (): void {
     Route::get('plans/{plan}/closing/documents/{document}', [\App\Http\Controllers\ClosingController::class, 'download'])->name('closing.documents.download');
+    Route::post('plans/{plan}/closing/purchase-interest', [\App\Http\Controllers\ClosingController::class, 'purchaseInterest'])->middleware('throttle:10,1')->name('closing.purchase-interest');
     Route::post('plans/{plan}/closing/messages', [\App\Http\Controllers\ClosingController::class, 'message'])->middleware('throttle:10,1')->name('closing.messages');
     Route::post('plans/{plan}/closing', [\App\Http\Controllers\ClosingController::class, 'client'])->middleware('throttle:20,1')->name('closing.update');
     Route::get('plans/{plan}/property/photos/{photo}', [\App\Http\Controllers\PropertyDetailsController::class, 'photo'])->name('property.photo');

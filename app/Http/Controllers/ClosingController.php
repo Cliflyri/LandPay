@@ -211,6 +211,28 @@ class ClosingController extends Controller
             'Approve paperwork details and resolve additional paperwork and fees first.');
     }
 
+    public function purchaseInterest(Request $request, PaymentPlan $plan)
+    {
+        $closing = $this->authorizeClient($request, $plan);
+        $client = $request->user('client')->client;
+        DB::transaction(function () use ($closing, $client, $plan) {
+            $closing = PlanClosing::whereKey($closing->id)->lockForUpdate()->firstOrFail();
+            abort_unless($closing->status === 'completed' && $closing->recorded_on, 403);
+            if ($closing->events()->where('action', 'purchase_interest')->where('client_id', $client->id)->exists()) {
+                return;
+            }
+            $name = $client->organization_name ?: trim($client->first_name.' '.$client->last_name);
+            AdminNotice::create([
+                'type' => 'purchase_interest', 'client_id' => $client->id, 'payment_plan_id' => $plan->id,
+                'title' => 'Interested in another purchase',
+                'message' => $name.' would like information on another purchase.',
+            ]);
+            $this->workflow->log($closing, 'purchase_interest', [], null, $client->id);
+        });
+
+        return redirect()->to(route('portal.dashboard').'#closing-'.$plan->id);
+    }
+
     public function client(Request $request, PaymentPlan $plan)
     {
         $closing = $this->authorizeClient($request, $plan, true);
