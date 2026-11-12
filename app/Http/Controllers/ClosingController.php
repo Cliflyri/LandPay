@@ -43,12 +43,12 @@ class ClosingController extends Controller
     public function admin(Request $request, PaymentPlan $plan)
     {
         $data = $request->validate([
-            'action' => ['required', Rule::in(['save', 'start', 'resume', 'disable', 'review_paperwork', 'review_details', 'review_extras', 'review_forms', 'release', 'ready', 'submit', 'complete', 'reopen', 'use_default_vesting', 'reopen_step', 'undo_progress', 'add_closing_note'])],
+            'action' => ['required', Rule::in(['save', 'start', 'resume', 'disable', 'review_paperwork', 'review_details', 'review_extras', 'review_forms', 'release', 'ready', 'submit', 'complete', 'reopen', 'use_default_vesting', 'reopen_step', 'undo_progress', 'add_closing_note', 'save_closing_note'])],
             'version' => ['required', 'integer', 'min:0'],
             'section' => ['required_if:action,reopen_step', Rule::in(['paperwork', 'details', 'extras', 'forms'])],
             'milestone' => ['required_if:action,undo_progress', Rule::in(['paperwork', 'ready', 'submitted', 'recorded'])],
             'reopen_instruction' => ['nullable', 'string', 'max:3000'],
-            'closing_note' => ['required_if:action,add_closing_note', 'nullable', 'string', 'max:10000'],
+            'closing_note' => ['required_if:action,add_closing_note,save_closing_note', 'nullable', 'string', 'max:10000'],
             'admin_notes' => ['nullable', 'string', 'max:10000'],
             'vesting_notes' => ['nullable', 'string', 'max:10000'],
             'instructions_text' => ['sometimes', 'required', 'string', 'max:10000'],
@@ -83,7 +83,7 @@ class ClosingController extends Controller
                 $context['client_instructions'] = $closing->details['reopen_steps'] ?? [];
             } elseif ($action === 'use_default_vesting') {
                 $context = app(VestingGuideService::class)->assign($closing);
-            } elseif ($action === 'add_closing_note') {
+            } elseif (in_array($action, ['add_closing_note', 'save_closing_note'], true)) {
                 $context = ['body' => trim($data['closing_note'])];
             } elseif ($action === 'save') {
                 foreach (['admin_notes', 'vesting_notes'] as $field) {
@@ -201,7 +201,7 @@ class ClosingController extends Controller
             $message .= " {$sent} notification(s) sent.".($failed ? ' Some deliveries failed; review closing history.' : '');
         }
 
-        return redirect()->to(route('admin.plans.show', $plan).($data['action'] === 'add_closing_note' ? '#closing-internal-notes' : '#closing'))->with('success', $message);
+        return redirect()->to(route('admin.plans.show', $plan).(in_array($data['action'], ['add_closing_note', 'save_closing_note'], true) ? '#closing-internal-notes' : '#closing'))->with('success', $message);
     }
 
     private function requireReviewed(PlanClosing $closing): void

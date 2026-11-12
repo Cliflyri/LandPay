@@ -39,28 +39,38 @@ class ClosingWorkflowTest extends TestCase
         $closing = app(ClosingWorkflowService::class)->closing($plan);
         $closing->update(['status' => 'completed', 'paperwork_accepted_at' => now(), 'recorded_on' => today()]);
         $body = 'Final document delivery follow-up <script>alert(1)</script>';
-        $this->action($admin, $plan, 'add_closing_note', ['closing_note' => $body, 'notify_client' => 1])
+        $this->action($admin, $plan, 'save_closing_note', ['closing_note' => $body, 'notify_client' => 1])
             ->assertSessionHasNoErrors()->assertRedirect(route('admin.plans.show', $plan).'#closing-internal-notes');
-        $note = $closing->events()->where('action', 'add_closing_note')->sole();
+        $note = $closing->events()->where('action', 'save_closing_note')->sole();
         $this->assertSame($body, $note->context['body']);
         $this->assertSame($admin->id, $note->user_id);
         $this->assertSame('completed', $closing->fresh()->status);
         $this->get(route('admin.plans.show', $plan))->assertOk()
             ->assertSeeInOrder(['Internal closing notes', 'Final document delivery follow-up', 'Recorded documents'])
             ->assertDontSee('<script>alert(1)</script>', false);
-        $this->action($admin, $plan, 'add_closing_note', ['closing_note' => '   '])->assertSessionHasErrors('closing_note');
-        $this->post(route('admin.closing.update', $plan), ['action' => 'add_closing_note', 'version' => 0, 'closing_note' => 'Stale'])
+        $this->action($admin, $plan, 'save_closing_note', ['closing_note' => '   '])->assertSessionHasErrors('closing_note');
+        $this->post(route('admin.closing.update', $plan), ['action' => 'save_closing_note', 'version' => 0, 'closing_note' => 'Stale'])
             ->assertSessionHasErrors('closing');
+        $updated = $body.' Delivery confirmed.';
+        $this->action($admin, $plan, 'save_closing_note', ['closing_note' => $updated])->assertSessionHasNoErrors();
+        $response = $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Delivery confirmed.');
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($dom);
+        $this->assertSame(0, $xpath->query('//details[@class="closing-note-editor"]/@open')->length);
+        $this->assertSame('Edit', trim($xpath->query('//details[@class="closing-note-editor"]/summary')->item(0)->textContent));
+        $this->assertSame($updated, $xpath->query('//textarea[@name="closing_note"]')->item(0)->textContent);
+        $this->assertSame(1, $xpath->query('//section[@id="closing-internal-notes"]/div[@class="closing-internal-note"]')->length);
         $this->action($admin, $plan, 'reopen')->assertSessionHasNoErrors();
-        $this->assertSame(1, $closing->events()->where('action', 'add_closing_note')->count());
+        $this->assertSame(2, $closing->events()->where('action', 'save_closing_note')->count());
         auth('web')->logout();
         $this->actingAs($account, 'client')->get(route('portal.dashboard'))->assertOk()
             ->assertDontSee('Internal closing notes')->assertDontSee('Final document delivery follow-up');
-        $this->post(route('portal.closing.update', $plan), ['action' => 'add_closing_note', 'version' => $closing->fresh()->version, 'closing_note' => 'Forbidden'])
+        $this->post(route('portal.closing.update', $plan), ['action' => 'save_closing_note', 'version' => $closing->fresh()->version, 'closing_note' => 'Forbidden'])
             ->assertSessionHasErrors('action');
-        $this->post(route('admin.closing.update', $plan), ['action' => 'add_closing_note', 'version' => $closing->fresh()->version, 'closing_note' => 'Forbidden'])
+        $this->post(route('admin.closing.update', $plan), ['action' => 'save_closing_note', 'version' => $closing->fresh()->version, 'closing_note' => 'Forbidden'])
             ->assertRedirect();
-        $this->assertSame(1, $closing->events()->where('action', 'add_closing_note')->count());
+        $this->assertSame(2, $closing->events()->where('action', 'save_closing_note')->count());
         Mail::assertNothingSent();
     }
 
