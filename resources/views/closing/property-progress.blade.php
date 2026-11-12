@@ -13,8 +13,9 @@
             <div class="closing-celebration-content">
             <div class="closing-celebration-heading">
                 <svg class="closing-celebration-sun" viewBox="0 0 48 32" fill="none" aria-hidden="true" focusable="false">
-                    <path d="M3 29h42M24 3v13M12 6l6 12M4 15l12 7M36 6l-6 12M44 15l-12 7M7 8l10 12M41 8L31 20" />
-                    <path d="M16 29a8 8 0 0 1 16 0" fill="currentColor" stroke="none" />
+                    <path d="M38.49 24.12L46.22 22.05 M35.49 18.36L41.62 13.22 M30.34 14.41L33.72 7.15 M24.00 13.00L24.00 5.00 M17.66 14.41L14.28 7.15 M12.51 18.36L6.38 13.22 M9.51 24.12L1.78 22.05" />
+                    <path d="M14 28a10 10 0 0 1 20 0Z" fill="currentColor" stroke="none" />
+                    <path d="M3 29h42" />
                 </svg>
                 <strong>Congratulations on your purchase!</strong>
             </div>
