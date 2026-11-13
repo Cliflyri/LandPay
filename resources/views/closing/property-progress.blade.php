@@ -7,8 +7,8 @@
         @include('closing.progress',['closing'=>$summary['plan']->closing,'compact'=>true,'showUndo'=>false])
         @if($summary['plan']->closing->status === 'completed' && $summary['plan']->closing->recorded_on)
         <div class="closing-celebration mt-3 mb-2">
-            <svg class="closing-celebration-hills" viewBox="0 0 600 100" fill="none" aria-hidden="true" focusable="false">
-                <path d="M0 100 Q100 45 230 80 T600 65 M150 100 Q310 10 440 65 T600 85 M340 100 Q490 0 600 35" />
+            <svg class="closing-celebration-hills" viewBox="0 0 900 140" preserveAspectRatio="none" fill="none" aria-hidden="true" focusable="false">
+                <path d="M0 140 C120 140 165 92 270 100 S425 155 550 123 S740 48 900 112 M260 100 C360 58 390 38 485 65 S610 110 700 57 S830 8 900 30 M330 140 C470 145 565 112 655 102 S800 105 900 126" />
             </svg>
             <div class="closing-celebration-content">
             <div class="closing-celebration-heading">
@@ -22,7 +22,7 @@
             @if($summary['plan']->closing->events()->where('action', 'purchase_interest')->where('client_id', auth('client')->user()->client_id)->exists())
                 <p class="mb-0 mt-1" role="status">Thanks! We've let our team know you're interested.</p>
             @else
-                <p class="small mt-2 mb-3">The only thing better than completing a purchase is finding your next opportunity. Let us know you're interested, and we'll contact you with our current best deals.</p>
+                <p class="closing-celebration-copy mt-2 mb-3">The only thing better than completing a purchase is finding your next opportunity. Let us know you're interested, and we'll contact you with our current best deals.</p>
                 <form method="post" action="{{ route('portal.closing.purchase-interest', $summary['plan']) }}">
                     @csrf
                     <button class="btn btn-sm btn-brand closing-celebration-button">I'm interested in another property</button>

@@ -46,10 +46,11 @@
 /* A quiet celebration for completed purchases. */
 .closing-celebration{position:relative;isolation:isolate;overflow:hidden;padding:clamp(1rem,2.5vw,1.5rem);border:1px solid #e1e8da;border-radius:12px;color:#173f40;background:radial-gradient(ellipse at top right,#fff0bf80,transparent 60%),linear-gradient(120deg,#edf3e7,#f4f6eb)}
 .closing-celebration-content{position:relative;z-index:1}
-.closing-celebration-heading{display:flex;align-items:center;gap:.7rem;font-size:clamp(1rem,2vw,1.2rem);line-height:1.35}
+.closing-celebration-copy{font-size:clamp(1rem,1.5vw,1.125rem);line-height:1.6;max-width:65ch}
+.closing-celebration-heading{display:flex;align-items:center;gap:.7rem;font-size:clamp(1.15rem,2vw,1.45rem);line-height:1.35}
 .closing-celebration-sun{width:38px;height:28px;flex:none;color:#c39730;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-.closing-celebration-hills{position:absolute;right:0;bottom:0;width:55%;height:90px;opacity:.28;pointer-events:none;stroke:#87a773;stroke-width:1.2}
+.closing-celebration-hills{position:absolute;right:0;bottom:0;width:70%;height:110px;opacity:.38;pointer-events:none;stroke:#91ac7b;stroke-width:1.6}
 .closing-celebration .closing-celebration-button{background:#173f40;border-color:#173f40;color:#fff;white-space:normal}
 .closing-celebration .closing-celebration-button:hover{background:#245655;border-color:#245655;color:#fff}
 .closing-celebration .closing-celebration-button:focus-visible{outline:3px solid #9b731e;outline-offset:3px}
-@media(max-width:640px){.closing-celebration-hills{width:75%;height:65px;opacity:.18}.closing-celebration-sun{width:30px;height:24px}}
+@media(max-width:640px){.closing-celebration-hills{width:100%;height:65px;opacity:.22}.closing-celebration-sun{width:30px;height:24px}}
