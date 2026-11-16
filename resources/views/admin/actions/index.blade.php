@@ -22,8 +22,16 @@
 </div></div>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Secure client message</h3><p>Send a secure message to a client.</p><a class='btn btn-outline-brand' href={{route('admin.messages.create')}}>Compose message</a></div></div>
 <div class='col-md-6'><div class='admin-next-card h-100'><h3>Admin Reminders</h3><p>Create and manage monthly operational reminders. {{$adminReminderCounts['due']}} due &middot; {{$adminReminderCounts['active']}} active.</p><a class='btn btn-outline-brand' href={{route('admin.reminders.index')}}>Manage reminders</a> &nbsp;&nbsp;&nbsp;  (email must be enabled in settings)</div></div>
-<div class="col-md-6"><div class="admin-next-card h-100"><h3>Export for LandInvest</h3><p>Copy a complete CSV snapshot of plan statuses and primary client names for LandInvest.</p><a class="btn btn-outline-brand" href="{{ route('admin.landinvest.export') }}">Export for LandInvest</a></div></div>
-<div class="col-md-6"><div class="admin-next-card h-100"><h3>Import from LandInvest</h3><p>Import property repayment status from landinvest for display on dashboard and plan pages</p><a class="btn btn-outline-brand" href="{{ route('admin.landinvest.import') }}">Import from LandInvest</a></div></div>
+<div class="col-md-6"><div class="admin-next-card h-100"><h3>Export for LandInvest</h3>
+@if($landInvestExportEnabled)
+<div class="mb-3"><span class="badge rounded-pill" style="color: #b45309; background-color: #fff7ed; border: 1px solid currentColor; white-space: normal; text-align: left; font-weight: 400;">HTTPS export enabled &middot; Auto <strong>pull</strong> from LandInvest</span></div>
+@endif
+<p>Copy a complete CSV snapshot of plan statuses and primary client names for LandInvest.</p><a class="btn btn-outline-brand" href="{{ route('admin.landinvest.export') }}">Export for LandInvest</a></div></div>
+<div class="col-md-6"><div class="admin-next-card h-100"><h3>Import from LandInvest</h3>
+@if($landInvestImportEnabled)
+<div class="mb-3"><span class="badge rounded-pill" style="color: #198754; background-color: #eaf6ef; border: 1px solid currentColor; white-space: normal; text-align: left; font-weight: 400;">Automatic updates enabled &middot; Auto <strong>push</strong> from LandInvest</span></div>
+@endif
+<p>Import property repayment status from landinvest for display on dashboard and plan pages</p><a class="btn btn-outline-brand" href="{{ route('admin.landinvest.import') }}">Import from LandInvest</a></div></div>
 </div>
 <h2 class='h4 mt-4'>Review and maintain</h2><div class='admin-next-card'><div class='d-flex flex-wrap gap-3'>
 <a href={{route('admin.property-tax-batches.index',['status'=>'draft'])}}><strong>{{$taxCounts['draft']}}</strong> draft property-tax batches</a>
