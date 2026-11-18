@@ -1,19 +1,24 @@
 @if($closingFollowUps->isNotEmpty())
-<section class="border rounded p-2 mb-3" aria-label="Closing follow-up">
-    <h2 class="h6 mb-1">Closing follow-up</h2>
+<section class="admin-next-card h-auto p-3 mb-4" aria-label="Closing follow-up">
+    <div class="d-flex align-items-center gap-3 mb-2"><h2 class="h5 my-0">Closing follow-up</h2><span class="dashboard-status status-due">{{ $closingFollowUps->count() }} open</span></div>
     @foreach($closingFollowUps as $followUp)
-    <div class="d-flex flex-wrap align-items-center gap-2 py-1 small">
-        <a href="{{ route('admin.plans.show', $followUp->paymentPlan) }}#closing">Plan {{ $followUp->paymentPlan->plan_number }}</a>
+    <div class="amendment-entry d-flex flex-wrap justify-content-between align-items-center gap-2 py-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+        <a class="fw-bold" href="{{ route('admin.plans.show', $followUp->paymentPlan) }}#closing">Plan {{ $followUp->paymentPlan->plan_number }}</a>
         <span class="badge rounded-pill {{ $followUp->recorded_on || $followUp->ready_on ? 'text-bg-success' : '' }}" @if(!$followUp->ready_on && !$followUp->recorded_on) style="color:#624b08;background:#fff5d9;border:1px solid #b58715" @endif>
             {{ $followUp->recorded_on ? 'Recording confirmed' : ($followUp->submitted_on ? 'Submitted to county' : ($followUp->ready_on ? 'Ready for recording' : 'Ready for recording · Pending')) }}
         </span>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0">
+        <a class="btn btn-sm btn-brand" href="{{ route('admin.plans.show', $followUp->paymentPlan) }}#closing">Open closing</a>
         @if($followUp->status === 'completed' && $followUp->recorded_on)
-        <form method="post" action="{{ route('admin.closing.dismiss', $followUp->paymentPlan) }}" class="ms-auto">
+        <form method="post" action="{{ route('admin.closing.dismiss', $followUp->paymentPlan) }}" class="m-0">
             @csrf
             <input type="hidden" name="recording_follow_up" value="1">
-            <button class="btn btn-link btn-sm p-0" aria-label="Dismiss recording notice for plan {{ $followUp->paymentPlan->plan_number }}">Dismiss</button>
+            <button class="btn btn-sm btn-outline-brand" aria-label="Dismiss recording notice for plan {{ $followUp->paymentPlan->plan_number }}">Dismiss</button>
         </form>
         @endif
+        </div>
     </div>
     @endforeach
 </section>
