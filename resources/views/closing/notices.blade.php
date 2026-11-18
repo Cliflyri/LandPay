@@ -24,7 +24,7 @@
             @if($stepDate) style="color:#205d37;background:#edf7f0;border:1px solid #a8cdb4" @else style="{{ $stepIndex === $pendingStep ? 'color:#624b08;background:#fff5d9;border:1px solid #b58715' : 'color:#59636b;background:#edf0f2;border:1px solid #cbd1d6' }}" @endif
             title="{{ $stepLabel }} · {{ $stepDate ? 'Done' : ($stepIndex === $pendingStep ? 'Pending' : 'Upcoming') }}"
             @if(!$stepDate && $stepIndex === $pendingStep) aria-current="step" @endif>
-            <span aria-hidden="true">{{ $stepDate ? '✓' : ($stepIndex === $pendingStep ? '●' : '○') }}</span>
+            <span aria-hidden="true">{{ $stepDate ? '✓' : '○' }}</span>
             {{ $stepLabel }}<span class="visually-hidden"> · {{ $stepDate ? 'Done' : ($stepIndex === $pendingStep ? 'Pending' : 'Upcoming') }}</span>
         </span>
         @endforeach
