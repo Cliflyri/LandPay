@@ -15,13 +15,13 @@
             $pendingStep = collect($followUpSteps)->search(fn ($step) => !$step[1]);
         @endphp
         @if($followUpClient)
-        <a class="fw-bold" href="{{ route('admin.clients.show', $followUpClient) }}">{{ $followUpClient->organization_name ?: trim($followUpClient->first_name.' '.$followUpClient->last_name) }}</a>
+        <a class="fw-normal" href="{{ route('admin.clients.show', $followUpClient) }}">{{ $followUpClient->organization_name ?: trim($followUpClient->first_name.' '.$followUpClient->last_name) }}</a>
         <span aria-hidden="true">&middot;</span>
         @endif
-        <a class="fw-bold" href="{{ route('admin.plans.show', $followUp->paymentPlan) }}#closing">Plan {{ $followUp->paymentPlan->plan_number }}</a>
+        <a class="fw-normal" href="{{ route('admin.plans.show', $followUp->paymentPlan) }}#closing">Plan {{ $followUp->paymentPlan->plan_number }}</a>
         @foreach($followUpSteps as $stepIndex => [$stepLabel, $stepDate])
-        <span class="badge rounded-pill {{ $stepDate ? 'text-bg-success' : '' }}"
-            @if(!$stepDate) style="{{ $stepIndex === $pendingStep ? 'color:#624b08;background:#fff5d9;border:1px solid #b58715' : 'color:#59636b;background:#edf0f2;border:1px solid #cbd1d6' }}" @endif
+        <span class="badge rounded-pill"
+            @if($stepDate) style="color:#205d37;background:#edf7f0;border:1px solid #a8cdb4" @else style="{{ $stepIndex === $pendingStep ? 'color:#624b08;background:#fff5d9;border:1px solid #b58715' : 'color:#59636b;background:#edf0f2;border:1px solid #cbd1d6' }}" @endif
             title="{{ $stepLabel }} · {{ $stepDate ? 'Done' : ($stepIndex === $pendingStep ? 'Pending' : 'Upcoming') }}"
             @if(!$stepDate && $stepIndex === $pendingStep) aria-current="step" @endif>
             <span aria-hidden="true">{{ $stepDate ? '✓' : ($stepIndex === $pendingStep ? '●' : '○') }}</span>
