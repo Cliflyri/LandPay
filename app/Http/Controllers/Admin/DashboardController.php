@@ -67,6 +67,7 @@ class DashboardController extends Controller
         )->values());
 
         return view('admin.dashboard', [
+            'closingFollowUps' => app(\App\Services\ClosingWorkflowService::class)->followUpNotices(),
             'closingNotices' => app(\App\Services\ClosingWorkflowService::class)->notices($request->user()->id),
             'clientCount' => Client::query()->whereNull('archived_at')->count(),
             'planCount' => PaymentPlan::query()->whereIn('status', ['active', 'paused'])->count(),

@@ -31,6 +31,33 @@ class ClosingWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_recording_follow_up_persists_until_shared_dismissal_and_returns_after_reopening(): void
+    {
+        [$admin, , $plan] = $this->records('FOLLOWUP');
+        $workflow = app(ClosingWorkflowService::class);
+        $closing = $workflow->closing($plan);
+        $closing->update(['status' => 'active', 'eligible_at' => now(), 'paperwork_accepted_at' => now()]);
+        $this->assertTrue($workflow->followUpNotices()->contains('id', $closing->id));
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Closing follow-up')
+            ->assertSee('Ready for recording · Pending');
+        $dismiss = route('admin.closing.dismiss', $plan);
+        $this->post($dismiss, ['recording_follow_up' => 1])->assertStatus(422);
+        foreach (['ready_on' => 'Ready for recording', 'submitted_on' => 'Submitted to county'] as $field => $label) {
+            $closing->update([$field => today()]);
+            $this->get(route('admin.dashboard'))->assertOk()->assertSee($label);
+        }
+        $closing->update(['status' => 'completed', 'recorded_on' => today()]);
+        $this->get(route('admin.dashboard'))->assertOk()->assertSee('Recording confirmed');
+        $this->post($dismiss, ['recording_follow_up' => 1])->assertRedirect();
+        $this->assertFalse($workflow->followUpNotices()->contains('id', $closing->id));
+        $this->actingAs(User::factory()->create())->get(route('admin.dashboard'))->assertOk()->assertDontSee('Closing follow-up');
+        $this->action($admin, $plan, 'undo_progress', ['milestone' => 'recorded'])->assertSessionHasNoErrors();
+        $this->assertTrue($workflow->followUpNotices()->contains('id', $closing->id));
+        $this->assertArrayNotHasKey('recording_notice_dismissed_at', $closing->fresh()->details);
+        $closing->refresh()->update(['status' => 'completed', 'recorded_on' => today()]);
+        $this->assertTrue($workflow->followUpNotices()->contains('id', $closing->id));
+    }
+
     public function test_completed_property_purchase_interest_is_private_and_sent_only_once(): void
     {
         [$admin, $client, $plan, $account] = $this->records('NEXTBUY');

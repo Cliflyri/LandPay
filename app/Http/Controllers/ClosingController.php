@@ -30,8 +30,23 @@ class ClosingController extends Controller
 
     public function dismiss(Request $request, PaymentPlan $plan)
     {
+        if ($request->boolean('recording_follow_up')) {
+            DB::transaction(function () use ($request, $plan) {
+                $closing = PlanClosing::where('payment_plan_id', $plan->id)->lockForUpdate()->firstOrFail();
+                abort_unless($closing->status === 'completed' && $closing->recorded_on, 422);
+                $details = $closing->details ?? [];
+                $details['recording_notice_dismissed_at'] = now()->toIso8601String();
+                $closing->details = $details;
+                $closing->version++;
+                $closing->save();
+                $this->workflow->log($closing, 'recording_notice_dismissed', [], $request->user()->id);
+            });
+
+            return back()->with('success', 'Recording notice dismissed for all admins.');
+        }
         $closing = $plan->closing;
         abort_unless($closing?->eligible_at, 404);
+        abort_if($closing->compactProgress(), 422);
         DB::table('closing_notice_dismissals')->insertOrIgnore([
             'plan_closing_id' => $closing->id, 'user_id' => $request->user()->id,
             'created_at' => now(), 'updated_at' => now(),
@@ -186,6 +201,11 @@ class ClosingController extends Controller
                     $closing->fill(['status' => 'completed', 'recording_reference' => $data['recording_reference'] ?? null]);
                 }
                 $context += ['date' => $date, 'reference' => $data['recording_reference'] ?? null];
+            }
+            if ($closing->status !== 'completed') {
+                $details = $closing->details ?? [];
+                unset($details['recording_notice_dismissed_at']);
+                $closing->details = $details;
             }
             $closing->version++;
             $closing->save();

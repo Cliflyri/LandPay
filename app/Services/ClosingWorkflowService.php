@@ -48,6 +48,15 @@ class ClosingWorkflowService
             ->orderBy('eligible_at')->get();
     }
 
+    public function followUpNotices()
+    {
+        return PlanClosing::with('paymentPlan')->whereHas('paymentPlan')
+            ->whereIn('status', ['active', 'completed'])->whereNotNull('paperwork_accepted_at')
+            ->orderBy('paperwork_accepted_at')->get()
+            ->filter(fn (PlanClosing $closing) => $closing->status !== 'completed'
+                || empty($closing->details['recording_notice_dismissed_at']));
+    }
+
     public function log(PlanClosing $closing, string $action, array $context = [], ?int $userId = null, ?int $clientId = null): void
     {
         $closing->events()->create(['action' => $action, 'context' => $context, 'user_id' => $userId, 'client_id' => $clientId]);
