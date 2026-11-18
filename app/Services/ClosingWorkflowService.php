@@ -50,7 +50,7 @@ class ClosingWorkflowService
 
     public function followUpNotices()
     {
-        return PlanClosing::with('paymentPlan')->whereHas('paymentPlan')
+        return PlanClosing::with('paymentPlan.memberships.client')->whereHas('paymentPlan')
             ->whereIn('status', ['active', 'completed'])->whereNotNull('paperwork_accepted_at')
             ->orderBy('paperwork_accepted_at')->get()
             ->filter(fn (PlanClosing $closing) => $closing->status !== 'completed'
