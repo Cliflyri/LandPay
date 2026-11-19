@@ -31,6 +31,53 @@ class ClosingWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_mark_plan_closed_preserves_history_and_dismisses_follow_up(): void
+    {
+        [$admin, , $plan] = $this->records('CLOSEPLAN');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $closing->update(['status' => 'completed', 'paperwork_accepted_at' => now(), 'recorded_on' => today()]);
+        $terms = $plan->billingTerms()->count();
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Mark plan closed');
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Recording confirmed and balances settled.');
+        $this->post(route('admin.plans.close', $plan), ['closure_notes' => 'Recorded and delivered.'])->assertSessionHasNoErrors();
+        $plan->refresh();
+        $this->assertSame('closed', $plan->status);
+        $this->assertNotNull($plan->closed_at);
+        $this->assertSame($admin->id, $plan->updated_by_user_id);
+        $this->assertSame('Recorded and delivered.', $plan->closure_notes);
+        $this->assertSame($terms, $plan->billingTerms()->count());
+        $this->assertSame(0, app(FinancialBalanceService::class)->contractBalance($plan));
+        $this->assertTrue($closing->fresh()->events()->where('action', 'plan_closed')->where('user_id', $admin->id)->exists());
+        $this->assertFalse(app(ClosingWorkflowService::class)->followUpNotices()->contains('id', $closing->id));
+        $this->assertFalse(PaymentPlan::forAdminListing()->whereKey($plan->id)->exists());
+        $this->assertTrue(PaymentPlan::forAdminListing('closed')->whereKey($plan->id)->exists());
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertDontSee('Mark plan closed');
+        $this->post(route('admin.plans.close', $plan))->assertSessionHasErrors('closing');
+    }
+
+    public function test_mark_plan_closed_rechecks_recording_balances_and_status(): void
+    {
+        [$admin, , $plan] = $this->records('CLOSECHECK');
+        $closing = app(ClosingWorkflowService::class)->closing($plan);
+        $this->actingAs($admin)->post(route('admin.plans.close', $plan))->assertSessionHasErrors('closing');
+        $closing->update(['status' => 'completed', 'recorded_on' => today()]);
+        $plan->update(['status' => 'terminated']);
+        $this->post(route('admin.plans.close', $plan))->assertSessionHasErrors('closing');
+        $plan->update(['status' => 'paused']);
+        $invoice = $this->extraInvoice($admin, $plan);
+        $this->get(route('admin.plans.show', $plan))->assertOk()->assertSee('Settle the outstanding balances')->assertSee($invoice->invoice_number);
+        $this->post(route('admin.plans.close', $plan))->assertSessionHasErrors('closing');
+        $this->assertSame('paused', $plan->fresh()->status);
+        [$otherAdmin, , $unpaid] = $this->records('CLOSEUNPAID', false);
+        app(ClosingWorkflowService::class)->closing($unpaid)->update(['status' => 'completed', 'recorded_on' => today()]);
+        $this->actingAs($otherAdmin)->post(route('admin.plans.close', $unpaid))->assertSessionHasErrors('closing');
+        [$pausedAdmin, , $paused] = $this->records('CLOSEPAUSED');
+        $paused->update(['status' => 'paused']);
+        app(ClosingWorkflowService::class)->closing($paused)->update(['status' => 'completed', 'recorded_on' => today()]);
+        $this->actingAs($pausedAdmin)->post(route('admin.plans.close', $paused))->assertSessionHasNoErrors();
+        $this->assertSame('closed', $paused->fresh()->status);
+    }
+
     public function test_recording_follow_up_persists_until_shared_dismissal_and_returns_after_reopening(): void
     {
         [$admin, , $plan] = $this->records('FOLLOWUP');

@@ -28,6 +28,33 @@ class ClosingController extends Controller
         return $closing;
     }
 
+    public function closePlan(Request $request, PaymentPlan $plan)
+    {
+        $data = $request->validate(['closure_notes' => ['nullable', 'string', 'max:2000']]);
+        DB::transaction(function () use ($request, $plan, $data) {
+            $lockedPlan = PaymentPlan::whereKey($plan->id)->lockForUpdate()->firstOrFail();
+            $closing = PlanClosing::where('payment_plan_id', $plan->id)->lockForUpdate()->first();
+            $lockedPlan->setRelation('closing', $closing);
+            $balances = $this->workflow->balances($lockedPlan);
+            $this->workflow->require($this->workflow->canClosePlan($lockedPlan, $balances['contract'], $balances['outstanding']),
+                'The plan must be active or paused, recording must be confirmed, and contract and invoice balances must be settled before closing.');
+            $before = $lockedPlan->only(['status', 'closed_at', 'closure_notes']);
+            $lockedPlan->update(['status' => 'closed', 'closed_at' => now(),
+                'closure_notes' => filled($data['closure_notes'] ?? null) ? trim($data['closure_notes']) : $lockedPlan->closure_notes,
+                'updated_by_user_id' => $request->user()->id]);
+            $details = $closing->details ?? [];
+            $details['recording_notice_dismissed_at'] = now()->toIso8601String();
+            $closing->details = $details;
+            $closing->version++;
+            $closing->save();
+            $this->workflow->log($closing, 'plan_closed', [
+                'before' => $before, 'after' => $lockedPlan->only(['status', 'closed_at', 'closure_notes']),
+            ], $request->user()->id);
+        }, 3);
+
+        return back()->with('success', 'Plan closed. All history and documents remain available under Closed plans.');
+    }
+
     public function dismiss(Request $request, PaymentPlan $plan)
     {
         if ($request->boolean('recording_follow_up')) {

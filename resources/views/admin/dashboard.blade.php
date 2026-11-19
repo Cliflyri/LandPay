@@ -92,6 +92,9 @@
                                 </button>
 
                                 <ul class="dropdown-menu dropdown-menu-start">
+                                    @if($row['can_close_plan'])
+                                    <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#close-plan-{{ $row['plan']->id }}">Mark plan closed</button></li>
+                                    @endif
                                     <li>
                                         <a class="dropdown-item" href="{{ route('admin.plans.show',$row['plan']) }}">
                                             View plan
@@ -388,6 +391,9 @@
 </section>
 
 @foreach($plans as $row)@if($row['balance_invoice'] && in_array($row['plan']->status, ['active','paused'], true))@include('admin.shared.pay-invoice-full-modal',['invoice'=>$row['balance_invoice'],'clientName'=>$row['client_name'],'returnTo'=>'dashboard'])@endif @endforeach
+@foreach($plans as $row)
+    @if($row['can_close_plan'])@include('admin.plans.partials.close-modal', ['closePlan' => $row['plan']])@endif
+@endforeach
 @include('admin.documents._preview')
 @endsection
 

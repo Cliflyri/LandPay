@@ -16,6 +16,13 @@ class ClosingWorkflowService
         return in_array($plan->status, ['active', 'paused'], true) && $this->balances->contractBalance($plan) <= 0;
     }
 
+    public function canClosePlan(PaymentPlan $plan, int $contractBalance, int $invoiceBalance): bool
+    {
+        return in_array($plan->status, ['active', 'paused'], true)
+            && $plan->closing?->status === 'completed' && (bool) $plan->closing->recorded_on
+            && $contractBalance <= 0 && $invoiceBalance <= 0;
+    }
+
     public function closing(PaymentPlan $plan): PlanClosing
     {
         return PlanClosing::firstOrCreate(['payment_plan_id' => $plan->id]);

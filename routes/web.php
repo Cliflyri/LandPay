@@ -126,6 +126,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth:web')->group(function (
     Route::get('plans/{plan}/closing/documents/{document}', [\App\Http\Controllers\ClosingController::class, 'download'])->name('closing.documents.download');
     Route::post('plans/{plan}/closing/messages', [\App\Http\Controllers\ClosingController::class, 'message'])->middleware('throttle:10,1')->name('closing.messages');
     Route::post('plans/{plan}/closing', [\App\Http\Controllers\ClosingController::class, 'admin'])->name('closing.update');
+    Route::post('plans/{plan}/close', [\App\Http\Controllers\ClosingController::class, 'closePlan'])->name('plans.close');
     Route::post('plans/{plan}/closing/dismiss', [\App\Http\Controllers\ClosingController::class, 'dismiss'])->name('closing.dismiss');
     Route::post('plans/{plan}/closing/documents', [\App\Http\Controllers\ClosingController::class, 'upload'])->name('closing.documents.upload');
     Route::delete('plans/{plan}/closing/documents/{document}', [\App\Http\Controllers\ClosingController::class, 'removeDocument'])->name('closing.documents.remove');

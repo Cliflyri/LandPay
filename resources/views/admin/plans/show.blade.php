@@ -3,6 +3,7 @@
 @section('body_class','admin-page')
 @section('content')
 @php
+$canClosePlan = app(\App\Services\ClosingWorkflowService::class)->canClosePlan($plan, $contractBalance, $openInvoiceBalance);
 $primaryMembership = $plan->memberships->firstWhere('role', 'primary');
 $primaryClient = $primaryMembership?->client;
 $primaryClientName = $primaryClient?->organization_name ?: trim(($primaryClient?->first_name ?? '').' '.($primaryClient?->last_name ?? ''));
@@ -77,6 +78,27 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
         <a class="btn btn-outline-brand" href="{{ route('admin.dashboard') }}">Back to dashboard</a>
     </div>
 </div>
+
+@if($canClosePlan)
+<div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 py-2">
+    <span>Recording confirmed and balances settled.</span>
+    <button class="btn btn-sm btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#close-plan-{{ $plan->id }}">Mark plan closed</button>
+</div>
+@include('admin.plans.partials.close-modal', ['closePlan' => $plan])
+@elseif(in_array($plan->status, ['active', 'paused'], true) && $plan->closing?->status === 'completed' && $plan->closing?->recorded_on)
+<div class="alert alert-warning py-2">
+    Recording confirmed. Settle the outstanding balances before closing this plan:
+    @if($contractBalance > 0)<a href="#plan-balances">Contract {{ \App\Support\Money::format($contractBalance) }}</a>@endif
+    @foreach($plan->invoices as $closingInvoice)
+        @php
+            $closingInvoiceBalance = app(\App\Services\FinancialBalanceService::class)->invoiceBalance($closingInvoice);
+        @endphp
+        @if($closingInvoiceBalance > 0)
+        <a class="ms-2" href="{{ route('admin.invoices.show', $closingInvoice) }}">{{ $closingInvoice->invoice_number }}: {{ \App\Support\Money::format($closingInvoiceBalance) }}</a>
+        @endif
+    @endforeach
+</div>
+@endif
 
 @php
     $remindersGloballyEnabled = \App\Models\AppSetting::valueFor('reminders_automated_enabled', '0') === '1';
@@ -166,7 +188,7 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
     </div>
 </div>
 @else<div class="row g-4 mt-3">
-    <div class="col-md-3"><article class="admin-summary-card"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
+    <div class="col-md-3"><article class="admin-summary-card" id="plan-balances"><span>Contract balance</span><strong>{{\App\Support\Money::format($contractBalance)}}</strong><span class="d-block text-muted fs-6">{{ $contractBalance <= 0 ? 'Paid off' : '('.\App\Support\Money::format($currentPayoff).' payoff)' }}</span></article></div>
     <div class="col-md-3"><article class="admin-summary-card">
         <span>Current Due</span>
         <strong class="{{ $openInvoiceBalance > 0 ? 'balance-due' : '' }}">{{ \App\Support\Money::format($openInvoiceBalance) }}</strong>

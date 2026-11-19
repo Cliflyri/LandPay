@@ -147,6 +147,8 @@ class DashboardController extends Controller
         $monthlyServiceFee = (int) ($plan->currentBillingTerms?->monthly_service_fee ?? $plan->monthly_service_fee ?? 0);
         $contractBalance = $this->balances->contractBalance($plan);
         return [
+            'can_close_plan' => app(\App\Services\ClosingWorkflowService::class)->canClosePlan(
+                $plan, $contractBalance, (int) $invoiceBalances->sum(fn ($amount) => max(0, $amount))),
             'plan' => $plan,
             'primary_client' => $primary?->client,
             'client_name' => $this->clientName($primary?->client),
