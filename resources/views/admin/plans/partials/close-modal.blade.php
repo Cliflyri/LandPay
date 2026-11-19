@@ -13,7 +13,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-brand">Mark closed</button>
+                <button class="btn btn-plan-close">Mark closed</button>
             </div>
         </form>
     </div></div>

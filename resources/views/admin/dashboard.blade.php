@@ -93,7 +93,7 @@
 
                                 <ul class="dropdown-menu dropdown-menu-start">
                                     @if($row['can_close_plan'])
-                                    <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#close-plan-{{ $row['plan']->id }}">Mark plan closed</button></li>
+                                    <li><button class="dropdown-item plan-close-menu-item" type="button" data-bs-toggle="modal" data-bs-target="#close-plan-{{ $row['plan']->id }}">Mark plan closed</button></li>
                                     @endif
                                     <li>
                                         <a class="dropdown-item" href="{{ route('admin.plans.show',$row['plan']) }}">

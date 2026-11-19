@@ -80,9 +80,9 @@ $nextPayableInvoice=$plan->invoices->filter(fn($candidate)=>in_array($plan->stat
 </div>
 
 @if($canClosePlan)
-<div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 py-2">
-    <span>Recording confirmed and balances settled.</span>
-    <button class="btn btn-sm btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#close-plan-{{ $plan->id }}">Mark plan closed</button>
+<div class="plan-close-callout d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div><strong class="d-block mb-1">Plan closing completed</strong><span>Recording confirmed and balances settled.</span></div>
+    <button class="btn btn-sm btn-plan-close" type="button" data-bs-toggle="modal" data-bs-target="#close-plan-{{ $plan->id }}">Mark plan closed</button>
 </div>
 @include('admin.plans.partials.close-modal', ['closePlan' => $plan])
 @elseif(in_array($plan->status, ['active', 'paused'], true) && $plan->closing?->status === 'completed' && $plan->closing?->recorded_on)

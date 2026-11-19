@@ -641,3 +641,9 @@ body.admin-layout .admin-section > .site-container {
 
 /* Reduce only the client dashboard's space below the navigation. */
 .portal-page .client-dashboard-section { padding-top: 2rem; }
+
+/* Completed-plan actions */
+.plan-close-callout { margin: 1rem .5rem; padding: 1rem 1.25rem; background: #fff8df; color: #594719; border: 1px solid #e7d69a; border-radius: .5rem; }
+.dropdown-item.plan-close-menu-item { background: #fff8df; color: #594719; font-weight: 700; }
+.dropdown-item.plan-close-menu-item:hover, .dropdown-item.plan-close-menu-item:focus { background: #f5e8b8; color: #40320f; }
+.btn-plan-close { --bs-btn-color: #fff; --bs-btn-bg: #52606d; --bs-btn-border-color: #52606d; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #3d4954; --bs-btn-hover-border-color: #3d4954; --bs-btn-active-color: #fff; --bs-btn-active-bg: #303b44; --bs-btn-active-border-color: #303b44; --bs-btn-focus-shadow-rgb: 82,96,109; }
